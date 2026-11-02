@@ -1,4 +1,4 @@
-# Settings and functions inventory Beta 1.32
+# Settings and functions inventory Beta 1.33
 
 This inventory links every declared parameter to its consumers. A static reference shows a connection, not proof of a physical result. The `PARAMETER_BOUNDARY_ENGINE` tests and the two full walks through the interface complete this trace.
 
@@ -33,8 +33,8 @@ This inventory links every declared parameter to its consumers. A static referen
 | yield | `pressureEnabled` — Reaction to pressure | boolean | true / true / true / false | src/director.lua:324, src/director.lua:330, src/lang_en.lua:131, src/tips_en.lua:33 |
 | yield | `pressureGap` — Pressure distance (m) | 5 to 30 | 15 / 15 / 15 / 15 | src/director.lua:324, src/director.lua:327, src/lang_en.lua:131, src/tips_en.lua:34 |
 | yield | `pressureTime` — Pressure duration (s) | 1 to 15 | 4 / 3 / 3 / 4 | src/director.lua:330, src/lang_en.lua:131, src/tips_en.lua:35 |
-| blue | `blueFlagEnabled` — Blue flags | boolean | false / true / true / true | src/director.lua:264, src/director.lua:886, src/engine.lua:40, src/lang_en.lua:132, src/panel.lua:18, src/tips_en.lua:37 |
-| blue | `blueFlagRange` — Blue flag range (m) | 50 to 400 | 150 / 200 / 200 / 150 | src/director.lua:296, src/director.lua:886, src/director.lua:894, src/engine.lua:40, src/lang_en.lua:132, src/panel.lua:27, src/tips_en.lua:38 |
+| blue | `blueFlagEnabled` — Blue flags | boolean | false / true / true / true | src/director.lua:264, src/director.lua:886, src/engine.lua:40, src/lang_en.lua:132, src/panel.lua:19, src/tips_en.lua:37 |
+| blue | `blueFlagRange` — Blue flag range (m) | 50 to 400 | 150 / 200 / 200 / 150 | src/director.lua:296, src/director.lua:886, src/director.lua:894, src/engine.lua:40, src/lang_en.lua:132, src/panel.lua:28, src/tips_en.lua:38 |
 | blue | `blueFlagSide` — Side under blue flag | auto, left, right | auto / auto / auto / auto | src/director.lua:80, src/lang_en.lua:132, src/tips_en.lua:39 |
 | flash | `flashMode` — Headlight flashes | never, lapped, always | always / always / always / lapped | src/director.lua:305, src/flash.lua:50, src/flash.lua:59, src/lang_en.lua:133, src/tips_en.lua:41 |
 | flash | `flashRange` — Flash range (m) | 40 to 250 | 200 / 200 / 200 / 150 | src/director.lua:283, src/director.lua:289, src/director.lua:321, src/director.lua:436, src/director.lua:440, src/engine.lua:641, src/engine.lua:642, src/flash.lua:58, src/lang_en.lua:133, src/tips_en.lua:42 |
@@ -113,7 +113,7 @@ This inventory links every declared parameter to its consumers. A static referen
 | accidents | `slowZoneKmh` — Double yellow: Slow Zone speed (km/h, 0 = delta time) | 0 to 150 | 0 / 0 / 0 / 0 | src/delta.lua:76, src/lang_en.lua:144, src/tips_en.lua:117 |
 | accidents | `yellowSpeedKmh` — Double yellow: fallback speed, unknown pace (km/h) | 30 to 200 | 50 / 50 / 50 / 50 | src/delta.lua:77, src/incidents.lua:433, src/lang_en.lua:144, src/tips_en.lua:115 |
 | accidents | `yellowHud` — AC native yellow flag on the HUD | boolean | false / false / false / false | src/incidents.lua:463, src/lang_en.lua:47, src/lang_en.lua:145, src/tips_en.lua:133 |
-| accidents | `flagPanel` — ACAdvancedIA flag panel while driving | boolean | true / true / true / true | src/lang_en.lua:145, src/panel.lua:132, src/tips_en.lua:134 |
+| accidents | `flagPanel` — ACAdvancedIA flag panel while driving | boolean | true / true / true / true | src/lang_en.lua:145, src/panel.lua:134, src/tips_en.lua:134 |
 | accidents | `yellowMessage` — On-screen incident messages | boolean | true / true / true / true | src/engine.lua:606, src/engine.lua:611, src/engine.lua:626, src/incidents.lua:69, src/incidents.lua:234, src/incidents.lua:244, src/incidents.lua:252, src/incidents.lua:260, src/incidents.lua:272, src/incidents.lua:279, src/incidents.lua:315, src/incidents.lua:333, src/incidents.lua:339, src/incidents.lua:349, src/incidents.lua:452, src/lang_en.lua:145, src/tips_en.lua:135 |
 | accidents | `deltaBeeps` — Delta: beeps | boolean | true / true / true / true | src/engine.lua:508, src/lang_en.lua:145, src/tips_en.lua:131 |
 | accidents | `playerPenalties` — Player penalties under flags | boolean | false / true / true / true | src/lang_en.lua:47, src/lang_en.lua:146, src/penalties.lua:77, src/penalties.lua:78, src/tips_en.lua:129 |
@@ -125,8 +125,8 @@ This inventory links every declared parameter to its consumers. A static referen
 | rules | `neutralization` — Neutralisation after a major incident | local, fcy, vsc, sc | local / local / local / local | src/engine.lua:58, src/incidents.lua:219, src/incidents.lua:343, src/lang_en.lua:147, src/tips_en.lua:138 |
 | rules | `majorIncidentTime` — Major incident: car stopped on track (s) | 5 to 60 | 15 / 15 / 15 / 15 | src/engine.lua:57, src/engine.lua:58, src/incidents.lua:179, src/incidents.lua:229, src/lang_en.lua:147, src/tips_en.lua:139 |
 | rules | `fcySpeedKmh` — FCY: fallback speed, unknown pace (km/h) | 40 to 150 | 80 / 80 / 80 / 80 | src/delta.lua:85, src/delta.lua:88, src/delta.lua:90, src/incidents.lua:346, src/incidents.lua:410, src/lang_en.lua:147, src/tips_en.lua:140 |
-| rules | `fcyDeltaPct` — FCY: reference time slower by (%) | 10 to 150 | 50 / 50 / 50 / 50 | src/delta.lua:88, src/delta.lua:90, src/incidents.lua:244, src/incidents.lua:410, src/lang_en.lua:147, src/panel.lua:153, src/tips_en.lua:141 |
-| rules | `vscDeltaPct` — VSC: reference time slower by (%) | 10 to 80 | 30 / 30 / 30 / 30 | src/delta.lua:85, src/incidents.lua:244, src/incidents.lua:410, src/lang_en.lua:147, src/panel.lua:152, src/tips_en.lua:142 |
+| rules | `fcyDeltaPct` — FCY: reference time slower by (%) | 10 to 150 | 50 / 50 / 50 / 50 | src/delta.lua:88, src/delta.lua:90, src/incidents.lua:244, src/incidents.lua:410, src/lang_en.lua:147, src/panel.lua:155, src/tips_en.lua:141 |
+| rules | `vscDeltaPct` — VSC: reference time slower by (%) | 10 to 80 | 30 / 30 / 30 / 30 | src/delta.lua:85, src/incidents.lua:244, src/incidents.lua:410, src/lang_en.lua:147, src/panel.lua:154, src/tips_en.lua:142 |
 | rules | `neutralizationHold` — Minimum neutralisation time (s) | 10 to 180 | 30 / 30 / 30 / 30 | src/incidents.lua:231, src/incidents.lua:254, src/incidents.lua:346, src/lang_en.lua:148, src/tips_en.lua:143 |
 | rules | `safetyCarSpeedKmh` — Safety Car speed (km/h) | 60 to 250 | 120 / 120 / 120 / 120 | src/delta.lua:145, src/incidents.lua:301, src/incidents.lua:363, src/incidents.lua:408, src/incidents.lua:411, src/lang_en.lua:148, src/tips_en.lua:144 |
 | rules | `safetyCarEscalation` — Safety Car if the incident escalates | boolean | false / true / true / true | src/engine.lua:51, src/incidents.lua:227, src/incidents.lua:228, src/lang_en.lua:148, src/tips_en.lua:145 |
@@ -150,7 +150,7 @@ This inventory links every declared parameter to its consumers. A static referen
 | rules | `overtakeMode` — Overtake Mode (F1 2026, within one second at detection) | boolean | false / false / false / false | src/director.lua:841, src/lang_en.lua:46, src/lang_en.lua:152, src/tips_en.lua:163 |
 | rules | `overtakeModeGap` — Overtake Mode: detection gap (s) | 0.3 to 2 | 1 / 1 / 1 / 1 | src/director.lua:843, src/lang_en.lua:152, src/tips_en.lua:164 |
 | rules | `overtakeModeBoostPct` — Overtake Mode: level gain (%) | 0 to 5 | 2 / 2 / 2 / 2 | src/director.lua:845, src/lang_en.lua:152, src/tips_en.lua:165 |
-| rules | `drsAssist` — Player DRS: beep and panel | boolean | true / true / true / true | src/engine.lua:370, src/engine.lua:572, src/engine.lua:634, src/lang_en.lua:46, src/lang_en.lua:153, src/panel.lua:106, src/panel.lua:138, src/tips_en.lua:126 |
+| rules | `drsAssist` — Player DRS: beep and panel | boolean | true / true / true / true | src/engine.lua:370, src/engine.lua:572, src/engine.lua:634, src/lang_en.lua:46, src/lang_en.lua:153, src/panel.lua:107, src/panel.lua:140, src/tips_en.lua:126 |
 | rules | `rulesDrs` — DRS: racing rules (rain, flags, start, Safety Car, red flag) | boolean | false / true / true / true | src/engine.lua:519, src/lang_en.lua:153, src/tips_en.lua:123 |
 | rules | `rulesDrsLaps` — DRS: leader laps before enabling (start, SC, red flag) | 0 to 5 | 1 / 1 / 1 / 1 | src/engine.lua:543, src/lang_en.lua:153, src/tips_en.lua:124 |
 | rules | `aiDrs` — AI DRS: opened in the zones | boolean | true / true / true / true | src/engine.lua:557, src/lang_en.lua:153, src/tips_en.lua:125 |
@@ -194,34 +194,37 @@ The section switches go through `C.on`/`C.effective` and are walked by the inter
 
 ## Functions examined
 
-List taken from the AST of the 34 active files, including local and anonymous functions. The review, fixes and limits are in AUDIT_V1.md. This list does not mean 100% branch coverage.
+List taken from the AST of the 36 active files, including local and anonymous functions. The review, fixes and limits are in AUDIT_V1.md. This list does not mean 100% branch coverage.
 
 | File | Line | Function |
 |---|---|---|
-| ACAdvancedIA.lua | 41 | `announce` |
-| ACAdvancedIA.lua | 48 | `dirty` |
-| ACAdvancedIA.lua | 56 | `(anonymous)` |
-| ACAdvancedIA.lua | 67 | `writeJournal` |
-| ACAdvancedIA.lua | 86 | `cancelProbe` |
-| ACAdvancedIA.lua | 95 | `syncRestored` |
-| ACAdvancedIA.lua | 105 | `anyOwned` |
-| ACAdvancedIA.lua | 110 | `step` |
-| ACAdvancedIA.lua | 116 | `stop` |
-| ACAdvancedIA.lua | 122 | `saveRace` |
-| ACAdvancedIA.lua | 128 | `release` |
-| ACAdvancedIA.lua | 140 | `(anonymous)` |
-| ACAdvancedIA.lua | 158 | `session` |
-| ACAdvancedIA.lua | 163 | `update` |
-| ACAdvancedIA.lua | 183 | `(anonymous)` |
-| ACAdvancedIA.lua | 184 | `(anonymous)` |
-| ACAdvancedIA.lua | 279 | `protect` |
-| ACAdvancedIA.lua | 288 | `script.HUMANAI__UPDATE` |
-| ACAdvancedIA.lua | 299 | `script.update` |
-| ACAdvancedIA.lua | 300 | `script.HUMANAI__MENU` |
-| ACAdvancedIA.lua | 303 | `protectUI` |
-| ACAdvancedIA.lua | 311 | `script.HUMANAI__MAIN` |
-| ACAdvancedIA.lua | 321 | `script.HUMANAI__FLAGS` |
-| ACAdvancedIA.lua | 323 | `script.HUMANAI__HUD` |
+| ACAdvancedIA.lua | 43 | `announce` |
+| ACAdvancedIA.lua | 50 | `dirty` |
+| ACAdvancedIA.lua | 58 | `(anonymous)` |
+| ACAdvancedIA.lua | 69 | `writeJournal` |
+| ACAdvancedIA.lua | 88 | `cancelProbe` |
+| ACAdvancedIA.lua | 97 | `syncRestored` |
+| ACAdvancedIA.lua | 107 | `anyOwned` |
+| ACAdvancedIA.lua | 112 | `step` |
+| ACAdvancedIA.lua | 118 | `stop` |
+| ACAdvancedIA.lua | 124 | `saveRace` |
+| ACAdvancedIA.lua | 130 | `release` |
+| ACAdvancedIA.lua | 143 | `updateLog` |
+| ACAdvancedIA.lua | 147 | `(anonymous)` |
+| ACAdvancedIA.lua | 157 | `(anonymous)` |
+| ACAdvancedIA.lua | 175 | `session` |
+| ACAdvancedIA.lua | 180 | `update` |
+| ACAdvancedIA.lua | 200 | `(anonymous)` |
+| ACAdvancedIA.lua | 201 | `(anonymous)` |
+| ACAdvancedIA.lua | 298 | `updateTick` |
+| ACAdvancedIA.lua | 311 | `protect` |
+| ACAdvancedIA.lua | 320 | `script.HUMANAI__UPDATE` |
+| ACAdvancedIA.lua | 334 | `script.update` |
+| ACAdvancedIA.lua | 335 | `script.HUMANAI__MENU` |
+| ACAdvancedIA.lua | 338 | `protectUI` |
+| ACAdvancedIA.lua | 346 | `script.HUMANAI__MAIN` |
+| ACAdvancedIA.lua | 358 | `script.HUMANAI__FLAGS` |
+| ACAdvancedIA.lua | 360 | `script.HUMANAI__HUD` |
 | src/applier.lua | 14 | `note` |
 | src/applier.lua | 17 | `callable` |
 | src/applier.lua | 25 | `initClock` |
@@ -333,39 +336,39 @@ List taken from the AST of the 34 active files, including local and anonymous fu
 | src/config.lua | 72 | `n` |
 | src/config.lua | 73 | `b` |
 | src/config.lua | 74 | `e` |
-| src/config.lua | 324 | `M.defaults` |
-| src/config.lua | 333 | `M.sectionsChanged` |
-| src/config.lua | 340 | `M.anySection` |
-| src/config.lua | 344 | `choice` |
-| src/config.lua | 345 | `M.patterns` |
-| src/config.lua | 355 | `M.validate` |
-| src/config.lua | 383 | `M.validateGlobals` |
-| src/config.lua | 402 | `M.preset` |
-| src/config.lua | 414 | `M.on` |
-| src/config.lua | 415 | `M.any` |
-| src/config.lua | 420 | `M.effective` |
-| src/config.lua | 451 | `M.effectiveGlobals` |
-| src/config.lua | 458 | `M.needsOffset` |
-| src/config.lua | 461 | `equal` |
-| src/config.lua | 477 | `M.legacyMatch` |
-| src/config.lua | 502 | `M.upgradeObstacles` |
-| src/config.lua | 513 | `M.migrateProfile` |
-| src/config.lua | 569 | `M.migrate` |
-| src/config.lua | 633 | `M.kept` |
-| src/config.lua | 634 | `ruleValue` |
-| src/config.lua | 635 | `M.restore` |
-| src/config.lua | 644 | `applyValues` |
-| src/config.lua | 648 | `M.weekendSwitch` |
-| src/config.lua | 657 | `M.applyRules` |
-| src/config.lua | 672 | `M.spreadRules` |
-| src/config.lua | 686 | `M.mark` |
-| src/config.lua | 690 | `M.setMark` |
-| src/config.lua | 696 | `M.withRules` |
-| src/config.lua | 707 | `category13` |
-| src/config.lua | 721 | `M.migrateRules` |
-| src/config.lua | 731 | `M.closestRuleCategory` |
-| src/config.lua | 740 | `M.ruleCategory` |
-| src/config.lua | 752 | `M.autoProfile` |
+| src/config.lua | 327 | `M.defaults` |
+| src/config.lua | 336 | `M.sectionsChanged` |
+| src/config.lua | 343 | `M.anySection` |
+| src/config.lua | 347 | `choice` |
+| src/config.lua | 348 | `M.patterns` |
+| src/config.lua | 358 | `M.validate` |
+| src/config.lua | 386 | `M.validateGlobals` |
+| src/config.lua | 405 | `M.preset` |
+| src/config.lua | 417 | `M.on` |
+| src/config.lua | 418 | `M.any` |
+| src/config.lua | 423 | `M.effective` |
+| src/config.lua | 454 | `M.effectiveGlobals` |
+| src/config.lua | 461 | `M.needsOffset` |
+| src/config.lua | 464 | `equal` |
+| src/config.lua | 480 | `M.legacyMatch` |
+| src/config.lua | 505 | `M.upgradeObstacles` |
+| src/config.lua | 516 | `M.migrateProfile` |
+| src/config.lua | 572 | `M.migrate` |
+| src/config.lua | 636 | `M.kept` |
+| src/config.lua | 637 | `ruleValue` |
+| src/config.lua | 638 | `M.restore` |
+| src/config.lua | 647 | `applyValues` |
+| src/config.lua | 651 | `M.weekendSwitch` |
+| src/config.lua | 660 | `M.applyRules` |
+| src/config.lua | 675 | `M.spreadRules` |
+| src/config.lua | 689 | `M.mark` |
+| src/config.lua | 693 | `M.setMark` |
+| src/config.lua | 699 | `M.withRules` |
+| src/config.lua | 710 | `category13` |
+| src/config.lua | 724 | `M.migrateRules` |
+| src/config.lua | 734 | `M.closestRuleCategory` |
+| src/config.lua | 743 | `M.ruleCategory` |
+| src/config.lua | 755 | `M.autoProfile` |
 | src/delta.lua | 10 | `accumulator` |
 | src/delta.lua | 11 | `M.new` |
 | src/delta.lua | 17 | `M.reset` |
@@ -499,16 +502,16 @@ List taken from the AST of the 34 active files, including local and anonymous fu
 | src/mistakes.lua | 20 | `M.rebase` |
 | src/mistakes.lua | 32 | `risk` |
 | src/mistakes.lua | 43 | `M.update` |
-| src/panel.lua | 12 | `M.new` |
-| src/panel.lua | 17 | `blue` |
-| src/panel.lua | 38 | `native` |
-| src/panel.lua | 62 | `show` |
-| src/panel.lua | 98 | `M.native` |
-| src/panel.lua | 113 | `M.visible` |
-| src/panel.lua | 119 | `M.infractions` |
-| src/panel.lua | 127 | `M.warn` |
-| src/panel.lua | 129 | `M.notice` |
-| src/panel.lua | 131 | `M.update` |
+| src/panel.lua | 13 | `M.new` |
+| src/panel.lua | 18 | `blue` |
+| src/panel.lua | 39 | `native` |
+| src/panel.lua | 63 | `show` |
+| src/panel.lua | 99 | `M.native` |
+| src/panel.lua | 115 | `M.visible` |
+| src/panel.lua | 121 | `M.infractions` |
+| src/panel.lua | 129 | `M.warn` |
+| src/panel.lua | 131 | `M.notice` |
+| src/panel.lua | 133 | `M.update` |
 | src/penalties.lua | 9 | `M.new` |
 | src/penalties.lua | 15 | `clear` |
 | src/penalties.lua | 18 | `grant` |
@@ -558,6 +561,39 @@ List taken from the AST of the 34 active files, including local and anonymous fu
 | src/presets.lua | 71 | `M.capture` |
 | src/presets.lua | 77 | `M.encode` |
 | src/presets.lua | 83 | `M.apply` |
+| src/remote.lua | 8 | `callable` |
+| src/remote.lua | 9 | `folder` |
+| src/remote.lua | 16 | `hex` |
+| src/remote.lua | 19 | `(anonymous)` |
+| src/remote.lua | 23 | `files` |
+| src/remote.lua | 24 | `(anonymous)` |
+| src/remote.lua | 33 | `lib` |
+| src/remote.lua | 36 | `M.new` |
+| src/remote.lua | 47 | `exists` |
+| src/remote.lua | 48 | `load` |
+| src/remote.lua | 49 | `save` |
+| src/remote.lua | 50 | `delete` |
+| src/remote.lua | 51 | `p.get` |
+| src/remote.lua | 53 | `(anonymous)` |
+| src/remote.lua | 58 | `p.json` |
+| src/remote.lua | 59 | `p.sha256` |
+| src/remote.lua | 60 | `p.entries` |
+| src/remote.lua | 61 | `p.entry` |
+| src/remote.lua | 62 | `p.previous` |
+| src/remote.lua | 63 | `p.installedVersion` |
+| src/remote.lua | 64 | `p.marker` |
+| src/remote.lua | 65 | `p.mark` |
+| src/remote.lua | 66 | `p.unmark` |
+| src/remote.lua | 67 | `p.done` |
+| src/remote.lua | 68 | `p.takeDone` |
+| src/remote.lua | 69 | `p.open` |
+| src/remote.lua | 71 | `p.backup` |
+| src/remote.lua | 79 | `(anonymous)` |
+| src/remote.lua | 88 | `clear` |
+| src/remote.lua | 93 | `place` |
+| src/remote.lua | 111 | `p.extract` |
+| src/remote.lua | 120 | `(anonymous)` |
+| src/remote.lua | 127 | `p.restart` |
 | src/snapshot.lua | 4 | `hexByte` |
 | src/snapshot.lua | 6 | `collidedWith` |
 | src/snapshot.lua | 9 | `damageRead` |
@@ -592,78 +628,115 @@ List taken from the AST of the 34 active files, including local and anonymous fu
 | src/traffic.lua | 69 | `(anonymous)` |
 | src/traffic.lua | 126 | `M.exits` |
 | src/traffic.lua | 179 | `M.update` |
-| src/ui.lua | 20 | `wrap` |
-| src/ui.lua | 22 | `number` |
-| src/ui.lua | 26 | `shown` |
-| src/ui.lua | 31 | `wrapAll` |
-| src/ui.lua | 32 | `globalTips` |
-| src/ui.lua | 50 | `ruleView` |
-| src/ui.lua | 53 | `texts` |
-| src/ui.lua | 69 | `same` |
-| src/ui.lua | 69 | `(anonymous)` |
-| src/ui.lua | 71 | `(anonymous)` |
-| src/ui.lua | 77 | `M.new` |
-| src/ui.lua | 101 | `text` |
-| src/ui.lua | 104 | `mark` |
-| src/ui.lua | 106 | `touch` |
-| src/ui.lua | 109 | `presetTarget` |
-| src/ui.lua | 118 | `loadBuiltin` |
-| src/ui.lua | 132 | `builtinActive` |
-| src/ui.lua | 147 | `carDatabase` |
-| src/ui.lua | 164 | `input` |
-| src/ui.lua | 171 | `heading` |
-| src/ui.lua | 173 | `valueText` |
-| src/ui.lua | 179 | `settingControl` |
-| src/ui.lua | 208 | `ruleBlock` |
-| src/ui.lua | 227 | `safetyBlock` |
-| src/ui.lua | 262 | `patternBlock` |
-| src/ui.lua | 305 | `globalBlock` |
-| src/ui.lua | 341 | `statusLines` |
-| src/ui.lua | 377 | `switches` |
-| src/ui.lua | 385 | `overlayBlock` |
-| src/ui.lua | 439 | `resetSection` |
-| src/ui.lua | 452 | `sectionContent` |
-| src/ui.lua | 458 | `flush` |
-| src/ui.lua | 497 | `language` |
-| src/ui.lua | 504 | `headerBar` |
-| src/ui.lua | 534 | `profileButtons` |
-| src/ui.lua | 545 | `homeTab` |
-| src/ui.lua | 653 | `sectionPane` |
-| src/ui.lua | 667 | `settingsTab` |
-| src/ui.lua | 700 | `ruleRow` |
-| src/ui.lua | 715 | `rulesTab` |
-| src/ui.lua | 766 | `diagnosticTab` |
-| src/ui.lua | 878 | `M.compactSize` |
-| src/ui.lua | 879 | `M.main` |
-| src/ui.lua | 912 | `faded` |
-| src/ui.lua | 913 | `panelPalette` |
-| src/ui.lua | 938 | `write` |
-| src/ui.lua | 943 | `textWidth` |
-| src/ui.lua | 948 | `fitSize` |
-| src/ui.lua | 955 | `M.flagLayout` |
-| src/ui.lua | 988 | `drsBadge` |
-| src/ui.lua | 995 | `checker` |
-| src/ui.lua | 999 | `diagonal` |
-| src/ui.lua | 1005 | `meatball` |
-| src/ui.lua | 1011 | `stripes` |
-| src/ui.lua | 1016 | `deltaText` |
-| src/ui.lua | 1026 | `deltaBox` |
-| src/ui.lua | 1039 | `pillsWidth` |
-| src/ui.lua | 1041 | `pillRow` |
-| src/ui.lua | 1058 | `pill` |
-| src/ui.lua | 1065 | `giveBackText` |
-| src/ui.lua | 1069 | `blueText` |
-| src/ui.lua | 1078 | `M.overlayParts` |
-| src/ui.lua | 1097 | `M.overlayHeight` |
-| src/ui.lua | 1106 | `strong` |
-| src/ui.lua | 1112 | `sessionStrip` |
-| src/ui.lua | 1135 | `M.flags` |
-| src/ui.lua | 1231 | `nativeBox` |
-| src/ui.lua | 1235 | `M.restoreNative` |
-| src/ui.lua | 1236 | `screenSize` |
-| src/ui.lua | 1239 | `hudContent` |
-| src/ui.lua | 1274 | `M.hud` |
-| src/ui.lua | 1289 | `(anonymous)` |
+| src/ui.lua | 21 | `wrap` |
+| src/ui.lua | 23 | `number` |
+| src/ui.lua | 27 | `shown` |
+| src/ui.lua | 32 | `wrapAll` |
+| src/ui.lua | 33 | `globalTips` |
+| src/ui.lua | 51 | `ruleView` |
+| src/ui.lua | 54 | `texts` |
+| src/ui.lua | 70 | `same` |
+| src/ui.lua | 70 | `(anonymous)` |
+| src/ui.lua | 72 | `(anonymous)` |
+| src/ui.lua | 78 | `M.new` |
+| src/ui.lua | 102 | `text` |
+| src/ui.lua | 105 | `mark` |
+| src/ui.lua | 107 | `touch` |
+| src/ui.lua | 110 | `presetTarget` |
+| src/ui.lua | 119 | `loadBuiltin` |
+| src/ui.lua | 133 | `builtinActive` |
+| src/ui.lua | 148 | `carDatabase` |
+| src/ui.lua | 165 | `input` |
+| src/ui.lua | 172 | `heading` |
+| src/ui.lua | 174 | `valueText` |
+| src/ui.lua | 180 | `settingControl` |
+| src/ui.lua | 209 | `ruleBlock` |
+| src/ui.lua | 228 | `safetyBlock` |
+| src/ui.lua | 263 | `patternBlock` |
+| src/ui.lua | 306 | `globalBlock` |
+| src/ui.lua | 342 | `statusLines` |
+| src/ui.lua | 378 | `switches` |
+| src/ui.lua | 386 | `overlayBlock` |
+| src/ui.lua | 440 | `resetSection` |
+| src/ui.lua | 453 | `sectionContent` |
+| src/ui.lua | 459 | `flush` |
+| src/ui.lua | 498 | `language` |
+| src/ui.lua | 507 | `updateAct` |
+| src/ui.lua | 516 | `megabytes` |
+| src/ui.lua | 518 | `updateText` |
+| src/ui.lua | 537 | `updateBlock` |
+| src/ui.lua | 579 | `headerBar` |
+| src/ui.lua | 618 | `profileButtons` |
+| src/ui.lua | 629 | `homeTab` |
+| src/ui.lua | 750 | `sectionPane` |
+| src/ui.lua | 764 | `settingsTab` |
+| src/ui.lua | 797 | `ruleRow` |
+| src/ui.lua | 812 | `rulesTab` |
+| src/ui.lua | 863 | `diagnosticTab` |
+| src/ui.lua | 976 | `M.recovery` |
+| src/ui.lua | 982 | `M.compactSize` |
+| src/ui.lua | 983 | `M.main` |
+| src/ui.lua | 1016 | `faded` |
+| src/ui.lua | 1017 | `panelPalette` |
+| src/ui.lua | 1042 | `write` |
+| src/ui.lua | 1047 | `textWidth` |
+| src/ui.lua | 1052 | `fitSize` |
+| src/ui.lua | 1059 | `M.flagLayout` |
+| src/ui.lua | 1092 | `drsBadge` |
+| src/ui.lua | 1099 | `checker` |
+| src/ui.lua | 1103 | `diagonal` |
+| src/ui.lua | 1109 | `meatball` |
+| src/ui.lua | 1115 | `stripes` |
+| src/ui.lua | 1120 | `deltaText` |
+| src/ui.lua | 1130 | `deltaBox` |
+| src/ui.lua | 1143 | `pillsWidth` |
+| src/ui.lua | 1145 | `pillRow` |
+| src/ui.lua | 1162 | `pill` |
+| src/ui.lua | 1169 | `giveBackText` |
+| src/ui.lua | 1173 | `blueText` |
+| src/ui.lua | 1182 | `M.overlayParts` |
+| src/ui.lua | 1201 | `M.overlayHeight` |
+| src/ui.lua | 1210 | `strong` |
+| src/ui.lua | 1216 | `sessionStrip` |
+| src/ui.lua | 1239 | `M.flags` |
+| src/ui.lua | 1335 | `nativeBox` |
+| src/ui.lua | 1339 | `M.restoreNative` |
+| src/ui.lua | 1340 | `screenSize` |
+| src/ui.lua | 1343 | `hudContent` |
+| src/ui.lua | 1378 | `M.hud` |
+| src/ui.lua | 1393 | `(anonymous)` |
+| src/update.lua | 23 | `M.version` |
+| src/update.lua | 30 | `M.label` |
+| src/update.lua | 32 | `M.newer` |
+| src/update.lua | 38 | `str` |
+| src/update.lua | 39 | `starts` |
+| src/update.lua | 41 | `M.notes` |
+| src/update.lua | 55 | `M.release` |
+| src/update.lua | 77 | `M.digest` |
+| src/update.lua | 85 | `M.content` |
+| src/update.lua | 96 | `M.manifestVersion` |
+| src/update.lua | 101 | `M.stopped` |
+| src/update.lua | 103 | `M.new` |
+| src/update.lua | 108 | `event` |
+| src/update.lua | 114 | `M.take` |
+| src/update.lua | 120 | `M.busy` |
+| src/update.lua | 123 | `fail` |
+| src/update.lua | 128 | `parse` |
+| src/update.lua | 136 | `M.start` |
+| src/update.lua | 150 | `(anonymous)` |
+| src/update.lua | 165 | `M.check` |
+| src/update.lua | 168 | `(anonymous)` |
+| src/update.lua | 181 | `M.cancel` |
+| src/update.lua | 183 | `M.install` |
+| src/update.lua | 189 | `(anonymous)` |
+| src/update.lua | 193 | `(anonymous)` |
+| src/update.lua | 201 | `(anonymous)` |
+| src/update.lua | 207 | `(anonymous)` |
+| src/update.lua | 211 | `(anonymous)` |
+| src/update.lua | 227 | `M.rollback` |
+| src/update.lua | 234 | `(anonymous)` |
+| src/update.lua | 249 | `M.view` |
+| src/update.lua | 265 | `M.offered` |
 | src/util.lua | 4 | `M.finite` |
 | src/util.lua | 5 | `M.clamp` |
 | src/util.lua | 6 | `M.number` |

@@ -22,6 +22,10 @@ def main():
     with zipfile.ZipFile(output) as archive:
         assert archive.testzip() is None
         assert not any('_vendor' in name or '/tests/' in name or '/docs/' in name for name in archive.namelist())
+        # Beta 1.33 : jamais la sauvegarde locale de la mise à jour ; toujours le module de mise à jour (une version
+        # sans lui ne pourrait plus se mettre à jour, l'app la refuse).
+        assert not any(name.startswith('apps/lua/ACAdvancedIA/backup/') for name in archive.namelist())
+        for name in ('manifest.ini','ACAdvancedIA.lua','src/update.lua','src/remote.lua'): assert 'apps/lua/ACAdvancedIA/'+name in archive.namelist(), name
     digest=hashlib.sha256(output.read_bytes()).hexdigest()
     output.with_suffix('.sha256').write_text(digest+'  '+output.name+'\n',encoding='ascii')
     print(f'{output.name}: {len(files)} files, {output.stat().st_size} bytes, SHA256 {digest}')

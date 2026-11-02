@@ -5247,4 +5247,6 @@ tests.PLAYER_FINAL_WARNING_132=function()
  assert(warned and not early,'final warning after the last tolerated infraction only')
  assert(e.penalties.disqualified and not e.panel.warnPending and e.panel.warnUntil==-math.huge,'dropped once disqualified')
 end
+-- Beta 1.33 : mise à jour depuis GitHub (logique pure, port réel sur une imitation de CSP).
+for name,fn in pairs(require('tests/updates')) do assert(tests[name]==nil,'duplicate test '..name); tests[name]=fn end
 return tests

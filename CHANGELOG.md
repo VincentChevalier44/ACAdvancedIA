@@ -1,5 +1,21 @@
 # Changelog
 
+## Beta 1.33 — 2 November 2026
+
+Updating from inside the game, at your request: the app checks GitHub at launch and installs a new version in one click.
+
+- **Check at launch.** About ten seconds into the game, one request to GitHub (`api.github.com`) reads the latest published release. **DIAGNOSTICS › UPDATES › Check for updates at launch** (on by default) turns it off; **Check now** asks on demand.
+- **One-click update** from the header (**UPDATE · 1.34**), **HOME › TO CHECK** or **DIAGNOSTICS › UPDATES**, only when stopped (in the pits, paused or in a menu):
+  - the release's SHA-256 digest and package come from the repository's release downloads only; the digest, the package contents (all under `apps/lua/ACAdvancedIA/`, the updater itself included) and its manifest version are checked before anything is written;
+  - the installed version is backed up to `backup/previous.zip`, the package is unpacked into `backup/next`, then each changed file is moved into place, `manifest.ini` last;
+  - the session log is written, every AI is handed back to AC and the app restarts. After the restart: *Update complete: Beta 1.33 → Beta 1.34*.
+- **Nothing breaks on failure.** Any error before the install keeps the current version; a failed install puts the backup back at once; an install cut short by a crash or a power cut is finished or undone at the next launch, and the app drives nothing until then. **Roll back to Beta X** puts the previous version back. Settings, profiles and presets are kept.
+- **Overlay:** in the pits, **UPDATE AVAILABLE** once per launch for 6 s; never while driving.
+- **Logged:** check result, each install step, refusals and errors (`mise a jour …`).
+- Not confirmed in game yet: the first real update will be Beta 1.33 → 1.34. The download size is shown, not its progress (CSP does not report it).
+
+**Verification**: 412 checks; 99 integration cases; 862 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.32; 8-hour soak without errors (memory between 7.8 and 8.7 MB); benchmark 30 AI 0.23 ms (Beta 1.32: 0.27), 60 AI 0.63 ms (Beta 1.32: 0.65).
+
 ## Beta 1.32 — 2 November 2026
 
 The track's light panels now show the app's flags, and the overlay gains the FIA signals it was missing, at your request.

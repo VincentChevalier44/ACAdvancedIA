@@ -14,6 +14,8 @@ local Penalties=require('src/penalties')
 local Journal=require('src/journal')
 local Locale=require('src/locale')
 local Lights=require('src/lights')
+local Update=require('src/update')
+local Remote=require('src/remote')
 local K=Config.K
 -- Cache des traces du compilateur JIT agrandi (machine virtuelle de l'app) : avec les 1 000 traces et 512 Ko de code
 -- machine par défaut, le moteur vide et recompile tout son code toutes les une à deux minutes (pics d'image). Sans
@@ -133,6 +135,21 @@ local function release()
  pcall(UI.restoreNative,panel); pcall(messages,false); Applier.dispose(messageListener); messageListener=nil
  pcall(writeJournal,true); Applier.journalWrite(host,'=== fin : '..Applier.clockText()..' ===\n')
 end
+-- Mise à jour depuis GitHub (Beta 1.33) : vérification une fois par lancement, installation d'un clic à l'arrêt. Avant
+-- le redémarrage de l'app : événements versés au journal, puis restitution complète (commandes des IA rendues à AC).
+-- Sans les fonctions de CSP (bancs de mesure, tests), le port est inerte et rien ne change.
+local updater=Update.new(Config.release)
+local updateEvents={}
+local function updateLog()
+ Update.take(updater,updateEvents)
+ for i=1,#updateEvents do local ev=updateEvents[i]; U.log(engine.log,engine.time,ev[1],ev[2],-1); updateEvents[i]=nil end
+end
+local port=Remote.new(function() updateLog(); release() end)
+host.updater=updater; host.updatePort=port; host.updateStopped=false
+local updateClock,updateAsked,updateNoticed=0,false,false
+-- Installation interrompue au lancement précédent : sauvegarde remise en place, l'app ne pilote rien d'ici le redémarrage.
+local recovering=port.ready and Update.start(updater,port) or false
+updateLog()
 -- Messages d'AC (Beta 1.25) : repris sur l'overlay ; leur affichage d'origine est masqué (Beta 1.26 : par défaut). Un
 -- message témoin, envoyé dès le premier masquage, doit encore arriver à l'écoute : sinon (masquage qui couperait
 -- aussi l'overlay), le masquage est levé jusqu'au prochain lancement et le journal le dit.
@@ -276,6 +293,21 @@ local function update(dt)
  saveRace(false)
  Applier.save(host,globals,profiles,engine.time,frame.replay)
 end
+-- Mise à jour : vérification au lancement (après K.updateDelay s), état « à l'arrêt » pour l'installation (pause, menu
+-- ou stands) ; information de l'overlay une fois par lancement, aux stands seulement, retirée dès la sortie.
+local function updateTick(dt)
+ if not port.ready or released or recovering then return end
+ if U.finite(dt) and dt>0 and dt<=K.dtMax then updateClock=updateClock+dt end
+ local player=frame.player>0 and frame.cars[frame.player] or nil
+ host.updateStopped=Update.stopped(frame,player)
+ if not updateAsked and globals.updateCheck and updateClock>=K.updateDelay and updater.phase=='idle' then updateAsked=true; Update.check(updater,port,engine.time) end
+ local pit=player~=nil and player.pit==true and not frame.paused
+ local panelState=engine.panel
+ if pit and not updateNoticed and Update.offered(updater) then
+  updateNoticed=true; panelState.updateUntil=engine.time+K.updateNotice; panelState.updateVersion=updater.release.version
+ elseif not pit then panelState.updateUntil=-math.huge end
+ updateLog()
+end
 local function protect(fn,arg)
  local ok,err=pcall(fn,arg)
  if not ok then
@@ -284,10 +316,13 @@ local function protect(fn,arg)
   pcall(stop)
  end
 end
-HUMANAI={engine=engine,host=host,release=release}
+HUMANAI={engine=engine,host=host,release=release,updater=updater,port=port}
 function script.HUMANAI__UPDATE(dt)
+ if recovering then return end
  local before=Applier.clock(host)
  protect(update,dt)
+ local ok,err=pcall(updateTick,dt)
+ if not ok then host.errors=host.errors+1; U.log(engine.log,engine.time,'ERROR','mise a jour: '..tostring(err):sub(1,200),-1) end
  local after=before and Applier.clock(host)
  if after then
   local cost=math.max(0,after-before)*1000
@@ -311,6 +346,8 @@ end
 function script.HUMANAI__MAIN()
  script.HUMANAI__MENU()
  if host.menuVisible then
+  -- Reprise d'une mise à jour interrompue : quelques lignes de texte seulement, rien d'autre n'est dessiné.
+  if recovering then protectUI(UI.recovery,panel); return end
   -- Une seule fois : fenêtre ramenée à la taille compacte (Beta 1.14), puis la taille du pilote est respectée.
   if not globals.windowCompacted and Applier.compactWindow(host,UI.compactSize()) then globals.windowCompacted=true; dirty() end
   protectUI(UI.main,panel)
@@ -318,10 +355,10 @@ function script.HUMANAI__MAIN()
 end
 -- Panneau de drapeaux : protégé comme les autres fenêtres ; une erreur d'affichage est journalisée une fois et
 -- n'arrête jamais le moteur.
-function script.HUMANAI__FLAGS() if not released then protectUI(UI.flags,panel) end end
+function script.HUMANAI__FLAGS() if not released and not recovering then protectUI(UI.flags,panel) end end
 -- Overlay en jeu (Beta 1.25, rappel IN_GAME) : fenêtre transparente dessinée par l'app, comme SuperHUD.
 function script.HUMANAI__HUD()
- if released then return end
+ if released or recovering then return end
  protectUI(UI.hud,panel)
  pcall(messages,globals.overlayMessages and globals.overlayBlockMessages and globals.enabled)
 end

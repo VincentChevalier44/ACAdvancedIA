@@ -13,6 +13,7 @@ local Snapshot=require('src/snapshot')
 local T=require('src/tips')
 local W=require('src/widgets')
 local Locale=require('src/locale')
+local Update=require('src/update')
 local K=C.K
 local M={}
 -- Infobulles préparées une seule fois par langue : lignes coupées à la main (setTooltip ne coupe pas les lignes),
@@ -501,6 +502,80 @@ local function language(v,code)
  local panel=e.panel; panel.key=''; panel.infractions=-1; panel.drsLaps=-1; panel.at=-math.huge
  v.dirty()
 end
+-- Mise à jour depuis GitHub (Beta 1.33) : actions des boutons (en-tête, accueil, diagnostic) et texte de l'état,
+-- refait seulement quand l'état ou l'option change.
+local function updateAct(v,action)
+ local h=v.host; local u,port=h.updater,h.updatePort
+ if not u or not port then return end
+ if action=='install' then Update.install(u,port,h.updateStopped)
+ elseif action=='cancel' then Update.cancel(u)
+ elseif action=='check' then Update.check(u,port,v.e.time)
+ elseif action=='rollback' then Update.rollback(u,port,h.updateStopped)
+ elseif action=='notes' then port.open(u.release and u.release.page or Update.page) end
+end
+local function megabytes(bytes) return (string.format('%.1f',bytes/1048576):gsub('%.',L.decimalMark)) end
+local updateErrors={errNet=true,errHash=true,errWrite=true,errFormat=true}
+local function updateText(v,u,view)
+ if u.serial~=v.updateSerial then v.updateSerial=u.serial; v.updateClock=Adapter.clockText():sub(12,16); v.updateLine=nil end
+ local flag=v.e.g.updateCheck==true
+ if v.updateLine and v.updateView==view and v.updateFlag==flag then return v.updateLine end
+ local s=L.updateStates; local r=u.release; local text
+ if (view=='success' or view=='rolledback' or view=='interrupted') and u.updated and u.phase~='restarting' and u.phase~='rollingback' then
+  text=string.format(L.updateDone[u.updated.kind],u.updated.from,u.updated.to)
+ elseif view=='uptodate' then text=string.format(s.uptodate,v.updateClock or '')
+ elseif view=='downloading' and r then text=string.format(s.downloading,r.version,megabytes(r.zip.size))
+ elseif view=='installing' then text=string.format(s.installing,u.installed)
+ elseif view=='done' then text=string.format(s.done,r and r.version or '')
+ elseif view=='rolledback' then text=string.format(s.rolledback,u.previous or '')
+ elseif view=='unchecked' then text=flag and s.soon or s.unchecked
+ else text=s[view] or '' end
+ if view=='errNet' and u.status>0 then text=text..string.format(L.updateStatus,u.status) end
+ v.updateLine=text; v.updateView=view; v.updateFlag=flag
+ return text
+end
+-- Bloc « Mises à jour » du diagnostic : versions, état, notes de la version publiée, commandes.
+local function updateBlock(v,e,host,x,y)
+ local u,port=host.updater,host.updatePort
+ if not u or not port then return y end
+ local c=W.colors(); local tips=v.tips.ui
+ heading(L.updateHeading,x,y); y=y+20
+ if not port.ready then return y+W.paragraph(L.updateUnavailable,x,y,440,12,c.grey)+10 end
+ local view=Update.view(u,host.updateStopped); local r=u.release
+ local newer=r~=nil and Update.newer(r.version,u.installed)
+ if v.updateVersions~=u.serial then
+  v.updateVersions=u.serial
+  v.updateVersionText=string.format(L.updateInstalled,u.installed)..(newer and string.format(L.updateAvailableLine,r.version,r.published) or '')
+ end
+ y=y+W.paragraph(v.updateVersionText,x,y,440,12,c.light)+4
+ local col=updateErrors[view] and c.red or (view=='uptodate' or view=='success') and c.green or (view=='driving' or view=='unchecked' or view=='none') and c.grey or c.blue
+ y=y+W.paragraph(updateText(v,u,view),x,y,440,12,col)+6
+ -- Notes de la version publiée (plus récente, ou celle qui vient d'être installée).
+ if r and (newer or view=='success') then
+  for i=1,math.min(K.updateNotes,#r.notes) do if r.notes[i]~='' then W.cell(r.notes[i],x+8,y,432,11,c.grey); y=y+15 end end
+  y=y+4
+ end
+ if W.visible(y,28) then
+  if u.phase=='downloading' then
+   if W.button('update_cancel',L.updateCancel,x,y,214,28,false,tips.updateCancel) then updateAct(v,'cancel') end
+  elseif newer and Update.offered(u) then
+   local stopped=host.updateStopped
+   if W.button('update_install',L.updateButton,x,y,214,28,stopped,stopped and tips.updateInstall or tips.updateDriving) then updateAct(v,'install') end
+  end
+  if W.button('update_check',L.updateCheckNow,x+226,y,214,28,false,tips.updateCheck) then updateAct(v,'check') end
+ end
+ y=y+34
+ if W.visible(y,28) then
+  if r and W.button('update_notes',L.updateNotes,x,y,214,28,false,tips.updateNotes) then updateAct(v,'notes') end
+  if u.previous and not Update.busy(u) then
+   if v.rollbackFor~=u.previous then v.rollbackFor=u.previous; v.rollbackText=string.format(L.updateRollback,u.previous) end
+   if W.button('update_rollback',v.rollbackText,x+226,y,214,28,false,tips.updateRollback) then updateAct(v,'rollback') end
+  end
+ end
+ y=y+34
+ if W.visible(y,30) and W.toggle('global_updateCheck',L.updateToggle,x,y,440,e.g.updateCheck,tips.updateToggle) then e.g.updateCheck=not e.g.updateCheck; v.dirty() end
+ y=y+36
+ return y+W.paragraph(L.updateKept,x,y,440,11,c.grey)+12
+end
 local function headerBar(v,e)
  local c=W.colors()
  W.text('ACADVANCEDIA',22,10,26,c.light,true)
@@ -526,6 +601,15 @@ local function headerBar(v,e)
   if v.tab==tab then W.rect(x,79,160,2,c.blue) end
   W.help(v.tips.ui['tab_'..tab],x,48,160,32,3)
   if clicked then v.tab=tab end
+ end
+ -- Mise à jour : un clic à droite des onglets quand une version plus récente est connue ; état pendant l'installation.
+ local u,port=v.host.updater,v.host.updatePort
+ if u and port and port.ready then
+  local view=Update.view(u,v.host.updateStopped)
+  if Update.offered(u) and (view=='available' or view=='driving') then
+   if v.updateHeaderFor~=u.release.version then v.updateHeaderFor=u.release.version; v.updateHeaderText=string.format(L.updateHeader,(u.release.version:gsub('^Beta ',''))) end
+   if W.button('update_header',v.updateHeaderText,760,50,224,26,view=='available',view=='available' and v.tips.ui.updateInstall or v.tips.ui.updateDriving) then updateAct(v,'install') end
+  elseif L.updateBusy[view] then W.cell(L.updateBusy[view],760,57,224,12,c.blue,true) end
  end
  W.line(16,84,984,84,c.line)
 end
@@ -603,8 +687,21 @@ local function homeTab(v,e,host)
  if host.raceFlagsHidden==false then warnings[#warnings+1]=L.nativeFlagsShown end
  if p.configured and not C.on(p,'accidents') and not C.on(p,'rules') then warnings[#warnings+1]=L.newTabsOff end
  if host.upgraded and #host.upgraded>0 then warnings[#warnings+1]=L.upgraded..table.concat(host.upgraded,', ') end
- if #warnings==0 then y=y+W.paragraph(L.noWarnings,x,y,458,12,c.grey)+4 end
+ -- Mise à jour (Beta 1.33) : nouvelle version (bouton d'un clic) ou compte rendu de la dernière opération.
+ local u=host.updater; local offered=u~=nil and host.updatePort~=nil and host.updatePort.ready and Update.offered(u)
+ local report=u~=nil and u.updated~=nil and not offered
+ if #warnings==0 and not offered and not report then y=y+W.paragraph(L.noWarnings,x,y,458,12,c.grey)+4 end
  for _,w in ipairs(warnings) do W.rect(x,y+3,3,12,c.warn,1); y=y+W.paragraph(w,x+10,y,448,12,c.warn)+6 end
+ if offered then
+  if v.updateAlertFor~=u.release.version then v.updateAlertFor=u.release.version; v.updateAlertText=string.format(L.updateAlert,u.release.version) end
+  W.rect(x,y+3,3,12,c.blue,1); y=y+W.paragraph(v.updateAlertText,x+10,y,448,12,c.blue)+4
+  local stopped=host.updateStopped
+  if W.visible(y,26) and W.button('update_home',L.updateButton,x+10,y,180,26,stopped,stopped and v.tips.ui.updateInstall or v.tips.ui.updateDriving) then updateAct(v,'install') end
+  y=y+32
+ elseif report then
+  if v.updateReportFor~=u.serial then v.updateReportFor=u.serial; v.updateReportText=string.format(L.updateDone[u.updated.kind],u.updated.from,u.updated.to) end
+  W.rect(x,y+3,3,12,c.green,1); y=y+W.paragraph(v.updateReportText,x+10,y,448,12,c.green)+6
+ end
  -- Préréglages personnels : nom et enregistrement en tête, puis la bibliothèque.
  y=y+14; heading(L.customPresets,x,y); y=y+22
  v.presetName=input('preset_name',x,y,330,v.presetName,v.tips.ui.presetName) or v.presetName
@@ -772,6 +869,7 @@ local function diagnosticTab(v,e,host)
  local offset=W.scroll(v.scrolls,'diag_left',16,top,460,height,v.contentHeights.diagLeft or 0)
  W.clip(16,top,460,height)
  local y=top-offset
+ y=updateBlock(v,e,host,x,y)
  if frame then y=y+W.paragraph(L.patch..frame.patch..' · '..L.track..frame.track..' · '..string.format(L.trackLength,frame.length),x,y,440,11,c.grey)+8 end
  -- Beta 1.32 : panneaux lumineux du circuit (détection, valeur imposée).
  y=y+W.paragraph(L.diagLights..(host.trackLights==true and L.diagLightsOn or host.trackLights==false and L.diagLightsOff or L.diagLightsUnknown)..' · '..(L.lightNames[host.flagOverride and host.flagValue or 0] or ''),x,y,440,11,c.grey)+8
@@ -874,6 +972,12 @@ local function diagnosticTab(v,e,host)
  end
  W.clip(); v.contentHeights.diagLog=y+logOffset-logTop
 end
+-- Reprise d'une mise à jour interrompue (Beta 1.33) : texte simple pendant la remise en place de la sauvegarde.
+function M.recovery(v)
+ local u=v.host.updater
+ text(string.format(L.titleVersion,C.release))
+ text(u and u.phase=='failed' and L.updateRecoveryFailed or L.updateRecovering)
+end
 -- Taille compacte de la fenêtre de réglages (Beta 1.14), pour l'applicateur.
 function M.compactSize() return vec2(K.compactWidth,K.compactHeight) end
 function M.main(v)
@@ -929,7 +1033,7 @@ local function panelPalette(alpha)
  return panelColors
 end
 local flagColors={lap='pit',red='red',sc='yellow',scIn='yellow',fcy='yellow',vsc='yellow',vscEnd='yellow',restart='green',yellow='yellow',zone='yellow',zone1='yellow',native='yellow',blue='blue',green='green',pit='pit',slippery='yellow',black='ink',penalty='ink',checkered='ink',white='pit',
- slow='pit',warning='ink',meatball='ink'}
+ slow='pit',warning='ink',meatball='ink',update='accent'}
 -- Sigle inscrit dans le drapeau (rouge, bleu et vert parlent d'eux-mêmes) ; double jaune : « !! ».
 local flagCodes={sc='SC',scIn='SC',fcy='FCY',vsc='VSC',vscEnd='VSC',yellow='!',zone='!!',zone1='!',native='!',pit='P'}
 -- Alignements DWrite (ui.Alignment) : début, centre, fin.

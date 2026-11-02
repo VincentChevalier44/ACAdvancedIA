@@ -152,6 +152,14 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 - `ac.StateCar.racePosition` (1 = first, 0 if unknown): pit exit order at the resumption after a red flag.
 - `jit.opt.start('maxtrace=8000','maxmcode=16384')` in the entry file: enlarged JIT compiler cache (with the default 1,000 traces and 512 KB, the engine recompiled all its code every one to two minutes). No effect on decisions; if it is refused, the app drives the cars one by one as before and the log says so.
 
+## Beta 1.33: update from GitHub
+
+- Network: `web.get(url, headers, callback(err, response))` (local SDK, line 8018), at most two requests at once, default timeouts 30 s; `response.status`, `response.body` (binary-safe). No progress callback: the size shown comes from the release's asset size. `api.github.com` needs a `User-Agent` header; `releases/latest` answers 404 while nothing is published (shown as *No release published yet*). `browser_download_url` redirects to GitHub's storage; the redirect is followed.
+- `JSON.parse(text)` (line 8201) decodes the release; `ac.checksumSHA256(data)` (line 3290) gives the digest as text (32 raw bytes also accepted).
+- Zips: `io.scanZip(data)` lists entries, `io.loadFromZip(data, entry)` reads the package manifest, `io.createZipAsync(filename, entries, callback)` writes the backup (entries `{filename = …}`), `io.extractFromZipAsync(data or filename, destination, {crucial = …}, callback)` unpacks (since 0.2.10 the crucial entry is extracted last under a temporary name and its absence is an error).
+- Files: all writes stay in the app folder, `ac.getFolder(ac.FolderID.ScriptOrigin)` (1024). The package is unpacked into `backup/next`, then `io.move(from, to, true)` (line 4375) replaces each changed file, `manifest.ini` last; `io.createFileDir` creates new folders. A copied app folder holding `manifest.ini` would be loaded by CSP as a second app, hence a zip for the backup.
+- `ac.restartApp()` (line 16244) reloads the app on the next frame; the app releases everything first (the same full release as on unload). `os.openURL(url)` (line 4669) opens the release page (https only).
+
 ## Beta 1.32: track light panels and the player's FIA signals
 
 - Track configurations (the track's `extension/ext_config.ini`, CSP's `extension/config/tracks/loaded/<track>.ini`) define conditions `[CONDITION_…] NAME=… INPUT=FLAG_TYPE` with a LUT from the flag value to a colour. The usual LUT: 1 green, 2 yellow, 3 orange, 4 orange-red, 5 red, 6 grey-white, 12 blue, 13 off or red, 14 white. Materials and light series light up through `CONDITION=<name>`. CSP's shared `common/conditions.ini` defines `RACING_FLAG` on `FLAG_TYPE`, so a track that includes it may light sections with `CONDITION=RACING_FLAG` only (Sepang, Vallelunga).

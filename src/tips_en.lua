@@ -311,5 +311,13 @@ return {
   export='Copies the zones to the clipboard, to paste into tracks/<id>.lua; no track file is changed.',
   zoneCount='No-manoeuvre zones of this track: loaded from tracks/<id>.lua or marked during the session. The copy button exports them to the clipboard; no track file is changed.',
   filter='Changes the level of the messages shown: all, errors, warnings, information or details.',
+  -- Update from GitHub (Beta 1.33).
+  updateInstall='Installs the new version in one click: download from GitHub, check of the SHA-256 digest and of the package contents, backup of the current version, then the app hands the AI back to AC and restarts. Your settings, profiles and presets are kept.',
+  updateDriving='Updating is possible only when stopped: pits, pause or menu.',
+  updateCancel='Cancels the download in progress; nothing has been changed yet.',
+  updateCheck='Asks GitHub for the latest published version (one request). Nothing is downloaded or installed until you click Update.',
+  updateNotes='Opens the release page on GitHub in your browser.',
+  updateRollback='Puts back the version saved before the last update, then the app restarts. Your settings are kept.',
+  updateToggle='At launch, a single request to GitHub (api.github.com) to know whether a newer version exists; no personal data is sent. Untick to never contact GitHub.',
  },
 }

@@ -1,5 +1,5 @@
 {
-  "version": "Beta 1.32",
+  "version": "Beta 1.33",
   "scope": "Static inventory + UI/storage checks and engine bounds; no physical certification.",
   "globalParameters": [
     {
@@ -859,7 +859,7 @@
         "src/director.lua:886",
         "src/engine.lua:40",
         "src/lang_en.lua:132",
-        "src/panel.lua:18",
+        "src/panel.lua:19",
         "src/tips_en.lua:37"
       ]
     },
@@ -882,7 +882,7 @@
         "src/director.lua:894",
         "src/engine.lua:40",
         "src/lang_en.lua:132",
-        "src/panel.lua:27",
+        "src/panel.lua:28",
         "src/tips_en.lua:38"
       ]
     },
@@ -2498,7 +2498,7 @@
       },
       "consumers": [
         "src/lang_en.lua:145",
-        "src/panel.lua:132",
+        "src/panel.lua:134",
         "src/tips_en.lua:134"
       ]
     },
@@ -2772,7 +2772,7 @@
         "src/incidents.lua:244",
         "src/incidents.lua:410",
         "src/lang_en.lua:147",
-        "src/panel.lua:153",
+        "src/panel.lua:155",
         "src/tips_en.lua:141"
       ]
     },
@@ -2794,7 +2794,7 @@
         "src/incidents.lua:244",
         "src/incidents.lua:410",
         "src/lang_en.lua:147",
-        "src/panel.lua:152",
+        "src/panel.lua:154",
         "src/tips_en.lua:142"
       ]
     },
@@ -3305,8 +3305,8 @@
         "src/engine.lua:634",
         "src/lang_en.lua:46",
         "src/lang_en.lua:153",
-        "src/panel.lua:106",
-        "src/panel.lua:138",
+        "src/panel.lua:107",
+        "src/panel.lua:140",
         "src/tips_en.lua:126"
       ]
     },
@@ -3751,122 +3751,137 @@
   "functions": [
     {
       "file": "ACAdvancedIA.lua",
-      "line": 41,
+      "line": 43,
       "name": "announce"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 48,
+      "line": 50,
       "name": "dirty"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 56,
+      "line": 58,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 67,
+      "line": 69,
       "name": "writeJournal"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 86,
+      "line": 88,
       "name": "cancelProbe"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 95,
+      "line": 97,
       "name": "syncRestored"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 105,
+      "line": 107,
       "name": "anyOwned"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 110,
+      "line": 112,
       "name": "step"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 116,
+      "line": 118,
       "name": "stop"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 122,
+      "line": 124,
       "name": "saveRace"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 128,
+      "line": 130,
       "name": "release"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 140,
+      "line": 143,
+      "name": "updateLog"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 147,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 158,
+      "line": 157,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 175,
       "name": "session"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 163,
+      "line": 180,
       "name": "update"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 183,
+      "line": 200,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 184,
+      "line": 201,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 279,
-      "name": "protect"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 288,
-      "name": "script.HUMANAI__UPDATE"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 299,
-      "name": "script.update"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 300,
-      "name": "script.HUMANAI__MENU"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 303,
-      "name": "protectUI"
+      "line": 298,
+      "name": "updateTick"
     },
     {
       "file": "ACAdvancedIA.lua",
       "line": 311,
+      "name": "protect"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 320,
+      "name": "script.HUMANAI__UPDATE"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 334,
+      "name": "script.update"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 335,
+      "name": "script.HUMANAI__MENU"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 338,
+      "name": "protectUI"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 346,
       "name": "script.HUMANAI__MAIN"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 321,
+      "line": 358,
       "name": "script.HUMANAI__FLAGS"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 323,
+      "line": 360,
       "name": "script.HUMANAI__HUD"
     },
     {
@@ -4426,167 +4441,167 @@
     },
     {
       "file": "src/config.lua",
-      "line": 324,
+      "line": 327,
       "name": "M.defaults"
     },
     {
       "file": "src/config.lua",
-      "line": 333,
+      "line": 336,
       "name": "M.sectionsChanged"
     },
     {
       "file": "src/config.lua",
-      "line": 340,
+      "line": 343,
       "name": "M.anySection"
     },
     {
       "file": "src/config.lua",
-      "line": 344,
+      "line": 347,
       "name": "choice"
     },
     {
       "file": "src/config.lua",
-      "line": 345,
+      "line": 348,
       "name": "M.patterns"
     },
     {
       "file": "src/config.lua",
-      "line": 355,
+      "line": 358,
       "name": "M.validate"
     },
     {
       "file": "src/config.lua",
-      "line": 383,
+      "line": 386,
       "name": "M.validateGlobals"
     },
     {
       "file": "src/config.lua",
-      "line": 402,
+      "line": 405,
       "name": "M.preset"
     },
     {
       "file": "src/config.lua",
-      "line": 414,
+      "line": 417,
       "name": "M.on"
     },
     {
       "file": "src/config.lua",
-      "line": 415,
+      "line": 418,
       "name": "M.any"
     },
     {
       "file": "src/config.lua",
-      "line": 420,
+      "line": 423,
       "name": "M.effective"
     },
     {
       "file": "src/config.lua",
-      "line": 451,
+      "line": 454,
       "name": "M.effectiveGlobals"
     },
     {
       "file": "src/config.lua",
-      "line": 458,
+      "line": 461,
       "name": "M.needsOffset"
     },
     {
       "file": "src/config.lua",
-      "line": 461,
+      "line": 464,
       "name": "equal"
     },
     {
       "file": "src/config.lua",
-      "line": 477,
+      "line": 480,
       "name": "M.legacyMatch"
     },
     {
       "file": "src/config.lua",
-      "line": 502,
+      "line": 505,
       "name": "M.upgradeObstacles"
     },
     {
       "file": "src/config.lua",
-      "line": 513,
+      "line": 516,
       "name": "M.migrateProfile"
     },
     {
       "file": "src/config.lua",
-      "line": 569,
+      "line": 572,
       "name": "M.migrate"
     },
     {
       "file": "src/config.lua",
-      "line": 633,
+      "line": 636,
       "name": "M.kept"
     },
     {
       "file": "src/config.lua",
-      "line": 634,
+      "line": 637,
       "name": "ruleValue"
     },
     {
       "file": "src/config.lua",
-      "line": 635,
+      "line": 638,
       "name": "M.restore"
     },
     {
       "file": "src/config.lua",
-      "line": 644,
+      "line": 647,
       "name": "applyValues"
     },
     {
       "file": "src/config.lua",
-      "line": 648,
+      "line": 651,
       "name": "M.weekendSwitch"
     },
     {
       "file": "src/config.lua",
-      "line": 657,
+      "line": 660,
       "name": "M.applyRules"
     },
     {
       "file": "src/config.lua",
-      "line": 672,
+      "line": 675,
       "name": "M.spreadRules"
     },
     {
       "file": "src/config.lua",
-      "line": 686,
+      "line": 689,
       "name": "M.mark"
     },
     {
       "file": "src/config.lua",
-      "line": 690,
+      "line": 693,
       "name": "M.setMark"
     },
     {
       "file": "src/config.lua",
-      "line": 696,
+      "line": 699,
       "name": "M.withRules"
     },
     {
       "file": "src/config.lua",
-      "line": 707,
+      "line": 710,
       "name": "category13"
     },
     {
       "file": "src/config.lua",
-      "line": 721,
+      "line": 724,
       "name": "M.migrateRules"
     },
     {
       "file": "src/config.lua",
-      "line": 731,
+      "line": 734,
       "name": "M.closestRuleCategory"
     },
     {
       "file": "src/config.lua",
-      "line": 740,
+      "line": 743,
       "name": "M.ruleCategory"
     },
     {
       "file": "src/config.lua",
-      "line": 752,
+      "line": 755,
       "name": "M.autoProfile"
     },
     {
@@ -5256,52 +5271,52 @@
     },
     {
       "file": "src/panel.lua",
-      "line": 12,
+      "line": 13,
       "name": "M.new"
     },
     {
       "file": "src/panel.lua",
-      "line": 17,
+      "line": 18,
       "name": "blue"
     },
     {
       "file": "src/panel.lua",
-      "line": 38,
+      "line": 39,
       "name": "native"
     },
     {
       "file": "src/panel.lua",
-      "line": 62,
+      "line": 63,
       "name": "show"
     },
     {
       "file": "src/panel.lua",
-      "line": 98,
+      "line": 99,
       "name": "M.native"
     },
     {
       "file": "src/panel.lua",
-      "line": 113,
+      "line": 115,
       "name": "M.visible"
     },
     {
       "file": "src/panel.lua",
-      "line": 119,
+      "line": 121,
       "name": "M.infractions"
     },
     {
       "file": "src/panel.lua",
-      "line": 127,
+      "line": 129,
       "name": "M.warn"
     },
     {
       "file": "src/panel.lua",
-      "line": 129,
+      "line": 131,
       "name": "M.notice"
     },
     {
       "file": "src/panel.lua",
-      "line": 131,
+      "line": 133,
       "name": "M.update"
     },
     {
@@ -5550,6 +5565,171 @@
       "name": "M.apply"
     },
     {
+      "file": "src/remote.lua",
+      "line": 8,
+      "name": "callable"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 9,
+      "name": "folder"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 16,
+      "name": "hex"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 19,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 23,
+      "name": "files"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 24,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 33,
+      "name": "lib"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 36,
+      "name": "M.new"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 47,
+      "name": "exists"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 48,
+      "name": "load"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 49,
+      "name": "save"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 50,
+      "name": "delete"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 51,
+      "name": "p.get"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 53,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 58,
+      "name": "p.json"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 59,
+      "name": "p.sha256"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 60,
+      "name": "p.entries"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 61,
+      "name": "p.entry"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 62,
+      "name": "p.previous"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 63,
+      "name": "p.installedVersion"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 64,
+      "name": "p.marker"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 65,
+      "name": "p.mark"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 66,
+      "name": "p.unmark"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 67,
+      "name": "p.done"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 68,
+      "name": "p.takeDone"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 69,
+      "name": "p.open"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 71,
+      "name": "p.backup"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 79,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 88,
+      "name": "clear"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 93,
+      "name": "place"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 111,
+      "name": "p.extract"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 120,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 127,
+      "name": "p.restart"
+    },
+    {
       "file": "src/snapshot.lua",
       "line": 4,
       "name": "hexByte"
@@ -5721,363 +5901,548 @@
     },
     {
       "file": "src/ui.lua",
-      "line": 20,
+      "line": 21,
       "name": "wrap"
     },
     {
       "file": "src/ui.lua",
-      "line": 22,
+      "line": 23,
       "name": "number"
     },
     {
       "file": "src/ui.lua",
-      "line": 26,
+      "line": 27,
       "name": "shown"
     },
     {
       "file": "src/ui.lua",
-      "line": 31,
+      "line": 32,
       "name": "wrapAll"
     },
     {
       "file": "src/ui.lua",
-      "line": 32,
+      "line": 33,
       "name": "globalTips"
     },
     {
       "file": "src/ui.lua",
-      "line": 50,
+      "line": 51,
       "name": "ruleView"
     },
     {
       "file": "src/ui.lua",
-      "line": 53,
+      "line": 54,
       "name": "texts"
     },
     {
       "file": "src/ui.lua",
-      "line": 69,
+      "line": 70,
       "name": "same"
     },
     {
       "file": "src/ui.lua",
-      "line": 69,
+      "line": 70,
       "name": "(anonymous)"
     },
     {
       "file": "src/ui.lua",
-      "line": 71,
+      "line": 72,
       "name": "(anonymous)"
     },
     {
       "file": "src/ui.lua",
-      "line": 77,
+      "line": 78,
       "name": "M.new"
     },
     {
       "file": "src/ui.lua",
-      "line": 101,
+      "line": 102,
       "name": "text"
     },
     {
       "file": "src/ui.lua",
-      "line": 104,
+      "line": 105,
       "name": "mark"
     },
     {
       "file": "src/ui.lua",
-      "line": 106,
+      "line": 107,
       "name": "touch"
     },
     {
       "file": "src/ui.lua",
-      "line": 109,
+      "line": 110,
       "name": "presetTarget"
     },
     {
       "file": "src/ui.lua",
-      "line": 118,
+      "line": 119,
       "name": "loadBuiltin"
     },
     {
       "file": "src/ui.lua",
-      "line": 132,
+      "line": 133,
       "name": "builtinActive"
     },
     {
       "file": "src/ui.lua",
-      "line": 147,
+      "line": 148,
       "name": "carDatabase"
     },
     {
       "file": "src/ui.lua",
-      "line": 164,
+      "line": 165,
       "name": "input"
     },
     {
       "file": "src/ui.lua",
-      "line": 171,
+      "line": 172,
       "name": "heading"
     },
     {
       "file": "src/ui.lua",
-      "line": 173,
+      "line": 174,
       "name": "valueText"
     },
     {
       "file": "src/ui.lua",
-      "line": 179,
+      "line": 180,
       "name": "settingControl"
     },
     {
       "file": "src/ui.lua",
-      "line": 208,
+      "line": 209,
       "name": "ruleBlock"
     },
     {
       "file": "src/ui.lua",
-      "line": 227,
+      "line": 228,
       "name": "safetyBlock"
     },
     {
       "file": "src/ui.lua",
-      "line": 262,
+      "line": 263,
       "name": "patternBlock"
     },
     {
       "file": "src/ui.lua",
-      "line": 305,
+      "line": 306,
       "name": "globalBlock"
     },
     {
       "file": "src/ui.lua",
-      "line": 341,
+      "line": 342,
       "name": "statusLines"
     },
     {
       "file": "src/ui.lua",
-      "line": 377,
+      "line": 378,
       "name": "switches"
     },
     {
       "file": "src/ui.lua",
-      "line": 385,
+      "line": 386,
       "name": "overlayBlock"
     },
     {
       "file": "src/ui.lua",
-      "line": 439,
+      "line": 440,
       "name": "resetSection"
     },
     {
       "file": "src/ui.lua",
-      "line": 452,
+      "line": 453,
       "name": "sectionContent"
     },
     {
       "file": "src/ui.lua",
-      "line": 458,
+      "line": 459,
       "name": "flush"
     },
     {
       "file": "src/ui.lua",
-      "line": 497,
+      "line": 498,
       "name": "language"
     },
     {
       "file": "src/ui.lua",
-      "line": 504,
+      "line": 507,
+      "name": "updateAct"
+    },
+    {
+      "file": "src/ui.lua",
+      "line": 516,
+      "name": "megabytes"
+    },
+    {
+      "file": "src/ui.lua",
+      "line": 518,
+      "name": "updateText"
+    },
+    {
+      "file": "src/ui.lua",
+      "line": 537,
+      "name": "updateBlock"
+    },
+    {
+      "file": "src/ui.lua",
+      "line": 579,
       "name": "headerBar"
     },
     {
       "file": "src/ui.lua",
-      "line": 534,
+      "line": 618,
       "name": "profileButtons"
     },
     {
       "file": "src/ui.lua",
-      "line": 545,
+      "line": 629,
       "name": "homeTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 653,
+      "line": 750,
       "name": "sectionPane"
     },
     {
       "file": "src/ui.lua",
-      "line": 667,
+      "line": 764,
       "name": "settingsTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 700,
+      "line": 797,
       "name": "ruleRow"
     },
     {
       "file": "src/ui.lua",
-      "line": 715,
+      "line": 812,
       "name": "rulesTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 766,
+      "line": 863,
       "name": "diagnosticTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 878,
+      "line": 976,
+      "name": "M.recovery"
+    },
+    {
+      "file": "src/ui.lua",
+      "line": 982,
       "name": "M.compactSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 879,
+      "line": 983,
       "name": "M.main"
     },
     {
       "file": "src/ui.lua",
-      "line": 912,
+      "line": 1016,
       "name": "faded"
     },
     {
       "file": "src/ui.lua",
-      "line": 913,
+      "line": 1017,
       "name": "panelPalette"
     },
     {
       "file": "src/ui.lua",
-      "line": 938,
+      "line": 1042,
       "name": "write"
     },
     {
       "file": "src/ui.lua",
-      "line": 943,
+      "line": 1047,
       "name": "textWidth"
     },
     {
       "file": "src/ui.lua",
-      "line": 948,
+      "line": 1052,
       "name": "fitSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 955,
+      "line": 1059,
       "name": "M.flagLayout"
     },
     {
       "file": "src/ui.lua",
-      "line": 988,
+      "line": 1092,
       "name": "drsBadge"
     },
     {
       "file": "src/ui.lua",
-      "line": 995,
+      "line": 1099,
       "name": "checker"
     },
     {
       "file": "src/ui.lua",
-      "line": 999,
+      "line": 1103,
       "name": "diagonal"
     },
     {
       "file": "src/ui.lua",
-      "line": 1005,
+      "line": 1109,
       "name": "meatball"
     },
     {
       "file": "src/ui.lua",
-      "line": 1011,
+      "line": 1115,
       "name": "stripes"
     },
     {
       "file": "src/ui.lua",
-      "line": 1016,
+      "line": 1120,
       "name": "deltaText"
     },
     {
       "file": "src/ui.lua",
-      "line": 1026,
+      "line": 1130,
       "name": "deltaBox"
     },
     {
       "file": "src/ui.lua",
-      "line": 1039,
+      "line": 1143,
       "name": "pillsWidth"
     },
     {
       "file": "src/ui.lua",
-      "line": 1041,
+      "line": 1145,
       "name": "pillRow"
     },
     {
       "file": "src/ui.lua",
-      "line": 1058,
+      "line": 1162,
       "name": "pill"
     },
     {
       "file": "src/ui.lua",
-      "line": 1065,
+      "line": 1169,
       "name": "giveBackText"
     },
     {
       "file": "src/ui.lua",
-      "line": 1069,
+      "line": 1173,
       "name": "blueText"
     },
     {
       "file": "src/ui.lua",
-      "line": 1078,
+      "line": 1182,
       "name": "M.overlayParts"
     },
     {
       "file": "src/ui.lua",
-      "line": 1097,
+      "line": 1201,
       "name": "M.overlayHeight"
     },
     {
       "file": "src/ui.lua",
-      "line": 1106,
+      "line": 1210,
       "name": "strong"
     },
     {
       "file": "src/ui.lua",
-      "line": 1112,
+      "line": 1216,
       "name": "sessionStrip"
     },
     {
       "file": "src/ui.lua",
-      "line": 1135,
+      "line": 1239,
       "name": "M.flags"
     },
     {
       "file": "src/ui.lua",
-      "line": 1231,
+      "line": 1335,
       "name": "nativeBox"
     },
     {
       "file": "src/ui.lua",
-      "line": 1235,
+      "line": 1339,
       "name": "M.restoreNative"
     },
     {
       "file": "src/ui.lua",
-      "line": 1236,
+      "line": 1340,
       "name": "screenSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 1239,
+      "line": 1343,
       "name": "hudContent"
     },
     {
       "file": "src/ui.lua",
-      "line": 1274,
+      "line": 1378,
       "name": "M.hud"
     },
     {
       "file": "src/ui.lua",
-      "line": 1289,
+      "line": 1393,
       "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 23,
+      "name": "M.version"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 30,
+      "name": "M.label"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 32,
+      "name": "M.newer"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 38,
+      "name": "str"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 39,
+      "name": "starts"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 41,
+      "name": "M.notes"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 55,
+      "name": "M.release"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 77,
+      "name": "M.digest"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 85,
+      "name": "M.content"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 96,
+      "name": "M.manifestVersion"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 101,
+      "name": "M.stopped"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 103,
+      "name": "M.new"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 108,
+      "name": "event"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 114,
+      "name": "M.take"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 120,
+      "name": "M.busy"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 123,
+      "name": "fail"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 128,
+      "name": "parse"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 136,
+      "name": "M.start"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 150,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 165,
+      "name": "M.check"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 168,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 181,
+      "name": "M.cancel"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 183,
+      "name": "M.install"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 189,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 193,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 201,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 207,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 211,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 227,
+      "name": "M.rollback"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 234,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 249,
+      "name": "M.view"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 265,
+      "name": "M.offered"
     },
     {
       "file": "src/util.lua",
@@ -6336,12 +6701,12 @@
     }
   ],
   "sources": {
-    "ACAdvancedIA.lua": "bb32d16c2d7a8e5f6a2afb0bf0e1b504edf4f3fa488a03cffb8ac73ccf49ef61",
+    "ACAdvancedIA.lua": "60f8f0eca29e757d4e1eff74f3ad8f85ec7dc5e288c2f35635b2ac9268c84907",
     "src/applier.lua": "ef91898a646b37d027c5df87784c960e092a7093ae0dc01324f9c45f54a64576",
     "src/calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
     "src/caps.lua": "85f54153fb4952b79661962c900c806ab18edd1fef015a4452fa064ddb854d61",
     "src/classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-    "src/config.lua": "9987a6e6e22195396e75e4034fdeea5dc759f33835779b23ab2d67bd93ebfdb0",
+    "src/config.lua": "b709a009df50436ab1f4557aff3a2ebb329d32c2e7449e6fe0a022a3e4849973",
     "src/delta.lua": "cebd950b028cb380e2d410bade1ddfcde57cbe0e3317aa569918b9a8110096f8",
     "src/director.lua": "49d10564abc63882b2e90fe66df16401fecd987b88c0b979f640fcb2be420ac2",
     "src/engine.lua": "fb355f70747aa8b63c290ec0e4504f3bca65dabb48748ae9da1d0c57b529b751",
@@ -6350,22 +6715,24 @@
     "src/hudinfo.lua": "370714b976b9a0ea94f38d582e6ac8954701660a33e6b2e8c649924ebfa9dbe4",
     "src/incidents.lua": "d7def0df0b352aa5b0877e49bd74866ace25f0a37030193290a2c9d72f071825",
     "src/journal.lua": "2d6ef004a113659554dfbfa17efd4f9cf08fc596a51d06c9b5bd6b2ce5ee2b4f",
-    "src/lang.lua": "7b9b6f087771465a9f3bf39b7c1a32608a144305e119b4f4ea77cdc9f189f498",
-    "src/lang_en.lua": "9a3da5df5a98f265e23821114f2b0fd56b41897c252a078d2454355bf7f01cec",
+    "src/lang.lua": "03fdb5ad6fe89042dcc2bce32bc91a5fde650105323195cb27a8a9019f6cb6d1",
+    "src/lang_en.lua": "6d2979700ca6c71c36a12b7943b2177af98544e133c84a0d466c7e1fc48a587a",
     "src/lights.lua": "0aff783d35c6ab4792671ebb28092f5a7ab3c62a123e0bdc0ca664d5cd0708fe",
     "src/locale.lua": "02b406dc86cc1a5548877d8e897fd5d28764ae71d2296fe78547649c947e9bbd",
     "src/mistakes.lua": "654f42f62b5da427996680a30a6ad12246bcf4cc6e8b7f77c7f71b7a91f0fe9a",
-    "src/panel.lua": "098993ee5fdefa6be0210f5e192535dccb9c22fefa94b91dbd5b45294eee5727",
+    "src/panel.lua": "0674e4b58fc05589da265a4ce811ee36ad14ad2cdb6ec5023a810a19892e0c8f",
     "src/penalties.lua": "277295124bc828d4347b6ceff4fcf761d4b66077a9e474e8e0183b395c3b78a3",
     "src/perception.lua": "e41cfac98907532015aeee30276925e369eb2b6634c971a38590997847e563f4",
     "src/persona.lua": "fc995df594e4e17ef0dc0a30bda8d3f14bd217fae46a9adc9ee3d87618c392c2",
     "src/pits.lua": "aaabf723c4a6412f4bb7f10e490bd1c9302fd44143cdf089ecc6fb8a675519d7",
     "src/presets.lua": "d1b4786e0c544a8c8b66a18ee9cad7d85e6bf71c7bcef698a3142714237e91b2",
+    "src/remote.lua": "62712f07fd7d21a1f3ab77e0c487b8c187fcead5d597e7c03fa46a49184f3053",
     "src/snapshot.lua": "59270cadf880879b90c82e12174c32d4a688832eab8281232d292f28f15ff2c1",
-    "src/tips.lua": "970c0f6fa515a37a3194bbf96cfbdc3a1eed988e42e9cc51f4ef770649abefad",
-    "src/tips_en.lua": "fc80cc23d3011b0f192a83a56fd41a617ceb51f892e774c8d0ea7b153b6cd1ca",
+    "src/tips.lua": "f09282a06b26756359bdf55490044ac95c00194ead94b4f6feeaaefbe9b0bf31",
+    "src/tips_en.lua": "23ce8ecdd497ea7870cc39b551efef76f5276b3c56dcccdaf52f85731c2fcd41",
     "src/traffic.lua": "af75adf73ab13cf0c19552fdf83d00044efdd542b06ccdbdc4667728e8c47ed4",
-    "src/ui.lua": "92ffaac4fec05a8422a6f2e6b28b89560deaf00e0d68e581caa0a77baa20f74d",
+    "src/ui.lua": "b9728961d2fcb4f96c88ba5c56c73116dfcc50c70db98e158af104de914d3436",
+    "src/update.lua": "8d38c2982ac28e6a237cf8e7aa855e99f870129a877eae336cf59a4e6511552b",
     "src/util.lua": "533d16b986fc80b7d27d6754e4e36c8e984ae16b1dbbab925341a56ca0bc624d",
     "src/weather.lua": "574e6c04dd73cded2d96dcdd8386c35991827c5c3ac59ed4ac7d1d17f48f13f5",
     "src/widgets.lua": "4d7ed220ab6c67c8847d5cb5a4d2474a7975fe8a93f720ac3c7d6139663f43f4",

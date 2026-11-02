@@ -94,6 +94,11 @@
     "Beta 1.25 : section Overlay des réglages",
     "Beta 1.32 : panneaux lumineux du circuit allumés en jaune sur un circuit équipé, rendus à AC",
     "Beta 1.32 : circuit non équipé, drapeau d AC jamais modifié",
-    "Beta 1.32 : réglage des panneaux lumineux, nouveaux drapeaux dessinés"
+    "Beta 1.32 : réglage des panneaux lumineux, nouveaux drapeaux dessinés",
+    "Beta 1.33 : vérification au lancement, mise à jour d un clic depuis l en-tête, IA rendues avant le redémarrage",
+    "Beta 1.33 : mise à jour refusée en conduite, information de l overlay aux stands une fois par lancement",
+    "Beta 1.33 : erreurs de mise à jour sans rien changer, annulation, option de vérification coupée",
+    "Beta 1.33 : retour à la version sauvegardée, compte rendu après le redémarrage",
+    "Beta 1.33 : installation interrompue au lancement précédent, sauvegarde remise en place, moteur arrêté"
   ]
 }

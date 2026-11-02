@@ -1,6 +1,7 @@
 -- Panneau de drapeaux du joueur : décisions pures, aucun dessin. Priorité : rouge, noir et pénalités d'AC, voiture de
 -- sécurité, FCY ou VSC (et sa fin), jaune, reprise jusqu'à la ligne, damier, véhicule lent, avertissement, piste
--- glissante, bleu, voiture endommagée, DRS, dernier tour, vert, départ, arrêt obligatoire. Textes reconstruits seulement quand le drapeau ou sa
+-- glissante, bleu, voiture endommagée, DRS, dernier tour, vert, départ, arrêt obligatoire, mise à jour disponible (Beta
+-- 1.33, aux stands, une fois par lancement). Textes reconstruits seulement quand le drapeau ou sa
 -- valeur arrondie change. Le temps delta lui-même est lu à chaque image par l'interface (module delta).
 local U=require('src/util')
 local C=require('src/config')
@@ -10,7 +11,7 @@ local Classes=require('src/classes')
 local K=C.K
 local M={}
 function M.new() return {kind='none',key='',title='',detail='',raw='',noPass=false,passed=false,drsBlocked=false,drsUsed=false,short='',passOk='',passBad='',infractions=-1,infractionMax=-1,notice='',noticeUntil=-math.huge,at=-math.huge,
- changedAt=-math.huge,double=false,explain='',finish=false,lapCode='',info=nil,drsText='',drsLaps=-1,drsLapsText='',redPit=false,blueGap=nil,giveBackDue=false,warnPending=false,warnUntil=-math.huge,rel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false}} end
+ changedAt=-math.huge,double=false,explain='',finish=false,lapCode='',info=nil,drsText='',drsLaps=-1,drsLapsText='',redPit=false,blueGap=nil,giveBackDue=false,warnPending=false,warnUntil=-math.huge,updateUntil=-math.huge,updateVersion='',rel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false}} end
 -- Drapeau bleu du joueur, en course : une voiture plus rapide qui lui prend au moins un tour arrive derrière. Renvoie
 -- son écart en secondes (distance à sa vitesse), sinon nil. rel : table de travail ; held : bleu déjà montré
 -- (hystérésis). Partagé avec les panneaux lumineux du circuit (Beta 1.32).
@@ -104,11 +105,12 @@ function M.native(panel,frame,now,p)
  if not kind and panel.info and panel.info.finished then kind='finish' end
  if not kind and panel.info and now<panel.info.lapUntil then kind='lap' end
  if not kind and (not p or p.drsAssist~=false) and a and a.valid and a.drsPresent and a.drsAvailable and not a.drsActive and not panel.drsUsed then kind='drs'; value=1 end
+ if not kind and now<panel.updateUntil then kind='update'; value=panel.updateVersion end
  show(panel,kind or 'none',value,false,nil,now)
  panel.noPass=false; panel.drsBlocked=false; panel.warnPending=false
 end
 -- Informations non urgentes : effacées après la durée réglée (0 : tant qu'elles durent) ; les drapeaux restent.
-local infoKinds={green=true,drs=true,white=true,checkered=true,slippery=true,lap=true}
+local infoKinds={green=true,drs=true,white=true,checkered=true,slippery=true,lap=true,update=true}
 -- Overlay à afficher : un drapeau ou une information encore dans sa durée d'affichage.
 function M.visible(panel,g,now)
  if panel.kind=='none' then return false end
@@ -184,12 +186,14 @@ function M.update(panel,t,frame,p,profile,now,lights)
   elseif now<t.greenUntil then kind='green'
   elseif nk=='start' then kind='start'
   -- Rappel d'arrêt obligatoire : jamais à la place d'un drapeau, du bleu ou du DRS.
-  elseif t.playerPitRemind then kind='pit'; value=t.playerPitDue or 0 end
+  elseif t.playerPitRemind then kind='pit'; value=t.playerPitDue or 0
+  -- Mise à jour disponible (Beta 1.33) : la plus basse des informations, aux stands seulement.
+  elseif now<panel.updateUntil then kind='update'; value=panel.updateVersion end
  end
  show(panel,kind,value,double,gap,now,profile)
  -- Drapeau et zone DRS en même temps : le drapeau reste affiché, avec une ligne « DRS interdit sous drapeau ».
  local calm=kind=='none' or kind=='green' or kind=='blue' or kind=='pit' or kind=='slippery' or kind=='nativeBlue' or kind=='white' or kind=='start' or kind=='checkered' or kind=='finish' or kind=='lap'
-  or kind=='slow' or kind=='giveBack' or kind=='warning' or kind=='meatball'
+  or kind=='slow' or kind=='giveBack' or kind=='warning' or kind=='meatball' or kind=='update'
  -- Règles de course : pluie et premiers tours affichés avec tout drapeau ; sinon « DRS interdit sous drapeau ».
  panel.drsBlocked=kind~='none' and kind~='drs' and (reason~='' and present and (reason~='flag' or not calm) or reason=='' and drs and not calm)
  if reason=='wet' then panel.drsText=L.drsWet

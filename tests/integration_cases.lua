@@ -1612,5 +1612,119 @@ return function(source)
   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(e.panel.kind=='warning' and has(HOST.panelTexts,L.flagTitles.warning),'final warning drawn')
   HUMANAI.release()
  end)
+ -- Beta 1.33 : mise à jour depuis GitHub, app complète sur une imitation de CSP (réseau, empreinte, zips, fichiers).
+ local Fake=require('tests/updatefake')
+ local Update=require('src/update')
+ local API='get https://api.github.com/repos/VincentChevalier44/ACAdvancedIA/releases/latest'
+ local function logged(text) local e=HUMANAI.engine; for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end; return false end
+ local function halt() pause(true); script.update(1/60) end
+ local function updated(setup,body)
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
+  local F=Fake.install({root='local',files=HOST.files})
+  local ok,err=pcall(function() F.app('Beta 1.33'); if setup then setup(F) end; assert(loadstring(source))(); body(F) end)
+  HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
+  F.restore(); assert(ok,err)
+ end
+ check('Beta 1.33 : vérification au lancement, mise à jour d un clic depuis l en-tête, IA rendues avant le redémarrage',function()
+  updated(function(F) F.release('Beta 1.34') end,function(F)
+   local u=HUMANAI.updater; assert(HUMANAI.port.ready and u.phase=='idle' and u.installed==C.release)
+   H.tick(HOST,5); assert(u.phase=='idle' and not F.find(API),'no request before the delay')
+   H.tick(HOST,6); assert(u.phase=='available' and F.find(API),'checked once after the delay')
+   assert(logged('mise a jour disponible: Beta 1.34'),'logged')
+   H.tick(HOST,30); local requests=0; for _,c in ipairs(F.calls) do if c==API then requests=requests+1 end end; assert(requests==1,'one request per launch')
+   pause(true); script.update(1/60); assert(HUMANAI.host.updateStopped,'paused: stopped')
+   go('home'); redraw(); assert(drawn('update_header') and lit('update_header') and drawn('update_home'),'header button and home alert')
+   assert(drawnText(string.format(L.updateAlert,'Beta 1.34')),'home alert text')
+   local order={}
+   F.onRestart=function() order[#order+1]=next(HOST.releases)==nil and 'released' or 'running' end
+   HOST.releasing=true; press('update_header'); HOST.releasing=false
+   assert(F.restarts==1 and order[1]=='released','AI handed back to AC before the restart')
+   local files=HOST.files
+   assert(files['local/ACAdvancedIA.lua']=='main Beta 1.34' and Update.manifestVersion(files['local/manifest.ini'])=='Beta 1.34' and files['local/src/new.lua']=='new Beta 1.34')
+   assert(files['local/backup/updated.txt']=='update Beta 1.33 -> Beta 1.34' and files['local/backup/installing.txt']==nil and files['local/backup/previous.txt']=='Beta 1.33')
+   local bk,mk,un=F.find('zip backup/previous.zip.tmp'),F.find('save backup/installing.txt'),F.find('save backup/updated.txt')
+   assert(bk and mk and un and bk<mk and mk<F.find('move manifest.ini') and F.find('move manifest.ini')<un and un<F.find('restartApp'),'backup -> mark -> extract -> report -> restart')
+   assert(logged('Beta 1.34 installee, commandes des IA rendues a AC'),'journal written before the restart')
+  end)
+ end)
+ check('Beta 1.33 : mise à jour refusée en conduite, information de l overlay aux stands une fois par lancement',function()
+  updated(function(F) F.release('Beta 1.34') end,function(F)
+   local e=HUMANAI.engine; local u=HUMANAI.updater
+   H.tick(HOST,11); assert(u.phase=='available' and not HUMANAI.host.updateStopped,'on track: not stopped')
+   assert(not Update.install(u,HUMANAI.port,HUMANAI.host.updateStopped) and u.error=='driving' and not F.last('get https://github.com/'),'refused while driving, nothing downloaded')
+   H.tick(HOST,0.1); assert(logged('refusee en conduite'),'refusal logged (journal fed on the next frame)')
+   assert(e.panel.updateUntil==-math.huge,'no overlay notice on track')
+   HOST.cars[0].isInPit=true; HOST.cars[0].isInPitlane=true; H.tick(HOST,1)
+   assert(HUMANAI.host.updateStopped and e.panel.updateUntil>e.time and e.panel.kind=='update','notice in the pits')
+   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.flagTitles.update),'overlay notice drawn')
+   HOST.cars[0].isInPit=false; HOST.cars[0].isInPitlane=false; H.tick(HOST,1); assert(e.panel.kind~='update','removed when leaving the pits')
+   HOST.cars[0].isInPit=true; HOST.cars[0].isInPitlane=true; H.tick(HOST,1); assert(e.panel.kind~='update','once per launch')
+   -- À l'arrêt, le même bouton installe.
+   halt(); go('diagnostic'); redraw(); assert(drawn('update_install') and drawn('update_check') and drawn('update_notes') and drawn('global_updateCheck'))
+   press('update_notes'); assert(F.opened[1]==u.release.page,'release page opened')
+  end)
+ end)
+ check('Beta 1.33 : erreurs de mise à jour sans rien changer, annulation, option de vérification coupée',function()
+  -- Empreinte différente : version installée intacte, erreur affichée, aucun redémarrage.
+  updated(function(F) F.release('Beta 1.34',{actual=string.rep('cd',32)}) end,function(F)
+   H.tick(HOST,11); halt(); go('diagnostic'); redraw()
+   press('update_install'); redraw()
+   assert(HUMANAI.updater.error=='integrity' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main Beta 1.33' and HOST.files['local/backup/previous.zip']==nil)
+   assert(drawnText(L.updateStates.errHash),'error shown')
+  end)
+  -- Téléchargement annulé : la réponse arrivée ensuite est ignorée.
+  updated(function(F) F.release('Beta 1.34') end,function(F)
+   H.tick(HOST,11); halt(); go('diagnostic'); redraw()
+   F.hold=true; press('update_install'); assert(HUMANAI.updater.phase=='downloading')
+   redraw(); assert(drawn('update_cancel')); press('update_cancel'); F.hold=false; F.flush()
+   assert(HUMANAI.updater.phase=='available' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main Beta 1.33')
+  end)
+  -- Vérification au lancement coupée : aucune requête ; le bouton de vérification la fait à la demande.
+  updated(function(F) F.release('Beta 1.34') end,function(F)
+   halt(); go('diagnostic'); redraw(); press('global_updateCheck'); assert(HUMANAI.engine.g.updateCheck==false)
+   pause(false); H.tick(HOST,15); assert(not F.find(API) and HUMANAI.updater.phase=='idle','no request when turned off')
+   pause(true); redraw(); assert(drawnText(L.updateStates.unchecked))
+   press('update_check'); assert(F.find(API) and HUMANAI.updater.phase=='available')
+  end)
+  -- GitHub sans version publiée : état affiché.
+  updated(function(F) F.release('Beta 1.34',{apiStatus=404}) end,function()
+   H.tick(HOST,11); halt(); go('diagnostic'); redraw(); assert(HUMANAI.updater.phase=='none' and drawnText(L.updateStates.none))
+  end)
+ end)
+ check('Beta 1.33 : retour à la version sauvegardée, compte rendu après le redémarrage',function()
+  updated(function(F)
+   F.files['local/backup/previous.zip']=F.zip({[Fake.prefix..'manifest.ini']='VERSION=Beta 1.32',[Fake.prefix..'ACAdvancedIA.lua']='main Beta 1.32',
+    [Fake.prefix..'src/update.lua']='update Beta 1.32',[Fake.prefix..'src/remote.lua']='remote Beta 1.32',[Fake.prefix..'src/ui.lua']='ui Beta 1.32'})
+   F.files['local/backup/previous.txt']='Beta 1.32'; F.files['local/backup/updated.txt']='update Beta 1.32 -> Beta 1.33'
+   F.release('Beta 1.33')
+  end,function(F)
+   local u=HUMANAI.updater; assert(u.updated and u.updated.kind=='update' and u.previous=='Beta 1.32' and HOST.files['local/backup/updated.txt']==nil)
+   assert(logged('mise a jour reussie: Beta 1.32 -> Beta 1.33'))
+   halt(); go('home'); redraw(); assert(drawnText(string.format(L.updateDone.update,'Beta 1.32','Beta 1.33')),'report on the home page')
+   H.tick(HOST,0); go('diagnostic'); redraw(); assert(drawn('update_rollback') and not drawn('update_install'))
+   HOST.releasing=true; press('update_rollback'); HOST.releasing=false
+   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main Beta 1.32' and Update.manifestVersion(HOST.files['local/manifest.ini'])=='Beta 1.32')
+   assert(HOST.files['local/backup/updated.txt']=='rollback Beta 1.33 -> Beta 1.32')
+  end)
+ end)
+ check('Beta 1.33 : installation interrompue au lancement précédent, sauvegarde remise en place, moteur arrêté',function()
+  -- Sauvegarde présente : remise en place au chargement, puis redémarrage.
+  updated(function(F)
+   F.files['local/manifest.ini']='VERSION=Beta 1.32'
+   F.files['local/backup/previous.zip']=F.zip({[Fake.prefix..'manifest.ini']='VERSION=Beta 1.32',[Fake.prefix..'ACAdvancedIA.lua']='main Beta 1.32',
+    [Fake.prefix..'src/update.lua']='update Beta 1.32',[Fake.prefix..'src/remote.lua']='remote Beta 1.32',[Fake.prefix..'src/ui.lua']='ui Beta 1.32'})
+   F.files['local/backup/previous.txt']='Beta 1.32'; F.files['local/backup/installing.txt']='update Beta 1.32 -> Beta 1.33'
+  end,function(F)
+   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main Beta 1.32' and HOST.files['local/backup/installing.txt']==nil)
+   assert(HOST.files['local/backup/updated.txt']=='recovered Beta 1.32 -> Beta 1.33')
+  end)
+  -- Sauvegarde illisible : le moteur ne pilote rien, la fenêtre l'explique.
+  updated(function(F) F.files['local/manifest.ini']='VERSION=Beta 1.32'; F.files['local/backup/installing.txt']='update Beta 1.32 -> Beta 1.33' end,function(F)
+   local e=HUMANAI.engine; local calls=HOST.calls
+   H.tick(HOST,5); assert(HUMANAI.updater.phase=='failed' and HOST.calls==calls and e.time==0 and F.restarts==0,'engine gated')
+   assert(HOST.files['local/backup/installing.txt']~=nil,'marker kept for the next launch')
+   HOST.wrappedTexts={}; pause(true); script.HUMANAI__MAIN(); assert(has(HOST.wrappedTexts,L.updateRecoveryFailed),'explained')
+  end)
+ end)
  return results
 end

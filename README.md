@@ -6,7 +6,7 @@
 
 ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP). Its HumanAI engine sits on top of the game's own AI and makes the AI cars drive more like people. On a track day they move aside for faster cars and spread out around the lap. In a race they respect blue flags, overtake and defend with intent, and flash their headlights at slower cars. They make the odd mistake, slow down for yellow flags, and follow Full Course Yellows, Virtual Safety Cars, a Safety Car and red flags. They make their mandatory pit stops, refuel and repair, and fit wet tyres when it rains. The app enforces the racing rules for you as well (delta time, penalties, DRS rules), and its in-game overlay tells you what is happening. It works in **offline sessions only**.
 
-- **Current version:** Beta 1.32. See [CHANGELOG.md](CHANGELOG.md).
+- **Current version:** Beta 1.33. See [CHANGELOG.md](CHANGELOG.md).
 - **Interface:** English by default, French available (**FR** | **EN** buttons in the settings window).
 - **Author:** VincentChevalier44. MIT License.
 
@@ -120,6 +120,22 @@ The repository download also contains the test bench and the technical documents
 8. **Races.** The Safety Car is on by default in races. Add its model, by default the **Ferrari 458 Italia Stage 3** from the base game (`ferrari_458_s3`), to the grid in Content Manager. Without it, the app falls back to a VSC or an FCY.
 
 ## Updating
+
+**From the app (since Beta 1.33).** At launch, about ten seconds into the game, the app makes **one request** to GitHub (`api.github.com`) to read the latest published release; nothing about you or your installation is sent. When a newer version exists:
+- **UPDATE · 1.34** appears in the header, right of the tabs, and *Update available: Beta 1.34* under **HOME › TO CHECK**, with an **Update** button;
+- **DIAGNOSTICS › UPDATES** shows the installed and available versions, the first lines of the release notes and **Release notes** (opens the release page in your browser);
+- in the pits, the overlay shows **UPDATE AVAILABLE** once per launch, for 6 seconds. Never while you drive.
+
+One click on **Update** works only when stopped (in the pits, paused or in a menu). It:
+1. downloads the release's SHA-256 digest, then its package, from the repository's release downloads only (no other address is followed);
+2. checks the digest, the package contents (everything under `apps/lua/ACAdvancedIA/`, no path outside it, the updater itself included) and the version in its `manifest.ini`;
+3. backs up the installed version to `backup/previous.zip` in the app folder;
+4. unpacks the package into `backup/next`, then moves each changed file into place, `manifest.ini` last;
+5. writes the session log, hands every AI back to AC and restarts the app.
+
+Any error before step 4 leaves the installed version untouched (*Corrupted file: update cancelled, current version kept*). A failed step 4 puts the backup back at once. An install cut short by a crash or a power cut is finished or undone at the next launch: the version in `manifest.ini` tells which, and the app drives nothing until then. **Roll back to Beta X** puts the backed-up version back the same way. Your settings, profiles and presets are kept: they live in CSP's storage, not in the app folder. Untick **Check for updates at launch** to never contact GitHub; **Check now** asks on demand. With a CSP version that lacks the web, zip or digest functions, the block says so: update manually as below. The download size is shown, but not its progress (CSP does not report it).
+
+**Manually or with Content Manager:**
 
 1. Close Assetto Corsa.
 2. Install the new version:
@@ -884,6 +900,7 @@ return { zones = {
 - **Sign calibration**: its state, *Offset / side sign*, and **Rerun sign calibration**.
 - **Headlight flashes**: the learned signal, and **Learn headlight flashes (6 s)**.
 - **Track zones**: **Mark start**, **Mark end (no manoeuvres)**, **COPY**, and the zone count.
+- **UPDATES** (since Beta 1.33), at the top: installed and available versions, the state (for example *You have the latest version (checked at 14:32)*, *Downloading Beta 1.34 (1.0 MB)…*, *GitHub unreachable: check the connection*), the first lines of the release notes, **Update** (**Cancel** while downloading), **Check now**, **Release notes**, **Roll back to Beta X** after an update, and **Check for updates at launch**.
 - **SESSION LOG**: **Write the session log to disk**, with the log's path and size.
 - **CSP capabilities**: one row per CSP function the app uses, with its state (*Available, not used yet*, *Call succeeded*, *Missing*, *Disabled after three failures*). Below it: the level mode, the braking-zone and grip notes, and **Exposed AI functions**.
 
@@ -927,6 +944,7 @@ Each area scrolls with the mouse wheel.
 **What the app never does:**
 - It never drives **your** car: no steering, throttle or braking. The front radar only acts on AI. The only things it can do to your car are AC's own native penalties (throttle cut, black flag), disabling DRS under the racing rules, and AC's native yellow HUD flag if you ask for it.
 - It never changes a track, car or `surfaces.ini` file, and needs no script installed on the tracks.
+- It contacts no server but GitHub: one request per launch to `api.github.com` (turn it off with **Check for updates at launch**), and the release files on `github.com` only when you click **Update**. It only writes inside its own folder (`backup/`) when updating.
 - **The only CSP setting it changes** is the `[AI_FLOOD]` section of `Documents/Assetto Corsa/cfg/extension/new_behaviour.ini`, on Track days with an AI distribution other than **Native (game)**. It saves the original values first and writes them back in **Native (game)** mode. Otherwise it writes only its own CSP state file and its session log.
 - It never teleports or force-brakes cars to space them. It does return stopped, disqualified or parked AI to their pit box, and it places AI on track at the session start when **On the whole track** is chosen.
 - It never drives Traffic Planner's kinematic cars, nor anything in alt-online modes.
@@ -1316,6 +1334,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | `vehicule lent devant le joueur` | Since Beta 1.32: white flag; the slow car, its speed and how far ahead of you |
 | `avertissement du joueur` | Since Beta 1.32: your last tolerated infringement (black-and-white flag) |
 | `voiture du joueur endommagee` | Since Beta 1.32: black flag with an orange disc, with the damage read |
+| `mise a jour` | Since Beta 1.33: the launch check (`mise a jour disponible: Beta … (publiee le …, … octets)`, `… est la derniere version`, `aucune version publiee sur GitHub`), each install step (download, `empreinte verifiee, sauvegarde de la …`, `installation de la …`, `… installee, commandes des IA rendues a AC et redemarrage de l app`), refusals and errors (`refusee en conduite`, `echec reseau (statut …)`, `empreinte SHA-256 differente`, `contenu du paquet refuse`, `ecriture impossible`, with `version actuelle conservee`), rollback, recovery at launch (`installation interrompue (…), sauvegarde remise en place`) and, after the restart, `mise a jour reussie: A -> B` |
 | `invitation du joueur non suivie` | Since Beta 1.30: you moved aside right in front of an AI (at least 2 m, within 40 m) and it has not started to pass after 3 s. The line gives the distance, the lateral gap, the speed difference, both yaw rates and the reason (yellow flag, braking, corner, rest after a manoeuvre, anti-zigzag cap, car alongside, too slow…) |
 | `appel de phares du joueur` | Since Beta 1.29: each of your headlight flashes, with the AI targeted within the flash range, the nearest one (distance, your speed advantage), how many saw it and how many understood it; `cede sur appel de phares du joueur` is logged when an AI yields to it |
 | `IA anormalement lente` | Since Beta 1.28: an AI on track running below 60% of its class's learned pace at that spot for 20 s with a car stuck behind it (within 60 m). The line gives the driver, the car model, the speed, the class pace, the cars queued behind, the AI state, whether the app commands it, any speed limit the app imposes, and the damage (body, suspension, engine, gearbox); a second line (`roule de nouveau normalement`) closes the episode. Diagnostic only: nothing is commanded |

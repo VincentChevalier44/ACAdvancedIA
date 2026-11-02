@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 # Older release packages (each release replaces the previous one in dist/)
 dist/*.tmp
+# In-app update data (backup of the previous version, staging, markers), local to each installation
+backup/

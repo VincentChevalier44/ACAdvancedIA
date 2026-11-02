@@ -19,6 +19,9 @@ LIVE = GAME / 'apps/lua/ACAdvancedIA'
 ARCHIVES = GAME / '_ACAdvancedIA_archives'
 SETTINGS = Path.home() / 'Documents/Assetto Corsa/cfg/extension/state/lua/app'
 SKIP = {'__pycache__'}
+# Mise à jour depuis l'app (Beta 1.33) : sauvegarde, dépôt et repères propres à chaque installation, jamais copiés ni
+# retirés par l'installation, jamais comparés.
+LOCAL = {'backup'}
 
 
 def edit(path, old, new, count=1):
@@ -38,7 +41,8 @@ def files(root):
     root = Path(root)
     out = {}
     for p in root.rglob('*'):
-        if p.is_file() and not SKIP & set(p.relative_to(root).parts):
+        parts = p.relative_to(root).parts
+        if p.is_file() and not SKIP & set(parts) and parts[0] not in LOCAL:
             out[p.relative_to(root).as_posix()] = hashlib.sha256(p.read_bytes()).hexdigest()
     return out
 

@@ -311,5 +311,13 @@ return {
   export='Copie les zones dans le presse-papiers, à coller dans tracks/<identifiant>.lua ; aucun fichier du circuit n’est modifié.',
   zoneCount='Zones sans manœuvre de ce circuit : chargées depuis tracks/<identifiant>.lua ou marquées pendant la session. Le bouton de copie les exporte dans le presse-papiers ; aucun fichier du circuit n’est modifié.',
   filter='Change le niveau des messages affichés : tous, erreurs, avertissements, informations ou détails.',
+  -- Mise à jour depuis GitHub (Beta 1.33).
+  updateInstall='Installe la nouvelle version en un clic : téléchargement depuis GitHub, vérification de l’empreinte SHA-256 et du contenu du paquet, sauvegarde de la version actuelle, puis l’app rend la main aux IA d’AC et redémarre. Vos réglages, profils et préréglages sont conservés.',
+  updateDriving='Mise à jour possible à l’arrêt seulement : stands, pause ou menu.',
+  updateCancel='Annule le téléchargement en cours ; rien n’a encore été modifié.',
+  updateCheck='Demande à GitHub la dernière version publiée (une requête). Rien n’est téléchargé ni installé sans votre clic sur « Mettre à jour ».',
+  updateNotes='Ouvre la page de la version sur GitHub dans votre navigateur.',
+  updateRollback='Remet en place la version sauvegardée avant la dernière mise à jour, puis l’app redémarre. Vos réglages sont conservés.',
+  updateToggle='Au lancement, une seule requête à GitHub (api.github.com) pour savoir si une version plus récente existe ; aucune donnée personnelle n’est envoyée. Décochez pour ne jamais interroger GitHub.',
  },
 }
