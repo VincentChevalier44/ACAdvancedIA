@@ -173,7 +173,7 @@ function M.check(u,port,now)
   if status~=200 then fail(u,'network',status); return end
   local r=M.release(port.json(body))
   if not r then fail(u,'format'); return end
-  u.release=r; u.phase=M.newer(r.version,u.installed) and 'available' or 'current'; u.serial=u.serial+1
+  u.release=r; u.phase=M.fresh(u) and 'available' or 'current'; u.serial=u.serial+1
   event(u,'INFO',u.phase=='available' and 'mise a jour disponible: '..r.version..' (publiee le '..r.published..', '..r.zip.size..' octets)' or 'mise a jour: '..u.installed..' est la derniere version')
  end)
  return true
@@ -182,7 +182,7 @@ function M.cancel(u) if u.phase=='downloading' then u.cancelled=true; u.phase='a
 -- Installation (un clic) : seulement à l'arrêt et avec une version plus récente connue.
 function M.install(u,port,stopped)
  local r=u.release
- if M.busy(u) or not r or not M.newer(r.version,u.installed) then return false end
+ if M.busy(u) or not r or not M.fresh(u) then return false end
  if not stopped then fail(u,'driving'); return false end
  u.phase='downloading'; u.error=''; u.cancelled=false
  event(u,'INFO','mise a jour: telechargement de la '..r.version)
@@ -262,5 +262,12 @@ function M.view(u,stopped)
  return phase
 end
 -- Une version plus récente est connue (bouton de l'en-tête, alerte de l'accueil, information de l'overlay).
-function M.offered(u) return u.release~=nil and M.newer(u.release.version,u.installed) and (u.phase=='available' or u.phase=='failed' and u.error~='format') end
+-- Version publiée plus récente que l'installée : comparée une seule fois par version publiée (Beta 1.34).
+function M.fresh(u)
+ local r=u.release
+ if not r then return false end
+ if r.newer==nil then r.newer=M.newer(r.version,u.installed) end
+ return r.newer
+end
+function M.offered(u) return M.fresh(u) and (u.phase=='available' or u.phase=='failed' and u.error~='format') end
 return M

@@ -82,6 +82,8 @@ function M.decide(l,inc,frame,p,profile,now)
  if not a.valid or a.finished or frame.finished then return K.flagNone,'arrivee' end
  if inc.red then return K.flagStop,'drapeau rouge' end
  if inc.playerYellow then return K.flagCaution,inc.neutral and (neutralNames[inc.neutralMode] or 'neutralisation') or 'drapeau jaune' end
+ -- Départ arrêté (Beta 1.34) : jaune pendant la formation et les feux ; vert à l'extinction (drapeau vert).
+ if inc.standing=='grid' or inc.standing=='lights' then return K.flagCaution,'depart arrete' end
  -- Dernier tour d'une course aux tours : drapeau blanc d'AC rendu, jamais masqué par une information.
  if profile=='C' and frame.sessionLaps>0 and not frame.timedRace and a.lap+1>=frame.sessionLaps then return K.flagNone,'dernier tour' end
  if l.slowSlot>0 then return K.flagSlowVehicle,'vehicule lent' end

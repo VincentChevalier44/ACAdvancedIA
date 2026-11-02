@@ -15,6 +15,7 @@ local Mistakes=require('src/mistakes')
 local HudInfo=require('src/hudinfo')
 local Flood=require('src/flood')
 local Lights=require('src/lights')
+local Grid=require('src/grid')
 local K=C.K
 local M={}
 -- Journal du départ (Beta 1.24) : maintien de ligne (IA mesurées, décalées de la trajectoire) et pneus de chaque IA,
@@ -84,7 +85,7 @@ local function contacts(e,frame,now)
  end
 end
 -- Message à l'écran de chaque pénalité du joueur.
-local penaltyMessages={delta='penaltyDelta',pass='penaltyPass',red='penaltyRed',stop='penaltyStop'}
+local penaltyMessages={delta='penaltyDelta',pass='penaltyPass',red='penaltyRed',stop='penaltyStop',jump='penaltyJump'}
 function M.new(g,profiles)
  local initial=g.autoProfile and 'J' or g.manualProfile
  local e={g=g,profiles=profiles,profile=initial,p=profiles[initial],states={},commands={},perception=Perception.new(),
@@ -102,6 +103,9 @@ function M.new(g,profiles)
  e.hud=HudInfo.new(); e.panel.info=e.hud
  -- Panneaux lumineux du circuit et signaux FIA du joueur (Beta 1.32) ; dernier véhicule lent annoncé au journal.
  e.lights=Lights.new(); e.slowLogged=0
+ -- Départ arrêté après un drapeau rouge (Beta 1.34) : places de grille, formation, feux ; capacités vues par le
+ -- script principal (retenue, allure, décalage).
+ e.grid=Grid.new(); e.gridCaps=false
  -- Contacts déjà notés (Beta 1.24) : prochaine ligne permise par paire de voitures.
  e.contacts={}; e.contactRel={}; e.contactSecond=-1; e.contactCount=0
  e.incidents.note=e.note; e.pits.note=e.note
@@ -123,7 +127,7 @@ function M.rebase(e,amount)
  e.time=e.time-amount; e.startedAt=e.startedAt-amount; e.panel.at=e.panel.at-amount; Penalties.rebase(e.penalties,amount); Delta.rebase(e.delta,amount); Mistakes.rebase(e.mistakes,amount); e.deltaBeep.nextAt=e.deltaBeep.nextAt-amount
  if e.panel.noticeUntil>-math.huge then e.panel.noticeUntil=e.panel.noticeUntil-amount end
  if e.panel.warnUntil>-math.huge then e.panel.warnUntil=e.panel.warnUntil-amount end
- Lights.rebase(e.lights,amount)
+ Lights.rebase(e.lights,amount); Grid.rebase(e.grid,amount)
  if e.panel.changedAt>-math.huge then e.panel.changedAt=e.panel.changedAt-amount end
  e.classes.nextAt=e.classes.nextAt-amount; e.classes.bopAt=e.classes.bopAt-amount
  e.traffic.nextAt=e.traffic.nextAt-amount
@@ -289,7 +293,7 @@ function M.step(e,frame,dt)
   e.session=frame.session; e.sessionType=frame.type
   M.reset(e,now,true); e.wasStarted=frame.started; e.startedAt=frame.started and now-frame.time or now
   e.classes.nextAt=0; e.flash=Flash.new()
-  e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); Lights.reset(e.lights); e.slowLogged=0; e.panel.warnPending=false; e.panel.warnUntil=-math.huge; e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
+  e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); Lights.reset(e.lights); Grid.reset(e.grid); e.slowLogged=0; e.panel.warnPending=false; e.panel.warnUntil=-math.huge; e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
   e.configuredRevision=-1
   for i=1,K.maxCars do
    local s=e.states[i]; s.stint=0; s.stintStart=now; s.class=2; s.classified=false; s.classCandidate=0; s.classCycles=0
@@ -419,6 +423,10 @@ function M.step(e,frame,dt)
  -- Incidents dès l'envol du départ : une grille arrêtée n'est pas une zone jaune, un accrochage au premier virage oui.
  local ready=frame.started and not (e.profile=='C' and now-e.startedAt<K.gridGrace)
  e.incidents.playerExcluded=e.penalties.disqualified
+ -- Départ arrêté (Beta 1.34) : retenue, plafond d'allure et décalage disponibles, sens latéral mesuré, longueur de piste
+ -- connue ; sinon la relance reste un départ lancé (raison au journal).
+ e.incidents.gridReady=e.gridCaps==true and e.g.offsetSign~=0 and frame.length>0
+ e.incidents.gridWhy=e.gridCaps~=true and 'capacites' or e.g.offsetSign==0 and 'sens lateral non mesure' or frame.length<=0 and 'circuit' or ''
  Incidents.update(e.incidents,frame,e.run,e.profile,now,dt,ready,e.runtimeG.seed)
  -- Allure de référence de la flotte (temps delta), quelques endroits par image.
  Delta.refresh(e.delta,frame,e.states,e.run.multiClass==true)
@@ -600,6 +608,7 @@ function M.step(e,frame,dt)
   if penalty=='delta' then detail=string.format('delta negatif (%s, %.2f s au mini-secteur)',t.deltaKind,t.deltaValue)
   elseif penalty=='pass' then detail=string.format('depassement sous drapeau jaune (%s)',t.passed>0 and frame.cars[t.passed].name or '?')
   elseif penalty=='red' then detail='pas dans la voie des stands a la reprise apres drapeau rouge'
+  elseif penalty=='jump' then detail='faux depart (depart arrete)'
   else detail='arret obligatoire non effectue dans la fenetre' end
   if t.kind=='dq' then
    U.log(e.log,now,'WARN',string.format('disqualification du joueur: drapeau noir apres %d infractions, derniere : %s',t.count,detail),frame.player)
@@ -702,6 +711,9 @@ function M.step(e,frame,dt)
    cmd.recoverStill=(red or neutralStuck or trackStuck) and still or stalled
   end
  end
+ -- Départ arrêté (Beta 1.34) : formation, feux, départ, après les commandes des stands (retenues à l'emplacement
+ -- gardées) ; un faux départ du joueur est une infraction comme une autre (sanction à l'image suivante).
+ if Grid.step(e.grid,e.incidents,frame,now,e.commands,e.g.offsetSign,e.runtimeG.seed,e.log)=='jump' and e.run.playerPenalties then e.penalties.jumpPending=true end
  -- Carburant des arrêts forcés, une fois toutes les demandes d'arrêt connues (règles, météo, drapeau rouge).
  Pits.fuel(e.pits,frame,e.commands,e.run,e.profile,now,red)
  for i=1,K.maxCars do local cmd=e.commands[i]; cmd.scPark=false; cmd.scSpeed=K.unlimitedSpeed; cmd.parkReason='sc'; cmd.scRelease=false end

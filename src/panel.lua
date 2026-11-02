@@ -57,18 +57,22 @@ local function native(panel,frame,now)
  return nil,0
 end
 -- Genre affiché (couleur, sigle, titre) de chaque genre décidé.
-local shownKinds={scCall='sc',penaltyDrive='penalty',penaltyTeleport='penalty',penaltySlow='penalty',nativeBlue='blue',start='green',finish='checkered',giveBack='warning'}
+local shownKinds={scCall='sc',penaltyDrive='penalty',penaltyTeleport='penalty',penaltySlow='penalty',nativeBlue='blue',start='green',finish='checkered',giveBack='warning',
+ rollingIn='rolling',rollingGreen='rolling',standingLap='standing',standingPit='standing'}
 -- Drapeau retenu : genre affiché, horodatage du changement, textes refaits seulement quand le genre ou la valeur change.
 -- profile : essais et qualifications parlent de séance, pas de course (drapeau rouge, reprise).
-local function show(panel,kind,value,double,gap,now,profile)
+local function show(panel,kind,value,double,gap,now,profile,extra)
+ extra=extra or 0
  local shown=shownKinds[kind] or kind
  if shown~=panel.kind then panel.changedAt=now end
  panel.kind=shown; panel.double=double; panel.blueGap=gap; panel.redPit=kind=='red' and value==1; panel.finish=kind=='finish'
+ -- Feux de départ (Beta 1.34) : nombre de feux allumés.
+ panel.lit=kind=='lights' and value or 0
  -- Passage de la ligne et fin de course (Beta 1.25) : textes tenus par les informations de l'overlay.
  local info=panel.info
  if kind=='lap' and info then value=info.lapSerial elseif kind=='finish' and info then value=info.recapSerial end
  local session=profile=='P' or profile=='Q'
- local key=kind..'|'..value..'|'..(double and 1 or 0)..(session and '|s' or '')
+ local key=kind..'|'..value..'|'..extra..'|'..(double and 1 or 0)..(session and '|s' or '')
  if key~=panel.key then
   panel.key=key
   if kind=='lap' and info then
@@ -82,12 +86,12 @@ local function show(panel,kind,value,double,gap,now,profile)
    elseif kind=='yellow' then detail=string.format(double and L.flagDetails.yellow2 or L.flagDetails.yellow,value)
    elseif kind=='red' then detail=value==1 and (session and L.flagDetails.redSessionPit or L.flagDetails.redPit) or (session and L.flagDetails.redSession or L.flagDetails.red)
    elseif kind=='green' and session then detail=L.flagDetails.greenSession
-   else detail=string.format(L.flagDetails[kind],value) end
+   else detail=string.format(L.flagDetails[kind],value,extra) end
    panel.raw=detail; panel.detail=U.wrapText(detail,K.panelWrap)
    -- Consigne courte du bandeau (une ligne).
    local short=kind=='red' and (value==1 and (session and 'redSessionPit' or 'redPit') or (session and 'redSession' or 'red'))
     or kind=='green' and session and 'greenSession' or kind=='yellow' and double and 'yellow2' or kind
-   panel.short=string.format(L.flagShort[short],value)
+   panel.short=string.format(L.flagShort[short],value,extra)
    -- Explication de ce qui se passe (Beta 1.25), sous la consigne : jaune, double jaune, neutralisations, rouge...
    local explain=kind=='yellow' and double and 'yellow2' or kind=='red' and (session and 'redSession' or 'red') or kind
    panel.explain=L.flagExplain[explain] or ''
@@ -144,15 +148,27 @@ function M.update(panel,t,frame,p,profile,now,lights)
  local drs=present and reason=='' and a.drsAvailable and not a.drsActive and not panel.drsUsed or false
  local gap=nil
  local nk,nv=native(panel,frame,now)
+ local extra=0
  if t.red then kind='red'; value=a and a.pit and 1 or 0
  -- Drapeau noir et pénalités d'AC : propres au joueur, avant toute neutralisation.
  elseif nk=='black' or nk=='penalty' or nk=='penaltyDrive' or nk=='penaltyTeleport' or nk=='penaltySlow' then kind=nk; value=nv
+ -- Tour de relance d'un drapeau rouge (Beta 1.34) : départ lancé (RS) ou arrêté (SS) annoncé, voiture de sécurité qui
+ -- rentre ce tour, dépassement à la ligne ou dès le vert.
+ elseif t.neutral and t.relaunch and profile=='C' then
+  if p.redRestart=='standing' and t.gridReady then kind='standingLap'
+  else kind=t.safetyPhase~='in' and 'rolling' or p.restartOvertake=='scIn' and 'rollingGreen' or 'rollingIn' end
  elseif t.neutral then
   if t.neutralMode=='sc' then
    local merging=t.safetyPhase=='call' or t.safetyPhase=='out' and t.safety>0 and frame.cars[t.safety].pit
    kind=t.safetyPhase=='in' and 'scIn' or merging and 'scCall' or 'sc'
   elseif t.neutralMode=='vsc' then kind=t.ending and 'vscEnd' or 'vsc'; value=p.vscDeltaPct
   else kind='fcy'; value=p.fcyDeltaPct end
+ -- Départ arrêté (Beta 1.34) : place et distance du joueur, feux, extinction, faux départ.
+ elseif t.standing=='grid' then
+  if t.gridPit then kind='standingPit' else kind='standing'; value=t.gridSlot or 0; extra=t.gridGap or 0 end
+ elseif t.standing=='lights' then kind='lights'; value=t.gridLit or 0
+ elseif t.standing=='go' then kind='go'
+ elseif now<(t.jumpUntil or -math.huge) then kind='jump'
  elseif t.playerZone then
   -- Double jaune : incident en piste (delta de zone) ; simple jaune : incident hors piste.
   double=t.playerZoneDouble==true
@@ -190,10 +206,10 @@ function M.update(panel,t,frame,p,profile,now,lights)
   -- Mise à jour disponible (Beta 1.33) : la plus basse des informations, aux stands seulement.
   elseif now<panel.updateUntil then kind='update'; value=panel.updateVersion end
  end
- show(panel,kind,value,double,gap,now,profile)
+ show(panel,kind,value,double,gap,now,profile,extra)
  -- Drapeau et zone DRS en même temps : le drapeau reste affiché, avec une ligne « DRS interdit sous drapeau ».
  local calm=kind=='none' or kind=='green' or kind=='blue' or kind=='pit' or kind=='slippery' or kind=='nativeBlue' or kind=='white' or kind=='start' or kind=='checkered' or kind=='finish' or kind=='lap'
-  or kind=='slow' or kind=='giveBack' or kind=='warning' or kind=='meatball' or kind=='update'
+  or kind=='slow' or kind=='giveBack' or kind=='warning' or kind=='meatball' or kind=='update' or kind=='go'
  -- Règles de course : pluie et premiers tours affichés avec tout drapeau ; sinon « DRS interdit sous drapeau ».
  panel.drsBlocked=kind~='none' and kind~='drs' and (reason~='' and present and (reason~='flag' or not calm) or reason=='' and drs and not calm)
  if reason=='wet' then panel.drsText=L.drsWet

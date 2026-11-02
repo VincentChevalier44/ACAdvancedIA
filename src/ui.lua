@@ -45,7 +45,7 @@ end
 -- Vues de l'onglet Règles de course (Beta 1.19) : les arrêts aux stands et la voiture de sécurité n'apparaissent que
 -- sous le titre de leur interrupteur ; « Règles de course actives » montre tout le reste des règles.
 local ruleViews={stops={mandatoryStops=true,pitWindowOpenPct=true,pitWindowClosePct=true,pitTyres=true,pitRepair=true,pitCompoundChange=true,minPitTime=true,maxStintMin=true,pitFuel=true,pitsClosed=true,pitMessage=true},
- safety={safetyCarSpeedKmh=true,safetyCarEscalation=true}}
+ safety={safetyCarSpeedKmh=true,safetyCarEscalation=true,restartOvertake=true}}
 -- Interrupteurs indépendants des jeux de règles (Beta 1.19) : le jeu choisi reste surligné quand on les change.
 local switchKeys={mandatoryStops=true,safetyCarEscalation=true}
 local function ruleView(key) for name,keys in pairs(ruleViews) do if keys[key] then return name end end return 'all' end
@@ -541,7 +541,7 @@ local function updateBlock(v,e,host,x,y)
  heading(L.updateHeading,x,y); y=y+20
  if not port.ready then return y+W.paragraph(L.updateUnavailable,x,y,440,12,c.grey)+10 end
  local view=Update.view(u,host.updateStopped); local r=u.release
- local newer=r~=nil and Update.newer(r.version,u.installed)
+ local newer=Update.fresh(u)
  if v.updateVersions~=u.serial then
   v.updateVersions=u.serial
   v.updateVersionText=string.format(L.updateInstalled,u.installed)..(newer and string.format(L.updateAvailableLine,r.version,r.published) or '')
@@ -1033,9 +1033,9 @@ local function panelPalette(alpha)
  return panelColors
 end
 local flagColors={lap='pit',red='red',sc='yellow',scIn='yellow',fcy='yellow',vsc='yellow',vscEnd='yellow',restart='green',yellow='yellow',zone='yellow',zone1='yellow',native='yellow',blue='blue',green='green',pit='pit',slippery='yellow',black='ink',penalty='ink',checkered='ink',white='pit',
- slow='pit',warning='ink',meatball='ink',update='accent'}
+ slow='pit',warning='ink',meatball='ink',update='accent',rolling='yellow',standing='yellow',lights='ink',go='green',jump='ink'}
 -- Sigle inscrit dans le drapeau (rouge, bleu et vert parlent d'eux-mêmes) ; double jaune : « !! ».
-local flagCodes={sc='SC',scIn='SC',fcy='FCY',vsc='VSC',vscEnd='VSC',yellow='!',zone='!!',zone1='!',native='!',pit='P'}
+local flagCodes={sc='SC',scIn='SC',fcy='FCY',vsc='VSC',vscEnd='VSC',yellow='!',zone='!!',zone1='!',native='!',pit='P',rolling='RS',standing='SS'}
 -- Alignements DWrite (ui.Alignment) : début, centre, fin.
 local START,CENTER,FINISH=-1,0,1
 -- Texte dans un cadre {x1,y1,x2,y2}, aligné, éventuellement replié ; sans DWrite : texte simple en haut à gauche.
@@ -1110,6 +1110,13 @@ local function meatball(colors,f)
  ui.drawRectFilled(vec2(f[1],f[2]),vec2(f[3],f[4]),colors.ink,5)
  local r=math.min(f[3]-f[1],f[4]-f[2])*0.32
  if r>0 and callable(ui.drawCircleFilled) then ui.drawCircleFilled(vec2((f[1]+f[3])*0.5,(f[2]+f[4])*0.5),r,colors.amber,24) end
+end
+-- Feux de départ (Beta 1.34) : cinq feux sur fond noir, rouges une fois allumés.
+local function startLights(colors,f,lit)
+ ui.drawRectFilled(vec2(f[1],f[2]),vec2(f[3],f[4]),colors.ink,5)
+ if not callable(ui.drawCircleFilled) then return end
+ local n=K.gridLights; local step=(f[3]-f[1])/n; local r=math.min(step,f[4]-f[2])*0.34; local y=(f[2]+f[4])*0.5
+ for k=1,n do ui.drawCircleFilled(vec2(f[1]+(k-0.5)*step,y),r,k<=lit and colors.red or colors.dim,16) end
 end
 -- Drapeau à bandes jaunes et rouges verticales (piste glissante).
 local function stripes(colors,f)
@@ -1269,7 +1276,7 @@ function M.flags(v,force)
  local flashing=not idle and (kind=='red' or kind=='blue' or now-panel.changedAt<K.flagBlinkTime)
  local flagColor=kind=='drs' and colors.text or kind=='clear' and colors.dim or colors[flagColors[kind] or 'yellow']
  local shown=flashing and not blink and back or flagColor
- local dark=kind=='black' or kind=='penalty' or kind=='checkered' or kind=='warning' or kind=='meatball'
+ local dark=kind=='black' or kind=='penalty' or kind=='checkered' or kind=='warning' or kind=='meatball' or kind=='jump' or kind=='lights'
  local accent=dark and (flashing and not blink and back or colors.text) or shown
  if not v.panelVersion then v.panelVersion=string.format(L.panelVersion,C.release) end
  write(v.panelVersion,9*u,l.version,colors.dim,FINISH)
@@ -1278,7 +1285,8 @@ function M.flags(v,force)
  elseif kind=='drs' then drsBadge(colors,f)
  elseif kind=='slippery' then stripes(colors,f)
  elseif kind=='checkered' then checker(colors,f)
- elseif kind=='penalty' or kind=='warning' then diagonal(colors,f)
+ elseif kind=='penalty' or kind=='warning' or kind=='jump' then diagonal(colors,f)
+ elseif kind=='lights' then startLights(colors,f,panel.lit or 0)
  elseif kind=='meatball' then meatball(colors,f)
  elseif kind=='black' then
   ui.drawRectFilled(vec2(f[1],f[2]),vec2(f[3],f[4]),colors.ink,5*u)

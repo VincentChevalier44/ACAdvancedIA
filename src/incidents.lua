@@ -14,6 +14,7 @@ function M.new()
   safety=0,safetyPhase='none',safetySince=0,safetyStill=0,safetyFailed=false,safetyLeft=false,started=0,held=0,onTrack=0,red=false,redSince=0,redCancelled=false,reds=0,redTotal=0,redInPits=0,
   greenUntil=-math.huge,playerZone=false,playerInside=false,playerToZone=0,playerLead=0,playerNoPass=false,playerZoneSlot=0,suppressed={queue=0,spawn=0,crawl=0},playerDistance=0,freshOnTrack=0,redEnd=-math.huge,redMax=0,neutralEnd=-math.huge,frameId=0,messagePriority=0,messageFrame=-1,
   playerFlag=false,playerYellow=false,playerZoneDouble=false,slipperyUntil=-math.huge,messageId=0,messageKind='',messageValue=0,messageExtra=0,messageText='',
+  standing='none',gridReady=false,gridWhy='',gridLit=0,gridSlot=0,gridGap=0,gridPit=false,jumpUntil=-math.huge,
   relaunch=false,escalated=false,ending=false,endingUntil=0,restart=false,restartSince=0,playerRestart=false,pitsClosed=false,releaseAt={}}
  for i=1,K.maxCars do
   t.releaseAt[i]=-math.huge
@@ -27,6 +28,7 @@ function M.reset(t)
  t.zoneCount=0; t.activeCount=0; t.holdCount=0; t.neutral=false; t.neutralUntil=0; t.playerFlag=false; t.playerYellow=false; t.safetyPhase='none'; t.red=false; t.onTrack=0; t.playerZone=false; t.playerInside=false; t.slipperyUntil=-math.huge
  t.safetyStill=0; t.safetyFailed=false; t.safetyLeft=false; t.escalated=false; t.relaunch=false; t.ending=false; t.restart=false; t.playerRestart=false; t.pitsClosed=false
  for i=1,K.maxCars do t.releaseAt[i]=-math.huge end
+ t.standing='none'; t.gridLit=0; t.jumpUntil=-math.huge
 end
 function M.rebase(t,amount)
  t.neutralSince=t.neutralSince-amount; t.neutralUntil=t.neutralUntil-amount; t.safetySince=t.safetySince-amount; t.redSince=t.redSince-amount
@@ -35,6 +37,7 @@ function M.rebase(t,amount)
  if U.finite(t.greenUntil) then t.greenUntil=t.greenUntil-amount end
  if U.finite(t.slipperyUntil) then t.slipperyUntil=t.slipperyUntil-amount end
  t.endingUntil=t.endingUntil-amount; t.restartSince=t.restartSince-amount
+ if U.finite(t.jumpUntil) then t.jumpUntil=t.jumpUntil-amount end
  for i=1,K.maxCars do
   local c=t.cars[i]
   for _,key in ipairs({'since','clearedAt','windowStart','crashAt','holdUntil','holdMax','lastCrash','holdStart'}) do if U.finite(c[key]) then c[key]=c[key]-amount end end
@@ -42,7 +45,7 @@ function M.rebase(t,amount)
  end
 end
 -- Un seul message affiché par image : le plus important l'emporte (rouge, neutralisation, vert, jaune, stands, météo).
-local priorities={penaltyDq=5,aiDq=4,penaltyDelta=5,penaltyPass=5,penaltyRed=5,penaltyStop=5,red=5,redSession=5,sessionResume=3,redRestartSc=4,redRestartVsc=4,redRestartFcy=4,sc=4,fcy=4,vsc=4,vscEnd=4,scIn=3,green=3,restart=3,yellow=2,pitOpen=1,pitOpenCsp=1,wet=1,dry=1,drsLaps=1,drsOn=1,drsWet=1}
+local priorities={penaltyDq=5,aiDq=4,penaltyDelta=5,penaltyPass=5,penaltyRed=5,penaltyStop=5,red=5,redSession=5,sessionResume=3,redRestartSc=4,standing=4,penaltyJump=5,redRestartVsc=4,redRestartFcy=4,sc=4,fcy=4,vsc=4,vscEnd=4,scIn=3,green=3,restart=3,yellow=2,pitOpen=1,pitOpenCsp=1,wet=1,dry=1,drsLaps=1,drsOn=1,drsWet=1}
 local function message(t,kind,value,extra,text)
  local priority=priorities[kind] or 0
  if t.messageFrame==t.frameId and priority<t.messagePriority then return end
@@ -68,6 +71,19 @@ local function restart(t,frame,now,p)
  end
  if p.yellowMessage then message(t,'restart') end
 end
+-- Fin du tour de relance d'un drapeau rouge en course (Beta 1.34) : départ arrêté si les règles le demandent et que
+-- tout est prêt (t.gridReady, décidé par le moteur : capacités, sens latéral, piste), sinon départ lancé (raison au
+-- journal). Dépassement interdit jusqu'à la ligne, juste devant la grille.
+local function standing(t,frame,now,p,profile)
+ if profile~='C' or p.redRestart~='standing' then return false end
+ if not t.gridReady then note(t,'INFO','relance arretee indisponible ('..(t.gridWhy~='' and t.gridWhy or '?')..'): depart lance',-1); return false end
+ t.standing='grid'; t.gridLit=0; note(t,'INFO','relance: depart arrete (SS)',-1)
+ restart(t,frame,now,p)
+ if p.yellowMessage then message(t,'standing') end
+ return true
+end
+-- Dépassement après une relance (Beta 1.34) : à la ligne de contrôle (défaut), ou dès le drapeau vert.
+local function restartRule(t,frame,now,p) if p.restartOvertake=='scIn' then if p.yellowMessage then message(t,'green') end else restart(t,frame,now,p) end end
 -- Sortie des stands après un drapeau rouge : ordre du classement de la course (sinon ordre de la grille), une IA toutes
 -- les deux secondes après un court délai ; la voiture de sécurité sort la première. Renvoie la durée de la sortie.
 local order={}
@@ -122,6 +138,8 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
  local major=false
  -- Escalade vers la voiture de sécurité : incidents majeurs en même temps, immobilisation la plus longue.
  local majors,longest=0,0
+ -- Départ arrêté en cours (Beta 1.34) : une voiture qui s'arrête à sa place n'est pas un incident.
+ local gridStop=t.standing~='none'
  for i=1,frame.count do
   local a=frame.cars[i]; local c=t.cars[i]
   local identity=a.identity or a.id
@@ -145,7 +163,7 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
   -- l'app) est supposée avoir roulé.
   if c.fresh then c.fresh=false; c.moved=frame.time>=K.spawnWindow end
   if a.pit or not a.valid then c.moved=false elseif a.kmh>=K.rejoinSpeed then c.moved=true end
-  if eligible and c.moved and a.kmh<K.incidentStopSpeed and (now-c.lastCrash<=K.crashWindow or not queued(frame,i,p)) then c.halt=c.halt+dt else c.halt=0 end
+  if eligible and c.moved and a.kmh<K.incidentStopSpeed and (now-c.lastCrash<=K.crashWindow or not gridStop and not queued(frame,i,p)) then c.halt=c.halt+dt else c.halt=0 end
   -- Journal : voitures lentes que les règles d'arrêt écartent (départ ou sortie des stands, voiture au pas, file).
   if eligible and a.kmh<p.obstacleSpeedKmh then c.slow=c.slow+dt else c.slow=0; c.counted=false end
   if c.slow>=K.obstacleTime and c.halt==0 and not c.counted then
@@ -260,8 +278,14 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
    t.safetyPhase='in'; t.safetySince=now; note(t,'INFO','voiture de securite: rentre ce tour',t.safety); if p.yellowMessage then message(t,'scIn') end
   end
   if t.safetyPhase=='in' and (car.pit or now-t.safetySince>=K.scInMax) then
-   t.neutral=false; t.relaunch=false; t.safetyPhase='parking'; t.greenUntil=now+K.greenShow; note(t,'INFO',car.pit and 'drapeau vert: voiture de securite aux stands' or 'drapeau vert: voiture de securite non rentree, delai depasse',t.safety)
-   restart(t,frame,now,p)
+   local relaunched=t.relaunch
+   t.neutral=false; t.relaunch=false; t.safetyPhase='parking'
+   if relaunched and standing(t,frame,now,p,profile) then
+    note(t,'INFO',car.pit and 'voiture de securite aux stands: formation de la grille' or 'voiture de securite non rentree, delai depasse: formation de la grille',t.safety)
+   else
+    t.greenUntil=now+K.greenShow; note(t,'INFO',(car.pit and 'drapeau vert: voiture de securite aux stands' or 'drapeau vert: voiture de securite non rentree, delai depasse')..(p.restartOvertake=='scIn' and ', depassement permis' or ''),t.safety)
+    restartRule(t,frame,now,p)
+   end
   end
  elseif t.neutral and (not relaunch and (mode=='local' or mode~=t.neutralMode) or now>=t.neutralUntil or now-t.neutralSince>=K.neutralMax) then
   local forced=now-t.neutralSince>=K.neutralMax or not relaunch and (mode=='local' or mode~=t.neutralMode)
@@ -274,9 +298,13 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
    -- Délai maximal : les incidents encore en piste ne relancent pas de neutralisation sans fin.
    if now-t.neutralSince>=K.neutralMax then t.neutralEnd=now; note(t,'INFO','neutralisation levee: delai maximal',-1) end
    t.neutral=false; t.ending=false; if t.safetyPhase=='call' or t.safetyPhase=='out' or t.safetyPhase=='in' then t.safetyPhase='parking' end
-   t.greenUntil=now+K.greenShow; note(t,'INFO','drapeau vert: fin de neutralisation',-1)
-   -- Tour de relance terminé : dépassement interdit jusqu'à la ligne ; fin de FCY ou de VSC : on court aussitôt.
-   if relaunch then t.relaunch=false; restart(t,frame,now,p) elseif p.yellowMessage then message(t,'green') end
+   if relaunch and not forced and standing(t,frame,now,p,profile) then t.relaunch=false; note(t,'INFO','fin du tour de relance: formation de la grille',-1)
+   else
+    t.greenUntil=now+K.greenShow; note(t,'INFO','drapeau vert: fin de neutralisation',-1)
+    -- Tour de relance terminé : dépassement interdit jusqu'à la ligne (ou dès le vert, Beta 1.34) ; fin de FCY ou de
+    -- VSC : on court aussitôt.
+    if relaunch then t.relaunch=false; restartRule(t,frame,now,p) elseif p.yellowMessage then message(t,'green') end
+   end
   end
  end
  -- Reprise : une voiture qui franchit la ligne retrouve le droit de dépasser (délai maximal de sécurité).
@@ -308,7 +336,7 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
  -- tour et quart à la vitesse de retour, la voie des stands et l'interruption minimale (5 à 30 minutes).
  local redAllowed=(profile=='C' or profile=='P' or profile=='Q') and p.redFlagEnabled
  if redAllowed and not t.red and t.freshOnTrack>=p.redFlagCars then
-  t.red=true; t.redSince=now; t.reds=(t.reds+1)%K.counterMax; t.redCancelled=false
+  t.red=true; t.redSince=now; t.reds=(t.reds+1)%K.counterMax; t.redCancelled=false; t.standing='none'; t.gridLit=0
   t.redMax=U.clamp(p.redFlagHold+K.redLapFactor*frame.length/(p.redFlagSpeedKmh/3.6)+K.redPitMargin,K.redFlagMax,K.redFlagMaxCap)
   note(t,'INFO',string.format('drapeau rouge: %d voitures immobilisees en piste',t.onTrack),-1)
   if t.neutral then t.neutral=false; if t.safetyPhase=='call' or t.safetyPhase=='out' or t.safetyPhase=='in' then t.safetyPhase='parking' end end

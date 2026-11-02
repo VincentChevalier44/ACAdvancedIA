@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.33',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
+local M={version=3,release='Beta 1.34',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -41,8 +41,8 @@ M.ruleProfiles={'P','Q','C'}
 -- direction de course ; activée par défaut en course avec tous les jeux de règles (Beta 1.19).
 M.rulePresets={
  base={},
- F1={neutralization='vsc',mandatoryStops=1,pitWindowOpenPct=20,pitWindowClosePct=95,pitCompoundChange=true,redFlagWork=true,pitFuel='plan'},
- F1_2026={neutralization='vsc',mandatoryStops=1,pitWindowOpenPct=20,pitWindowClosePct=95,pitCompoundChange=true,redFlagWork=true,overtakeMode=true,rulesDrsLaps=0,pitFuel='plan'},
+ F1={neutralization='vsc',mandatoryStops=1,pitWindowOpenPct=20,pitWindowClosePct=95,pitCompoundChange=true,redFlagWork=true,pitFuel='plan',redRestart='standing'},
+ F1_2026={neutralization='vsc',mandatoryStops=1,pitWindowOpenPct=20,pitWindowClosePct=95,pitCompoundChange=true,redFlagWork=true,overtakeMode=true,rulesDrsLaps=0,pitFuel='plan',redRestart='standing'},
  GT={neutralization='fcy',fcyDeltaPct=150,mandatoryStops=1,pitWindowOpenPct=42,pitWindowClosePct=58,bopEnabled=true,proAmEnabled=true,pitFuel='plan'},
  Endurance={neutralization='fcy',fcyDeltaPct=150,slowZoneKmh=80,yellowSpeedKmh=80,maxStintMin=50,pitsClosed='pitFcySc',bopEnabled=true,proAmEnabled=true,predictableSlowClass=true,pitFuel='refuel',pitTyres=true,pitRepair=true}}
 -- Préréglage intégré appliqué une fois à un profil jamais réglé, lorsque la détection l'active.
@@ -209,12 +209,14 @@ n('rules','vscDeltaPct','VSC : temps de référence plus lent de (%)',10,80,30,3
 n('rules','neutralizationHold','Durée minimale de neutralisation (s)',10,180,30,30,30)
 n('rules','safetyCarSpeedKmh','Vitesse de la voiture de sécurité (km/h)',60,250,120,120,120)
 b('rules','safetyCarEscalation','Voiture de sécurité sur incident aggravé',false,true,true)
+e('rules','restartOvertake','Dépassement permis après la relance','line','line','line',{'line','scIn'})
 b('rules','redFlagEnabled','Drapeau rouge sur accident grave (essais, qualifications, course)',true,true,true)
 n('rules','redFlagCars','Drapeau rouge : voitures immobilisées en piste',2,10,3,3,3)
 n('rules','redFlagSpeedKmh','Drapeau rouge : vitesse de repli, allure inconnue (km/h)',40,150,80,80,80)
 n('rules','redDeltaPct','Drapeau rouge : temps de référence plus lent de (%)',10,200,60,60,60)
 n('rules','redFlagHold','Drapeau rouge : interruption minimale (s)',20,600,60,60,60)
 b('rules','redFlagWork','Drapeau rouge : pneus changés aux stands (arrêt compté)',false,false,false)
+e('rules','redRestart','Relance après drapeau rouge','rolling','rolling','rolling',{'rolling','standing'})
 n('rules','mandatoryStops','Arrêts obligatoires en course',0,3,0,0,0)
 n('rules','pitWindowOpenPct','Ouverture de la fenêtre (% de course)',5,95,25,25,25)
 n('rules','pitWindowClosePct','Fermeture de la fenêtre (% de course)',5,100,75,75,75)
@@ -311,7 +313,7 @@ M.K={maxCars=61,paceBins=400,logLines=200,logRate=20,logDedup=5,maxZones=64,maxZ
  trafficDecelKmh=4,trafficAccelKmh=8,trafficMinSpeed=30,trafficLogDelay=60,trafficFasterMargin=0.03,targetLostGrace=1,spreadDelay=1,spreadPlanDelay=0.5,spreadReport=8,spreadPlayerGap=300,spreadSpeed=50,spreadLaunchWait=0.5,spreadCheck=3,spreadTroubleKmh=10,spreadRetry=2,spreadReached=100,spreadTroubleLines=6,slowRatio=0.6,slowMinPaceKmh=60,slowMinKmh=15,slowFollowGap=60,slowLogTime=20,slowEnd=8,slowSettle=10,spreadMinGap=15,spreadWindow=60,spreadMaxKmh=30,trackDayExitSpeed=40,trackDayExitMaxTotal=600,floodPeriod=2,floodMinLength=7000,floodRound=50,messageProbe='ACAdvancedIA',probeFrames=90,probeTime=0.1,parkReturnPeriod=10,blueCloseGap=40,blueSlack=5,radarLatMargin=0.4,radarWarnTTC=2.5,radarCaution=1.4,radarTTC=1.2,radarMinBrake=0.08,radarBrakeMax=0.45,radarApply=1.5,radarRelease=0.8,radarLogPeriod=15,contactLogPeriod=10,contactLogBudget=3,towWindow=3,blueLogTime=3,pitExitWindow=60,pitExitMinCars=10,pitExitSalt=7717,pitExitJitter=0.6,pitExitMaxTotal=180,pitExitSessionShare=0.25,pitExitMinGap=2,
  repairBase=3,repairBodyMin=5,repairBodyRate=0.1,repairSuspensionMin=0.02,repairSuspensionRate=40,repairEngineMin=990,repairEngineTime=30,repairMax=60,engineLifeNew=1000,trafficArmSpeed=60,trafficEpisode=6,trafficCycle=18,unlimitedSpeed=1e9,
  wrongWaySpeed=10,wrongWayTime=2,spinSpeed=15,spinTime=0.6,incidentClear=2,incidentMaxAge=120,crashSettle=4,rejoinWaitMax=10,rejoinSpeed=30,crashSalt=60000,stopPulse=1.5,stopPulsePeriod=0.5,
- yellowApproach=800,yellowNoPass=150,playerFlagLead=150,playerFlagLeadMax=800,flagLeadTime=1.25,gridGrace=6,flagNone=0,flagCaution=2,flagStart=1,flagStop=5,flagReturnToPits=8,flagFasterCar=12,flagSlippery=3,flagSlowVehicle=6,flagFinished=13,flagOneLapLeft=14,penaltyMandatoryPits=1,penaltyTeleportToPits=2,
+ yellowApproach=800,yellowNoPass=150,playerFlagLead=150,playerFlagLeadMax=800,flagLeadTime=1.25,gridGrace=6,gridMax=120,gridFirst=6,gridPitch=8,gridSlotRadius=4,gridApproachDecel=1.5,gridBrakeFrom=25,gridHoldDistance=1.5,gridColumn=0.35,gridColumnFrom=200,gridStillKmh=2,gridCrawlKmh=8,gridApproachKmh=80,gridBrakeMargin=3,gridBrakeScale=30,gridBrakeMin=0.1,gridNodeRange=400,gridLights=5,lightStep=1,lightsOutMin=0.2,lightsOutMax=3,jumpDistance=1,jumpSpeed=3,goShow=2,jumpShow=8,flagNone=0,flagCaution=2,flagStart=1,flagStop=5,flagReturnToPits=8,flagFasterCar=12,flagSlippery=3,flagSlowVehicle=6,flagFinished=13,flagOneLapLeft=14,penaltyMandatoryPits=1,penaltyTeleportToPits=2,
  ruleBrake=0.2,aiFlashGap=40,aiFlashCooldown=8,aiFlashPulses=2,aiFlashInterval=0.4,overtakeDetect=0.95,vscEnding=12,restartMax=600,redReleaseFirst=5,redReleaseGap=2,scClosedLaps=3,
  journalPeriod=2,journalSummary=60,journalKeep=3,journalMaxBytes=4194304,
  -- Mise à jour depuis GitHub (Beta 1.33) : vérification une fois par lancement, après updateDelay s de jeu ; lignes des

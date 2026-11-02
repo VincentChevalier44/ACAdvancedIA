@@ -8,7 +8,7 @@ local abs,max=math.abs,math.max
 local M={}
 function M.new()
  return {lastAt=-math.huge,requestId=0,seconds=0,reason='',count=0,ahead={},regime=false,passedUnder=false,passMade=false,
-  redBefore=false,redPending=false,stopPending=false,waiting={},regimeAt=-math.huge,whole=false,wholeAt=-math.huge,giveBack=0,giveBackUntil=0,deltaKind='',deltaValue=0,passed=0,kind='slow',disqualified=false,
+  redBefore=false,redPending=false,stopPending=false,jumpPending=false,waiting={},regimeAt=-math.huge,whole=false,wholeAt=-math.huge,giveBack=0,giveBackUntil=0,deltaKind='',deltaValue=0,passed=0,kind='slow',disqualified=false,
   ai={count={},slowUntil={},slowKmh={},slowFrom={},slowAt={},dq={},ahead={},regime={},passed={},lastAt={},waiting={},giveBack={},giveFrom={},giveAt={}},
   retake={},rel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false}}
 end
@@ -21,7 +21,7 @@ function M.reset(t)
  t.count=0; t.disqualified=false; t.kind='slow'
  for _,map in pairs(t.ai) do clear(map) end
  t.lastAt=-math.huge; t.regime=false; t.whole=false; t.passedUnder=false; t.passMade=false; clear(t.ahead); clear(t.waiting); t.giveBack=0; t.dirty=true
- t.redBefore=false; t.redPending=false; t.stopPending=false; clear(t.retake)
+ t.redBefore=false; t.redPending=false; t.stopPending=false; t.jumpPending=false; clear(t.retake)
 end
 function M.rebase(t,amount)
  if t.lastAt>-math.huge then t.lastAt=t.lastAt-amount end
@@ -74,11 +74,13 @@ function M.update(t,frame,p,profile,inc,now,_,d)
  if redEnded and a.valid and not a.pit and not a.finished and profile=='C' then t.redPending=true end
  -- Voie des stands : rien n'est jugé ; des places gagnées par un arrêt ne sont pas des dépassements.
  if not a.valid or a.pit or not a.splineValid then clear(t.ahead); clear(t.waiting); t.passedUnder=t.passMade; return nil end
- if not p.playerPenalties or C.solo(profile) then t.redPending=false; t.stopPending=false end
+ if not p.playerPenalties or C.solo(profile) then t.redPending=false; t.stopPending=false; t.jumpPending=false end
  local ready=p.playerPenalties and not C.solo(profile) and not t.disqualified and now-t.lastAt>=K.penaltyCooldown
  -- Infractions en attente (reprise hors des stands, arrêt obligatoire manqué) : appliquées dès que possible.
  if ready and t.redPending then t.redPending=false; return decide(t,'red',p.penaltySeconds,now,p) end
  if ready and t.stopPending then t.stopPending=false; return decide(t,'stop',p.penaltySeconds,now,p) end
+ -- Faux départ d'un départ arrêté (Beta 1.34).
+ if ready and t.jumpPending then t.jumpPending=false; return decide(t,'jump',p.penaltySeconds,now,p) end
  -- Delta négatif au passage d'un mini-secteur ou à la sortie d'un double drapeau jaune : nouveau départ du delta.
  if ready and d and d.infraction then
   t.deltaKind=d.infractionKind; t.deltaValue=d.infractionValue; Delta.penalized(d)

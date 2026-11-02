@@ -1,1 +1,1 @@
-36 fichiers : aucune globale interdite, aucune variable locale inutilisée.
+37 fichiers : aucune globale interdite, aucune variable locale inutilisée.

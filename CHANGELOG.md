@@ -1,5 +1,27 @@
 # Changelog
 
+## Beta 1.34 — 3 November 2026
+
+Rolling and standing restarts after a red flag, and the fix for the track light panels that never lit in your Imola session.
+
+- **Track light panels fixed.** In your Imola session on Beta 1.32 the track was detected, you were under a yellow flag, yet no colour was ever written and the log said nothing. AC keeps its own start flag (green) up for a long time, the whole session in hotlap, and the app only wrote over *no flag* or AC's yellow. The start flag no longer blocks the panels; AC's blue, white, black, penalty and chequered flags are still never covered.
+- **Diagnostics so this cannot stay silent again:**
+  - a wanted colour that is not written is logged once, with its cause (AC's own flag, a missing capability, CSP's error);
+  - every change of AC's own race flag is logged (`drapeau d AC: 1 (depart)`);
+  - the first failure of any CSP function the app uses is logged with CSP's error text, and so is the moment the app stops using it after three failures. Until now a failing function left no trace.
+  - The track configuration is now read even when no section is ticked, so the window no longer says it was not read yet.
+- **Restart after a red flag** (racing rules, red flag group): **rolling start (RS)** behind the Safety Car, or **standing start (SS)** from the grid.
+  - F1 2025 and F1 2026 use the standing start; the base, GT and Endurance rules the rolling start.
+  - Standing start: after the restart lap, every car drives to its grid slot in race order (slots closed up; a car in the pits starts from the pit lane) and is held there; five lights in the overlay, a random hold, then lights out and everyone leaves at once. Nobody is teleported, so laps stay exact. The grid comes from the track's `AC_START` nodes, or is computed in front of the line.
+  - Moving before lights out is a jump start, penalised like the other infringements.
+  - Without what it needs (CSP functions, measured lateral direction, track length) the restart stays rolling, with the reason in the log. A new incident during the grid cancels it.
+  - The overlay announces the restart during the restart lap (**ROLLING START**, **STANDING START**), shows your slot and the distance to it, the five lights, **GO** and **JUMP START**. The light panels stay yellow during the grid and the lights, then green.
+- **Overtaking allowed after the restart** (Safety Car view): at the control line (default) or as soon as the Safety Car pits, for a red-flag restart and an ordinary Safety Car deployment alike.
+- The update check compares the published version once per release instead of every frame.
+- Not confirmed in game yet: the panels with the start flag fix, the `AC_START` grid slots (whether CSP finds them), the AI stopping in their slots, and laps and positions after a standing start.
+
+**Verification**: 421 checks; 101 integration cases; 913 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.33; 8-hour soak without errors (memory between 7.9 and 8.9 MB); benchmark (median of three alternating runs) 30 AI 0.21 ms (Beta 1.33: 0.21), 60 AI 0.57 ms (Beta 1.33: 0.57).
+
 ## Beta 1.33 — 2 November 2026
 
 Updating from inside the game, at your request: the app checks GitHub at launch and installs a new version in one click.

@@ -1,16 +1,17 @@
 local K=require('src/config').K
-local M={names={'level','aggression','caution','offset','grip','brake','speed','rain','tyres','pit','stop','flag','flash','park','teleport','penalty','drs','drsActive','brakeMistake','tractionMistake','fuel','fuelSet','startDelay','awake','position','velocity','repairBody','repairSuspension','repairEngine'}}
+local M={errorLength=160,names={'level','aggression','caution','offset','grip','brake','speed','rain','tyres','pit','stop','flag','flash','park','teleport','penalty','drs','drsActive','brakeMistake','tractionMistake','fuel','fuelSet','startDelay','awake','position','velocity','repairBody','repairSuspension','repairEngine'}}
 function M.new(port)
  local c={port=port,native110=false,levelMode='none',probeIndex=0,probeID='',probeAt=0,probeOriginal=1,probeDone=false}
- for _,name in ipairs(M.names) do local available=port.present(name); c[name]={available=available,failures=0,reason=available and 'present' or 'missing'} end
+ for _,name in ipairs(M.names) do local available=port.present(name); c[name]={available=available,failures=0,reason=available and 'present' or 'missing',error='',noted=false,notedOff=false} end
  return c
 end
 function M.call(c,name,index,value,extra,force)
  local cap=c[name]
  if not cap.available and not (force and cap.reason=='failures') then return false end
- local ok=c.port.write(name,index,value,extra)
+ local ok,err=c.port.write(name,index,value,extra)
  if ok then cap.failures=0; cap.reason='ready'; cap.available=true; return true end
- cap.failures=cap.failures+1
+ -- Beta 1.34 : erreur gardée (texte borné) pour le journal ; refus sans erreur (fonction absente, valeur refusée).
+ cap.failures=cap.failures+1; cap.error=err~=nil and tostring(err):sub(1,M.errorLength) or 'refus'
  if cap.failures>=K.capabilityFailures then cap.available=false; cap.reason='failures' end
  return false
 end

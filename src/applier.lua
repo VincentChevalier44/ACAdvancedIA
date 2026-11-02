@@ -429,26 +429,75 @@ end
 -- Changement écrit aussitôt vers plus important, vers moins important ou rendu à AC après K.lightsHold s (les
 -- configurations des circuits ignorent un état trop bref) ; sans now, aussitôt.
 local function flagText(value,reason) return string.format('panneaux lumineux du circuit: %s (%s)',Lights.names[value] or tostring(value),reason~='' and reason or 'drapeau du HUD') end
+-- Beta 1.34 : drapeau voulu mais non écrit (capacité absente ou en échec, drapeau natif d'AC à respecter) : noté une
+-- fois par valeur et par cause, pour que la vérification en jeu dise pourquoi les panneaux restent éteints.
+local function unwritten(a,value,cause,lights)
+ local key=value..'|'..cause
+ if a.flagBlocked==key then return end
+ a.flagBlocked=key
+ note(a,'INFO',string.format('%s: %s voulu, non ecrit (%s)',lights and 'panneaux lumineux du circuit' or 'drapeau HUD du joueur',Lights.names[value] or tostring(value),cause),-1)
+end
+-- Drapeau natif libre : aucun, ou le drapeau de départ d'AC, qu'AC peut tenir longtemps (toute la session en hotlap) ;
+-- en 1.32, seul « aucun » l'était et un départ tenu bloquait les panneaux toute la course sans rien dire.
+local function nativeFree(f) return f==K.flagNone or f==K.flagStart end
 function M.flag(a,frame,wanted,reason,now)
  if not a.allowed or frame.online or frame.replay or frame.paused then return end
  local value=wanted==true and K.flagCaution or type(wanted)=='number' and wanted or K.flagNone
  local lights=reason~=nil and reason~=''
  local held=now==nil or now-a.flagAt>=K.lightsHold
- -- Jamais par-dessus un drapeau natif (bleu, blanc, damier, noir) : seulement sans drapeau ou sur le nôtre ; sur le
- -- jaune natif, seulement le jaune ou le rouge.
- if value~=K.flagNone and not a.flagOverride and a.caps.flag.available and (frame.flag==K.flagNone or frame.flag==K.flagCaution) then
-  if (frame.flag==K.flagNone or value==K.flagCaution or value==K.flagStop) and Caps.call(a.caps,'flag',-1,value) then
-   a.flagOverride=true; a.flagValue=value; a.flagAt=now or -math.huge; a.recoveryDirty=true
+ local cap=a.caps.flag
+ if value==K.flagNone then a.flagBlocked=nil end
+ if value~=K.flagNone and not a.flagOverride then
+  -- Jamais par-dessus un drapeau natif (bleu, blanc, damier, noir, pénalité) : sur le jaune natif, seulement le jaune ou
+  -- le rouge.
+  local free=nativeFree(frame.flag) or frame.flag==K.flagCaution and (value==K.flagCaution or value==K.flagStop)
+  if not cap.available then unwritten(a,value,'capacite '..cap.reason,lights)
+  elseif not free then unwritten(a,value,'drapeau natif '..frame.flag,lights)
+  elseif Caps.call(a.caps,'flag',-1,value) then
+   a.flagOverride=true; a.flagValue=value; a.flagAt=now or -math.huge; a.recoveryDirty=true; a.flagBlocked=nil
    note(a,'INFO',lights and flagText(value,reason) or 'drapeau HUD du joueur: jaune',-1)
-  end
+  else unwritten(a,value,'echec: '..cap.error,lights) end
  elseif value~=K.flagNone and a.flagOverride and value~=a.flagValue then
-  if (held or (Lights.rank[value] or 0)>(Lights.rank[a.flagValue] or 0)) and Caps.call(a.caps,'flag',-1,value) then
-   a.flagValue=value; a.flagAt=now or -math.huge; note(a,'INFO',flagText(value,reason or ''),-1)
+  if held or (Lights.rank[value] or 0)>(Lights.rank[a.flagValue] or 0) then
+   if Caps.call(a.caps,'flag',-1,value) then a.flagValue=value; a.flagAt=now or -math.huge; a.flagBlocked=nil; note(a,'INFO',flagText(value,reason or ''),-1)
+   else unwritten(a,value,cap.available and 'echec: '..cap.error or 'capacite '..cap.reason,lights) end
   end
  elseif value==K.flagNone and a.flagOverride and held and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then
   a.flagOverride=false; a.flagValue=K.flagNone; a.flagAt=now or -math.huge; a.recoveryDirty=true
   note(a,'INFO',now and 'panneaux lumineux du circuit: rendus a AC' or 'drapeau HUD du joueur: rendu a AC',-1)
  end
+end
+-- Capacités en échec (Beta 1.34) : première erreur et coupure (après K.capabilityFailures échecs) notées une fois
+-- par capacité et par lancement ; jusque-là, un échec ne laissait aucune trace.
+function M.reportCaps(a)
+ local caps=a.caps
+ for _,name in ipairs(Caps.names) do
+  local cap=caps[name]
+  if cap.failures>0 and not cap.noted then cap.noted=true; note(a,'WARN',string.format('capacite %s: echec (%s)',name,cap.error),-1) end
+  if cap.reason=='failures' and not cap.notedOff then cap.notedOff=true; note(a,'WARN',string.format('capacite %s: coupee apres %d echecs',name,cap.failures),-1) end
+ end
+end
+-- Places de la grille du circuit (Beta 1.34) : nœuds AC_START_0.. du modèle 3D ; abscisse sur la piste et position
+-- latérale normalisée (+1 à droite), une fois par circuit, rien d'écrit. nil si CSP ne les donne pas.
+local function gridNode(k)
+ local ref=ac.findNodes('AC_START_'..k)
+ if not ref or not callable(ref.size) or ref:size()<1 then return nil end
+ local m=ref:getWorldTransformationRaw(); if not m then return nil end
+ local p=ac.worldCoordinateToTrack(m.position)
+ return p and U.finite(p.x) and U.finite(p.z) and {spline=p.z%1,lateral=p.x} or nil
+end
+function M.gridNodes(a,track)
+ if a.gridNodesFor==track then return a.gridNodes end
+ a.gridNodesFor=track; a.gridNodes=nil
+ if not callable(ac.findNodes) or not callable(ac.worldCoordinateToTrack) then return nil end
+ local list={}
+ for k=0,K.maxCars-1 do
+  local ok,slot=pcall(gridNode,k)
+  if not ok or not slot then break end
+  list[#list+1]=slot
+ end
+ if #list>0 then a.gridNodes=list end
+ return a.gridNodes
 end
 -- Panneaux lumineux du circuit (Beta 1.32) : configuration du circuit (ext_config.ini du circuit et de sa variante,
 -- fichiers inclus voisins) et celles de CSP (config/tracks/<circuit>.ini, loaded/<circuit>.ini), une fois par
@@ -769,6 +818,8 @@ function M.apply(a,frame,commands,g,now)
   place(a,s,car,cmd,now)
   recover(a,s,car,cmd)
   hold(a,s,car,cmd,now)
+  -- Départ arrêté (Beta 1.34) : extinction des feux, IA réveillées (aux stands : départ immédiat).
+  if cmd.gridWake and car.valid and car.control and not car.player then Caps.call(a.caps,'awake',car.index); if car.pit then Caps.call(a.caps,'startDelay',car.index,0) end end
   flash(a,s,car,cmd,now)
   local limit=math.min(cmd.speedLimit or K.unlimitedSpeed,cmd.yellowLimit or K.unlimitedSpeed)
   local wanted=cmd.weatherManaged or cmd.rulePit or cmd.stopHold or cmd.pitHold or cmd.scPark or cmd.scSpeed<K.unlimitedSpeed or s.stop or s.parked or cmd.active and (cmd.levelOwned~=false or cmd.aggressionOwned~=false or cmd.cautionOwned~=false or math.abs(cmd.offset)>=K.offsetEpsilon or (g.useBrakeAssist and (cmd.brake or 0)>0) or limit<K.unlimitedSpeed)

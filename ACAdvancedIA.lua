@@ -37,6 +37,9 @@ local calibration=Calibration.new()
 local initialized=false
 local released=false
 local loadedTrack=''
+-- Drapeau natif d'AC vu en dernier (Beta 1.34) : chaque changement est noté au journal (panneaux lumineux en jeu).
+local nativeFlag=nil
+local nativeFlagNames={[0]='aucun',[1]='depart',[2]='jaune',[3]='glissant',[5]='noir',[8]='penalite',[12]='bleu',[13]='damier',[14]='dernier tour'}
 local lastCheckpoint=0
 local shownMessage=0
 -- Messages à l'écran : drapeaux, neutralisations, météo ; un seul affichage par événement.
@@ -177,6 +180,15 @@ local function session()
  Engine.reset(engine,engine.time,true); engine.session=-1; calibration.attempted=false; Pits.forget(engine.pits); engine.penalties.pending=nil
  host.session=nil -- Un redémarrage garde le même indice : les écritures suivies sont resynchronisées.
 end
+-- Beta 1.32 : panneaux lumineux du circuit cherchés dans sa configuration (et drapeaux d'AC masqués relus), une fois
+-- par circuit.
+local function lightsCheck()
+ if host.trackLightsFor==frame.track then return end
+ local lights=Applier.trackLights(host,frame.track)
+ -- Beta 1.34 : places de grille du circuit (départ arrêté), lues en même temps.
+ engine.grid.nodes=Applier.gridNodes(host,frame.track)
+ U.log(engine.log,engine.time,'INFO',lights==true and 'panneaux lumineux du circuit: detectes ('..host.trackLightsSource..')' or lights==false and 'panneaux lumineux du circuit: non detectes' or 'panneaux lumineux du circuit: configuration illisible',-1)
+end
 local function update(dt)
  if released then return end
  local valid=U.finite(dt) and dt>0 and dt<=K.dtMax
@@ -191,6 +203,10 @@ local function update(dt)
  local read=Snapshot.read(frame,valid and dt or K.dtMax,engine.time,quiet)
  -- Drapeau du joueur imposé par l'app elle-même : le panneau ne le prend pas pour un drapeau natif.
  frame.flagOwned=host.flagOverride
+ if read and not host.flagOverride and frame.flag~=nativeFlag then
+  if nativeFlag~=nil or frame.flag~=K.flagNone then U.log(engine.log,engine.time,'INFO',string.format('drapeau d AC: %d (%s)',frame.flag,nativeFlagNames[frame.flag] or 'autre'),-1) end
+  nativeFlag=frame.flag
+ end
  if read then Applier.menu(host,frame.menu) else Applier.menu(host,Snapshot.menu()) end
  if not initialized then
   -- Session courante connue avant la récupération : un rechargement n'est pas un changement de session.
@@ -201,7 +217,10 @@ local function update(dt)
    function() local ok=pcall(session); if not ok then host.errors=host.errors+1 end end)
  end
  Applier.baselines(host,frame)
+ -- Départ arrêté (Beta 1.34) : retenue, plafond d'allure et décalage disponibles.
+ engine.gridCaps=host.caps.stop.available and host.caps.speed.available and host.caps.offset.available
  local ready=Engine.step(engine,frame,dt)
+ Applier.reportCaps(host)
  if engine.settingsChanged then engine.settingsChanged=false; dirty() end
  writeJournal(false)
  if engine.rebaseDelta>0 then
@@ -212,6 +231,8 @@ local function update(dt)
  end
  if host.session~=frame.session then Applier.nextSession(host,frame) end
  if not valid or frame.online or frame.replay or frame.paused then return end
+ -- Beta 1.34 : configuration du circuit lue aussi quand le moteur ne tourne pas (aucun onglet coché, app coupée).
+ if not ready then lightsCheck() end
  if not ready and not engine.recalibrateRequested and calibration.index==0 and host.caps.probeIndex==0 then
   -- Drapeau natif imposé rendu à AC même sans voiture suivie (app désactivée, onglets décochés, rechargement).
   if not anyOwned() then
@@ -240,9 +261,7 @@ local function update(dt)
  end
  if loadedTrack~=frame.track then
   loadedTrack=frame.track; engine.zones={}; engine.zoneStart=-1; local data=Snapshot.zones(frame.track)
-  -- Beta 1.32 : panneaux lumineux du circuit cherchés dans sa configuration (et drapeaux d'AC masqués relus).
-  local lights=Applier.trackLights(host,frame.track)
-  U.log(engine.log,engine.time,'INFO',lights==true and 'panneaux lumineux du circuit: detectes ('..host.trackLightsSource..')' or lights==false and 'panneaux lumineux du circuit: non detectes' or 'panneaux lumineux du circuit: configuration illisible',-1)
+  lightsCheck()
   if data then
    local zones,err=Zones.parse(data)
    if zones then engine.zones=zones; U.log(engine.log,engine.time,'INFO','zones_loaded',-1)

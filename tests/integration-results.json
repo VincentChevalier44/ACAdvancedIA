@@ -93,6 +93,8 @@
     "Beta 1.26 : masquage des messages d AC levé si l overlay ne les reçoit plus",
     "Beta 1.25 : section Overlay des réglages",
     "Beta 1.32 : panneaux lumineux du circuit allumés en jaune sur un circuit équipé, rendus à AC",
+    "Beta 1.34 : en course, drapeau de départ d AC tenu : panneaux allumés, drapeau d AC et refus notés",
+    "Beta 1.34 : configuration du circuit lue même sans onglet coché",
     "Beta 1.32 : circuit non équipé, drapeau d AC jamais modifié",
     "Beta 1.32 : réglage des panneaux lumineux, nouveaux drapeaux dessinés",
     "Beta 1.33 : vérification au lancement, mise à jour d un clic depuis l en-tête, IA rendues avant le redémarrage",

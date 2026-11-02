@@ -152,6 +152,13 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 - `ac.StateCar.racePosition` (1 = first, 0 if unknown): pit exit order at the resumption after a red flag.
 - `jit.opt.start('maxtrace=8000','maxmcode=16384')` in the entry file: enlarged JIT compiler cache (with the default 1,000 traces and 512 KB, the engine recompiled all its code every one to two minutes). No effect on decisions; if it is refused, the app drives the cars one by one as before and the log says so.
 
+## Beta 1.34: standing restarts, AC's start flag, capability failures
+
+- `ac.StateSim.raceFlagType` can stay at `ac.FlagType.Start` (1) for a long time (the whole session in hotlap; observed by the app's own panel code). Beta 1.32 only wrote `physics.overrideRacingFlag` over 0 or AC's yellow, so a held start flag blocked the track light panels without a trace. The start flag now counts as free; blue (12), white (14), chequered (13), black (5) and penalty (8) are still never covered.
+- `pcall` returns CSP's error text on a failed call: the capability layer keeps it (160 characters) and the log shows the first failure of each function and its disabling after three failures.
+- Grid slots: `ac.findNodes('AC_START_<k>')` (local SDK, line 10789), `SceneReference:size()` (10008), `:getWorldTransformationRaw()` (10289, `nil` without a node) and its `.position`, then `ac.worldCoordinateToTrack(v)` (3135): X is the normalised lateral position (-1 left, +1 right), Z the track progress. Read once per track under `pcall`; any failure falls back to computed slots.
+- Standing start actuators, all already used by the app: `physics.setAIStopCounter` pulses (hold), `physics.setAITopSpeed` (approach cap), `ac.overrideCarControls(i).brake` (assist brake, final brake = max(native, imposed)), `physics.setAISplineOffset` (column), `physics.awakeCar` and `physics.setAITimeToStart(i,0)` at lights out. No teleport (`physics.teleportCarTo` with `START` would use each car's original slot and its timing behaviour is unknown). The gantry lights cannot be driven: no track condition input exists for them, so the lights are drawn by the overlay.
+
 ## Beta 1.33: update from GitHub
 
 - Network: `web.get(url, headers, callback(err, response))` (local SDK, line 8018), at most two requests at once, default timeouts 30 s; `response.status`, `response.body` (binary-safe). No progress callback: the size shown comes from the release's asset size. `api.github.com` needs a `User-Agent` header; `releases/latest` answers 404 while nothing is published (shown as *No release published yet*). `browser_download_url` redirects to GitHub's storage; the redirect is followed.

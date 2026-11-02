@@ -1304,7 +1304,8 @@ tests.RED_FLAG_PROCEDURE=function()
  f.cars[6].position=1; f.cars[5].position=2; f.cars[4].position=3; f.cars[3].position=4; f.cars[2].position=5
  for _=1,80 do if not t.red then break end; F.tick(e,f,0.5) end
  F.tick(e,f,0.3) -- panneau rafraîchi tous les quarts de seconde
- assert(not t.red and t.neutral and t.relaunch and t.neutralMode=='fcy' and e.panel.kind=='fcy','relaunch lap under FCY (no safety car) once everyone is in and the hold is over')
+ -- Beta 1.34 : tour de relance annoncé comme un départ lancé (RS), sous FCY faute de voiture de sécurité.
+ assert(not t.red and t.neutral and t.relaunch and t.neutralMode=='fcy' and e.panel.kind=='rolling','relaunch lap under FCY (no safety car) once everyone is in and the hold is over')
  assert(e.commands[2].pitHold and e.commands[6].pitHold,'held until their turn')
  F.tick(e,f,C.K.redReleaseFirst); assert(not e.commands[6].pitHold and e.commands[2].pitHold,'race leader released first')
  F.tick(e,f,4*C.K.redReleaseGap); assert(not e.commands[2].pitHold,'fifth released last')
@@ -5137,11 +5138,201 @@ tests.LIGHTS_FLAG_WRITES_132=function()
  f.flag=K.flagCaution; A.flag(a,f,K.flagFasterCar,'drapeau bleu',30); assert(not a.flagOverride,'never blue over the native yellow')
  A.flag(a,f,K.flagStop,'drapeau rouge',30); assert(a.flagOverride and host.flag==K.flagStop,'red over the native yellow')
  A.restore(a,f,false,31); assert(not a.flagOverride and host.flag==0 and a.flagValue==K.flagNone,'handed back on restore')
- for _,native in ipairs({K.flagFinished,K.flagOneLapLeft,K.flagFasterCar,K.flagStop,K.flagStart}) do
+ for _,native in ipairs({K.flagFinished,K.flagOneLapLeft,K.flagFasterCar,K.flagStop,K.flagReturnToPits}) do
   f.flag=native; A.flag(a,f,K.flagCaution,'drapeau jaune',40); assert(not a.flagOverride,'never over the native flag '..native)
  end
+ -- Beta 1.34 : le drapeau de départ d'AC, qu'AC tient longtemps, ne bloque plus les panneaux.
+ f.flag=K.flagStart; A.flag(a,f,K.flagCaution,'drapeau jaune',50); assert(a.flagOverride and host.flag==K.flagCaution,'over the start flag AC holds')
+ A.restore(a,f,false,51); assert(not a.flagOverride)
  -- Préférence d'origine (jaune du HUD, booléen) : aussitôt, sans tenue.
  f.flag=K.flagNone; A.flag(a,f,true); assert(host.flag==K.flagCaution); A.flag(a,f,false); assert(host.flag==0 and not a.flagOverride,'boolean preference unchanged')
+end
+-- Beta 1.34 : session Imola du pilote en 1.32 (circuit équipé, joueur sous jaune, aucune couleur écrite en 12 minutes,
+-- rien au journal). Chaque refus est noté une fois par valeur et par cause ; chaque échec de capacité aussi.
+-- Beta 1.34 : jeux de règles (F1 et F1 2026 en départ arrêté), fin du tour de relance (grille, ou vert avec la raison
+-- au journal), dépassement à la ligne ou dès le vert (relance ordinaire derrière la voiture de sécurité comprise).
+tests.RESTART_RULES_134=function()
+ local profiles={P=C.defaults('P'),Q=C.defaults('Q'),C=C.defaults('C')}
+ for name,want in pairs({base='rolling',F1='standing',F1_2026='standing',GT='rolling',Endurance='rolling'}) do
+  C.applyRules(name,profiles); assert(profiles.C.redRestart==want and profiles.C.restartOvertake=='line' and profiles.P.redRestart==want,name)
+ end
+ local function logged(e,text) for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end return false end
+ local function scIn(redRestart,ready,overtake,relaunch)
+  local e,f=F.scene('C',5); e.profiles.C.neutralization='sc'; e.profiles.C.redRestart=redRestart; e.profiles.C.restartOvertake=overtake
+  e.g.safetyCarModel='sc_car'; f.cars[5].id='sc_car'; E.changed(e)
+  for i=1,4 do F.place(f,i,-60-i*30,80) end; F.place(f,5,-30,80)
+  F.tick(e,f,0.5); e.gridCaps=ready
+  local t=e.incidents; assert(t.safety==5)
+  t.neutral=true; t.relaunch=relaunch; t.neutralMode='sc'; t.safetyPhase='in'; t.safetyLeft=true; t.safetySince=e.time; t.neutralSince=e.time; t.neutralUntil=e.time
+  f.cars[5].pit=true; F.tick(e,f,0.1)
+  return e,t
+ end
+ local e,t=scIn('standing',true,'line',true)
+ assert(not t.neutral and t.standing=='grid' and e.grid.phase=='grid' and t.restart and t.greenUntil<e.time,'standing start: grid, no green, no overtaking until the line')
+ assert(logged(e,'relance: depart arrete (SS)') and logged(e,'voiture de securite aux stands: formation de la grille'))
+ e,t=scIn('standing',false,'line',true)
+ assert(t.standing=='none' and t.greenUntil>e.time and t.restart and logged(e,'relance arretee indisponible (capacites): depart lance'),'missing capability: rolling start, reason logged')
+ e,t=scIn('rolling',true,'line',true); assert(t.standing=='none' and t.greenUntil>e.time and t.restart,'rolling start: green, overtaking at the line')
+ e,t=scIn('rolling',true,'scIn',true); assert(not t.restart and t.messageKind=='green' and logged(e,'depassement permis'),'overtaking at once with scIn')
+ e,t=scIn('standing',true,'scIn',false); assert(t.standing=='none' and not t.restart,'ordinary Safety Car restart: scIn applies, never a standing start')
+ e,t=scIn('standing',true,'line',false); assert(t.standing=='none' and t.restart,'ordinary Safety Car restart: line')
+end
+tests.GRID_SLOTS_134=function()
+ local G=require('src/grid'); local U=require('src/util'); local K=C.K
+ local slots,source=G.resolve(nil,10000,3)
+ assert(source=='calculees' and #slots==3 and math.abs(U.spline(-slots[1].spline)*10000-K.gridFirst)<1e-6 and math.abs(U.spline(-slots[3].spline)*10000-(K.gridFirst+2*K.gridPitch))<1e-6)
+ assert(slots[1].lateral==-K.gridColumn and slots[2].lateral==K.gridColumn and slots[3].lateral==-K.gridColumn,'alternating columns')
+ local nodes={{spline=1-10/10000,lateral=-0.4},{spline=1-18/10000,lateral=0.4},{spline=1-26/10000,lateral=-0.4}}
+ assert(select(2,G.resolve(nodes,10000,3))=='AC_START','track nodes used when consistent')
+ assert(select(2,G.resolve(nodes,10000,4))=='calculees','too few nodes for the field: computed')
+ local far={{spline=1-(K.gridNodeRange+200)/10000,lateral=0}}; assert(select(2,G.resolve(far,10000,1))=='calculees','node far from the line rejected')
+ local disorder={{spline=1-26/10000,lateral=0},{spline=1-10/10000,lateral=0}}; assert(select(2,G.resolve(disorder,10000,2))=='calculees','nodes out of order rejected')
+ local off={{spline=1-10/10000,lateral=1.4}}; assert(select(2,G.resolve(off,10000,1))=='calculees','node off the track rejected')
+ local after={{spline=10/10000,lateral=0}}; assert(select(2,G.resolve(after,10000,1))=='calculees','node past the line rejected')
+ assert(G.resolve(nil,0,3)==nil,'no track length: no grid')
+end
+-- Formation, retenue, feux, faux départ, extinction, sanction ; voitures arrêtées à leur place sans incident.
+tests.GRID_STANDING_START_134=function()
+ local K=C.K; local U=require('src/util'); local L=require('src/lang')
+ local e,f=F.scene('C',5); C.preset('Course','C',e.profiles.C); e.profiles.C.redRestart='standing'; E.changed(e); e.gridCaps=true
+ local pos={[2]=1,[3]=2,[1]=3,[4]=4,[5]=5}
+ local function slotZ(k) return -(K.gridFirst+(k-1)*K.gridPitch) end
+ for i=1,5 do f.cars[i].position=pos[i]; F.place(f,i,slotZ(pos[i])-150,60) end
+ F.tick(e,f,0.2)
+ local t=e.incidents; local g=e.grid; t.standing='grid'; F.tick(e,f,0.1)
+ assert(g.phase=='grid' and g.slotOf[2]==1 and g.slotOf[3]==2 and g.slotOf[1]==3 and g.slotOf[4]==4 and g.slotOf[5]==5,'slots in race order, player included')
+ local cmd=e.commands[2]; local d=U.spline(g.slots[1].spline-f.cars[2].spline)*f.length
+ local cap=U.clamp(math.sqrt(2*K.gridApproachDecel*(d-K.gridHoldDistance))*3.6,K.gridCrawlKmh,K.gridApproachKmh)
+ assert(cmd.speedLimit<=cap+1e-6 and cmd.offset==-K.gridColumn and not cmd.stopHold,'approach: speed cap from the distance, column of the slot')
+ -- Derniers mètres : freinage d'appoint, puis retenue à la place ; place dépassée : retenue sur place.
+ F.place(f,2,slotZ(1)-10,40); F.tick(e,f,1/60)
+ assert(e.commands[2].brake>0 and not e.commands[2].stopHold,'assist brake in the last metres')
+ F.place(f,2,slotZ(1)-1,0); F.place(f,3,slotZ(2)+3,5); F.place(f,4,slotZ(4),0); F.place(f,5,slotZ(5)-1,1)
+ F.tick(e,f,1/60)
+ for i=2,5 do assert(g.held[i] and e.commands[i].stopHold,'held on its slot '..i) end
+ assert(t.standing=='grid','waits for the player')
+ F.tick(e,f,10)
+ assert(t.activeCount==0 and not t.neutral and not t.red,'cars stopped on the grid are no incident')
+ assert(e.panel.title==L.flagTitles.standing and e.panel.short:find('P3',1,true),'player told to reach P3')
+ -- Joueur à sa place : feux, jaune sur les panneaux.
+ F.place(f,1,slotZ(3),0); F.tick(e,f,0.5)
+ assert(t.standing=='lights' and g.phase=='lights','lights once everyone is in place')
+ F.tick(e,f,1.6); assert(t.gridLit>=2 and e.panel.kind=='lights' and e.panel.lit>=2,'lights coming on')
+ assert(e.lights.value==K.flagCaution,'panels yellow during the lights')
+ local delay=g.outAt-g.lightsAt
+ assert(delay>=K.lightStep*K.gridLights+K.lightsOutMin-1e-6 and delay<=K.lightStep*K.gridLights+K.lightsOutMax+1e-6,'lights out after the five lights and a random hold')
+ -- Faux départ : le joueur avance de 2 m avant l'extinction.
+ F.place(f,1,slotZ(3)+2,4); F.tick(e,f,1/60); assert(g.jump,'jump detected')
+ F.place(f,1,slotZ(3)+2,0)
+ local count=e.penalties.count
+ for _=1,400 do if t.standing=='go' then break end; F.tick(e,f,1/60) end
+ assert(t.standing=='go' and t.greenUntil>e.time and not e.commands[2].stopHold,'lights out: holds released, green')
+ F.tick(e,f,0.3)
+ assert(e.penalties.count==count+1 and e.penalties.reason=='jump','jump start penalised like an infringement')
+ F.tick(e,f,K.goShow+0.1); assert(t.standing=='none' and g.phase=='none','procedure over')
+ assert(e.panel.kind=='jump' and e.panel.title==L.flagTitles.jump,'jump start shown after the go')
+end
+tests.GRID_TIMEOUT_ABORT_134=function()
+ local K=C.K
+ local function logged(e,text) for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end return false end
+ local e,f=F.scene('C',4); C.preset('Course','C',e.profiles.C); E.changed(e); e.gridCaps=true
+ for i=1,4 do f.cars[i].position=i; F.place(f,i,-500-i*50,0) end
+ F.tick(e,f,0.2); e.incidents.standing='grid'; F.tick(e,f,K.gridMax+1)
+ assert(e.incidents.standing=='lights' and logged(e,'grille: delai maximal'),'lights after the maximum wait')
+ for i=2,4 do assert(e.commands[i].stopHold,'held where they are') end
+ -- Nouvel incident (tête-à-queue) pendant la formation : départ annulé.
+ local e2,f2=F.scene('C',4); C.preset('Course','C',e2.profiles.C); E.changed(e2); e2.gridCaps=true
+ for i=1,4 do f2.cars[i].position=i; F.place(f2,i,-300-i*50,60) end
+ F.tick(e2,f2,0.2); e2.incidents.standing='grid'; F.tick(e2,f2,0.5)
+ f2.cars[3].slip=C.K.slipDegrees+20; f2.cars[3].kmh=80; F.tick(e2,f2,C.K.spinTime+1)
+ assert(e2.incidents.standing=='none' and e2.grid.phase=='none' and logged(e2,'depart arrete annule: nouvel incident'),'aborted on a new incident')
+ assert(not e2.commands[2].stopHold,'holds released')
+end
+-- Panneau du joueur pendant le tour de relance : départ lancé (et la voiture de sécurité qui rentre), départ arrêté.
+tests.RESTART_PANELS_134=function()
+ local L=require('src/lang'); local Panel=require('src/panel')
+ local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); E.changed(e); F.tick(e,f,0.2)
+ local t=e.incidents; local p=e.run
+ local function show(phase,ready) t.neutral=true; t.relaunch=true; t.neutralMode='sc'; t.safetyPhase=phase; t.gridReady=ready; e.panel.at=-math.huge; Panel.update(e.panel,t,f,p,'C',e.time) end
+ p.redRestart='rolling'; p.restartOvertake='line'
+ show('out',true); assert(e.panel.kind=='rolling' and e.panel.title==L.flagTitles.rolling and e.panel.short==L.flagShort.rolling,'rolling start announced')
+ show('in',true); assert(e.panel.kind=='rolling' and e.panel.short==L.flagShort.rollingIn,'Safety Car in this lap')
+ p.restartOvertake='scIn'; show('in',true); assert(e.panel.short==L.flagShort.rollingGreen,'overtaking at the green')
+ p.restartOvertake='line'; p.redRestart='standing'; show('out',true)
+ assert(e.panel.kind=='standing' and e.panel.title==L.flagTitles.standing and e.panel.short==L.flagShort.standingLap,'standing start announced')
+ show('out',false); assert(e.panel.kind=='rolling','standing start unavailable: rolling announced')
+ t.neutral=false; t.relaunch=false; t.standing='grid'; t.gridPit=false; t.gridSlot=4; t.gridGap=380; e.panel.at=-math.huge; Panel.update(e.panel,t,f,p,'C',e.time)
+ assert(e.panel.short==string.format(L.flagShort.standing,4,380),'slot and distance shown')
+ t.gridPit=true; e.panel.at=-math.huge; Panel.update(e.panel,t,f,p,'C',e.time); assert(e.panel.short==L.flagShort.standingPit,'start from the pit lane')
+ t.standing='none'
+end
+-- Places de grille lues dans le modèle du circuit (nœuds AC_START), une fois par circuit ; arrêtées au premier nœud absent.
+tests.GRID_NODES_134=function()
+ local host=require('tests/host').create(true); local a=A.new()
+ local reads=0
+ ac.findNodes=function(name)
+  local k=tonumber(name:match('AC_START_(%d+)')); reads=reads+1
+  local exists=k and k<3
+  return {size=function() return exists and 1 or 0 end,getWorldTransformationRaw=function() return {position={k=k}} end}
+ end
+ ac.worldCoordinateToTrack=function(p) return {x=p.k%2==0 and -0.4 or 0.4,y=0,z=0.999-p.k*0.0008} end
+ local nodes=A.gridNodes(a,'test')
+ assert(#nodes==3 and math.abs(nodes[1].spline-0.999)<1e-9 and nodes[1].lateral==-0.4 and nodes[2].lateral==0.4,'three nodes read')
+ local before=reads; assert(A.gridNodes(a,'test')==nodes and reads==before,'read once per track')
+ ac.findNodes=function() error('no scene') end
+ assert(A.gridNodes(a,'other')==nil,'unreadable scene: no nodes')
+ assert(host)
+end
+-- Extinction des feux : IA réveillées une fois (aux stands : départ immédiat), jamais le joueur.
+-- Départ depuis la voie des stands : retenue à l'emplacement, puis là où elle rejoint la piste ; libérée aux feux éteints.
+tests.GRID_PIT_STARTER_134=function()
+ local K=C.K
+ local e,f=F.scene('C',4); C.preset('Course','C',e.profiles.C); E.changed(e); e.gridCaps=true
+ for i=1,4 do f.cars[i].position=i; F.place(f,i,-200-i*40,60) end
+ f.cars[3].pit=true; f.cars[3].inPitBox=true; f.cars[3].kmh=0
+ F.tick(e,f,0.2); e.incidents.standing='grid'; F.tick(e,f,0.1)
+ assert(e.grid.pit[3] and e.grid.slotOf[3]==0 and e.grid.slotOf[4]==3,'pit starter has no slot, the grid is closed up')
+ assert(e.commands[3].pitHold,'held in its pit box')
+ f.cars[3].pit=false; f.cars[3].inPitBox=false; F.place(f,3,300,60); F.tick(e,f,1/60)
+ assert(e.commands[3].stopHold and e.commands[3].speedLimit<=K.gridCrawlKmh,'left the pit lane during the grid: held where it joins')
+end
+tests.GRID_WAKE_134=function()
+ local host=require('tests/host').create(true); local e,f=F.scene('C',3); local a=A.new(); assert(A.access(a))
+ local cmd=e.commands[2]; cmd.gridWake=true
+ A.apply(a,f,e.commands,e.g,10); assert((host.awakes[1] or 0)==1,'AI woken at lights out')
+ cmd.gridWake=false; A.apply(a,f,e.commands,e.g,11); assert(host.awakes[1]==1,'one frame only')
+ e.commands[1].gridWake=true; A.apply(a,f,e.commands,e.g,12); assert(host.awakes[0]==nil and a.caps.awake.failures==0,'never the player')
+end
+tests.LIGHTS_FLAG_DIAGNOSTICS_134=function()
+ local host=require('tests/host').create(true); local _,f=F.scene('C'); local a=A.new(); assert(A.access(a)); local K=C.K
+ local logs={}; a.note=function(level,text) logs[#logs+1]=level..' '..text end
+ local function count(text) local n=0; for _,l in ipairs(logs) do if l:find(text,1,true) then n=n+1 end end; return n end
+ -- Drapeau de départ d'AC tenu pendant la course : le jaune est écrit et noté.
+ f.flag=K.flagStart; A.flag(a,f,K.flagCaution,'drapeau jaune',10)
+ assert(a.flagOverride and host.flag==K.flagCaution and count('panneaux lumineux du circuit: jaune (drapeau jaune)')==1,'written over the held start flag')
+ A.restore(a,f,false,11); assert(not a.flagOverride); logs={}
+ -- Drapeau natif à respecter (bleu d'AC) : refus noté une seule fois, avec sa cause ; écrit dès qu'il est levé.
+ f.flag=K.flagFasterCar
+ for t=20,22 do A.flag(a,f,K.flagCaution,'drapeau jaune',t) end
+ assert(not a.flagOverride and count('panneaux lumineux du circuit: jaune voulu, non ecrit (drapeau natif 12)')==1,'native refusal logged once')
+ A.flag(a,f,K.flagStop,'drapeau rouge',23); assert(count('rouge voulu, non ecrit (drapeau natif 12)')==1,'new value: logged again')
+ f.flag=K.flagNone; A.flag(a,f,K.flagCaution,'drapeau jaune',24); assert(a.flagOverride and host.flag==K.flagCaution,'written once AC lifts it')
+ A.restore(a,f,false,25); logs={}
+ -- Capacité absente : cause notée (préférence du HUD comprise).
+ a.caps.flag.available=false; a.caps.flag.reason='missing'
+ A.flag(a,f,true); assert(not a.flagOverride and count('drapeau HUD du joueur: jaune voulu, non ecrit (capacite missing)')==1,'missing capability logged')
+ A.flag(a,f,false); A.flag(a,f,true); assert(count('capacite missing')==2,'logged again after the flag ended')
+ -- Écriture en échec : erreur de CSP gardée, notée par le drapeau puis par le bilan des capacités, coupure notée.
+ a.caps.flag.available=true; a.caps.flag.reason='present'; logs={}
+ physics.overrideRacingFlag=function() error('not allowed here') end
+ A.flag(a,f,K.flagCaution,'drapeau jaune',30)
+ assert(not a.flagOverride and a.caps.flag.failures==1 and a.caps.flag.error:find('not allowed here',1,true),'error text kept')
+ assert(count('jaune voulu, non ecrit (echec:')==1,'failed write logged')
+ A.reportCaps(a); A.reportCaps(a); assert(count('WARN capacite flag: echec (')==1,'capability failure logged once')
+ for t=31,40 do A.flag(a,f,K.flagStop,'drapeau rouge',t) end
+ assert(a.caps.flag.reason=='failures' and not a.caps.flag.available)
+ A.reportCaps(a); A.reportCaps(a); assert(count('WARN capacite flag: coupee apres '..K.capabilityFailures..' echecs')==1,'disabled capability logged once')
+ assert(count('rouge voulu, non ecrit (capacite failures)')==1,'then the cause becomes the disabled capability')
 end
 -- Drapeau imposé par l'app (panneaux lumineux) : jamais lu comme un drapeau d'AC (noir, départ, bleu, jaune) ; les
 -- pénalités d'AC, propres à la voiture, restent lues.

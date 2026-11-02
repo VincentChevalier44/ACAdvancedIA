@@ -6,7 +6,7 @@
 
 ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP). Its HumanAI engine sits on top of the game's own AI and makes the AI cars drive more like people. On a track day they move aside for faster cars and spread out around the lap. In a race they respect blue flags, overtake and defend with intent, and flash their headlights at slower cars. They make the odd mistake, slow down for yellow flags, and follow Full Course Yellows, Virtual Safety Cars, a Safety Car and red flags. They make their mandatory pit stops, refuel and repair, and fit wet tyres when it rains. The app enforces the racing rules for you as well (delta time, penalties, DRS rules), and its in-game overlay tells you what is happening. It works in **offline sessions only**.
 
-- **Current version:** Beta 1.33. See [CHANGELOG.md](CHANGELOG.md).
+- **Current version:** Beta 1.34. See [CHANGELOG.md](CHANGELOG.md).
 - **Interface:** English by default, French available (**FR** | **EN** buttons in the settings window).
 - **Author:** VincentChevalier44. MIT License.
 
@@ -530,6 +530,7 @@ Tab **RACING RULES**.
 | Safety Car if the incident escalates (on by default in the race) | yes, from the local yellow zone | yes, after the VSC | yes, after the VSC | yes, after the FCY | yes, after the FCY |
 | Pit lane closed under neutralisation | no | no | no | no (open under FCY, SRO rules) | under FCY and for 3 Safety Car laps |
 | Red flag on a pile-up (3 cars), real restart (also in practice and qualifying) | yes | yes, tyres changed | yes, tyres changed | yes, no work on the cars | yes, no work on the cars |
+| Restart after a red flag in the race (since Beta 1.34) | rolling (RS) | standing (SS) from the grid | standing (SS) | rolling (RS) | rolling (RS) |
 | DRS one leader lap after the start, a Safety Car or a red flag; off in the rain and under flags | yes | yes | active aero with no wait | yes | yes |
 | Mandatory stops in the race | 0 | 1, different dry compound, before 95% (waived if the race turns wet) | same | 1, between 25 and 35 min of a one-hour race (42–58%), no minimum time | none imposed; stints of 50 min max |
 | Repairs at every stop in the race (3 s plus damage, 60 s max) | yes | yes | yes | yes | yes |
@@ -606,6 +607,12 @@ Safety Car escalation (**Safety Car if the incident escalates**, on by default i
   - The AI leave their boxes in classification order, one every 2 s.
   - A restart lap follows behind the Safety Car. Without one, it runs under VSC with the F1 rules, or under FCY otherwise.
   - There is no overtaking during the restart lap, nor until the line after the green.
+  - Since Beta 1.34, **Restart after a red flag** chooses how the race restarts (the overlay announces it during the restart lap):
+    - **Rolling start (RS) behind the Safety Car** (base, GT and Endurance rules): the green comes when the Safety Car pits, as above.
+    - **Standing start (SS) from the grid** (F1 2025 and F1 2026 rules): after the restart lap, every car drives to its grid slot, in race order with the slots closed up. A car in the pit lane starts from the pit lane. The AI slow down along the approach (speed cap from the distance to the slot, assist brake in the last metres), take the column of their slot and are held there. The overlay tells you your slot and the distance to it (*Go to your grid slot: P4 · 380 m*). Once everyone is in place (or after 2 minutes, whoever is still out is held where they are), five lights come on in the overlay, one per second, and go out after a random hold; every AI leaves at once. Moving before lights out is a **jump start**, penalised like the other infringements (throttle cut, counted towards disqualification). The trackside light panels stay yellow during the grid and the lights, then green.
+    - The grid slots are the track's `AC_START` nodes when CSP gives them and they make sense (before the line, within 400 m, in order, on the track), otherwise computed: 6 m before the line, 8 m apart, alternating columns. Nobody is ever teleported, so laps stay exact. Without the CSP functions it needs (stop counter, speed cap, lateral offset) or a measured lateral direction, the restart stays rolling and the log says why.
+    - A new incident during the grid or the lights cancels the standing start: the holds are released and the usual yellow flags take over.
+  - **Overtaking allowed after the restart** (Safety Car view): **at the control line** (default, the usual rule) or **as soon as the Safety Car pits**, for a red-flag restart lap and for an ordinary Safety Car deployment.
 - **Work in the pits.** With the F1 rules, tyres are changed under the red flag and the stop counts (**Red flag: tyres changed in the pits (stop counts)**). With the GT and Endurance rules, no work is done.
 - **DRS** is disabled until one lap after the restart.
 - **Limitation:** AC cannot suspend a race, so its race clock keeps running during the suspension.
@@ -853,6 +860,7 @@ Since Beta 1.32, on a track whose CSP configuration lights its trackside light p
 - **AC's own flags are never covered** when they are up: blue, white, black or chequered; over AC's yellow, only yellow or red. While the app shows a colour, AC's own flags come back when it ends.
 - **Changes.** A more important colour is shown at once; a less important one, or handing back to AC, after 1.5 s (track configurations ignore shorter states). The track check and every change are logged (`panneaux lumineux du circuit: …`).
 - **AC's own display.** If AC's flags are shown (not hidden in CSP), its flag icon also shows the yellow, blue and green of the panels; the window says so. The **AC native yellow flag on the HUD** preference still applies on a track that is not equipped, or with the option off.
+- **Fixed in Beta 1.34.** In your Imola session on Beta 1.32, the panels never lit: AC keeps its own start flag up for a long time (the whole session in hotlap), and the app refused to write over it, without a word in the log. The start flag no longer blocks the panels. Every wanted colour that cannot be written is now logged once with its cause (`panneaux lumineux du circuit: jaune voulu, non ecrit (drapeau natif 12)`, `capacite missing`, `echec: …`), and every change of AC's own flag is logged (`drapeau d AC: 1 (depart)`). The track configuration is now also read when no section is ticked.
 - **Not confirmed in game yet.** The SDK marks the slippery (3) and slow vehicle (6) values as *does not work yet* for AC's own display; whether the panels show them, and red (5), is to be checked in game.
 
 ### Beeps
@@ -1226,6 +1234,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Red flag: reference time slower by (%)** | 10 – 200 | 60 | 60 | 60 |
 | **Red flag: minimum suspension (s)** | 20 – 600 | 60 | 60 | 60 |
 | **Red flag: tyres changed in the pits (stop counts)** | on / off | off | off | off |
+| **Restart after a red flag** | Rolling start (RS) behind the Safety Car / Standing start (SS) from the grid | rolling | rolling | rolling |
 | **Overtake Mode (F1 2026, within one second at detection)** | on / off | off | off | off |
 | **Overtake Mode: detection gap (s)** | 0.3 – 2 | 1 | 1 | 1 |
 | **Overtake Mode: level gain (%)** | 0 – 5 | 2 | 2 | 2 |
@@ -1261,6 +1270,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 |---|---|---|---|---|
 | **Safety Car speed (km/h)** | 60 – 250 | 120 | 120 | 120 |
 | **Safety Car if the incident escalates** | on / off | off | on | on |
+| **Overtaking allowed after the restart** | At the control line / As soon as the Safety Car pits | at the line | at the line | at the line |
 
 #### Global settings (sidebar: **Global options**, shared by all profiles)
 
@@ -1330,6 +1340,9 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | `repartition des IA` | AI distribution at session start: plan, cars placed (`posees en piste sur … prevues`), check after 3 s (`roulent normalement` / `en difficulte`); since Beta 1.28 each car in trouble is named with its model and the reason (`aux stands` in the pits, `hors piste` off track, `lente` slow, `glissade` sliding) |
 | `depassement` / `depassement fini` | Since Beta 1.31: each overtaking attempt the app starts (`depassement: A -> B (trigger, gap, speed difference)`; trigger `rapprochement` closing, `retenue` held up, `invitation`, `cession` the car ahead yields) and how it ended (`reussi`, `cible plus rapide`, `cote ferme`, `sans rapprochement`, `suiveur rapide`, `cible perdue`, `drapeau jaune`…), after how long and the minimum gap |
 | `tete-a-queue, contexte` | Since Beta 1.31: what the app was commanding an AI just before it spun: state and for how long, time since its last manoeuvre, lateral offset, caution and aggressiveness against their usual values, level, slipstream, app braking |
+| `drapeau d AC:` | Since Beta 1.34: every change of AC's own race flag while the app does not set it (`1 (depart)`, `2 (jaune)`, `12 (bleu)`…), to check the track light panels in game |
+| `capacite <name>: echec (…)` / `capacite <name>: coupee apres 3 echecs` | Since Beta 1.34: the first failure of a CSP function the app uses, with CSP's error text, and when the app stops using it after three failures (once per launch) |
+| `relance:` / `grille:` / `feux:` | Since Beta 1.34: how a race restarts after a red flag (`relance: depart arrete (SS)`, `relance arretee indisponible (<reason>): depart lance`), the grid (`grille: formation, 12 voitures, 24 places (AC_START)` or `places calculees`, `grille: delai maximal`), the lights (`feux: allumage`, `feux eteints apres 6.4 s: depart`), `faux depart du joueur`, `depart arrete annule: nouvel incident` |
 | `panneaux lumineux du circuit:` | Since Beta 1.32: light panels found in the track configuration or not (`detectes (extension\ext_config.ini)`, `non detectes`), then each colour the app shows on them and why (`jaune (drapeau jaune)`, `bleu (drapeau bleu)`, `rendus a AC`) |
 | `vehicule lent devant le joueur` | Since Beta 1.32: white flag; the slow car, its speed and how far ahead of you |
 | `avertissement du joueur` | Since Beta 1.32: your last tolerated infringement (black-and-white flag) |

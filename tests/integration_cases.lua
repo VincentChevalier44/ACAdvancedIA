@@ -17,7 +17,7 @@ return function(source)
  -- Beta 1.17 : la section Règles a son propre onglet.
  -- Beta 1.19 : arrêts aux stands et voiture de sécurité sous leur titre dans l'onglet Règles de course.
  local stopsKeys={mandatoryStops=true,pitWindowOpenPct=true,pitWindowClosePct=true,pitTyres=true,pitRepair=true,pitCompoundChange=true,minPitTime=true,maxStintMin=true,pitFuel=true,pitsClosed=true,pitMessage=true}
- local safetyKeys={safetyCarSpeedKmh=true,safetyCarEscalation=true}
+ local safetyKeys={safetyCarSpeedKmh=true,safetyCarEscalation=true,restartOvertake=true}
  local function section(group,key)
   if group=='rules' then go('rules'); press('rules_view_'..(stopsKeys[key] and 'stops' or safetyKeys[key] and 'safety' or 'all'))
   else go('settings'); press('cat_'..group) end
@@ -672,7 +672,8 @@ return function(source)
   HOST.cars[0].isInPitlane=true; HOST.cars[0].speedKmh=60
   for _=1,80 do if not e.incidents.red then break end; H.tick(HOST,0.5) end
   H.tick(HOST,0.3) -- panneau rafraîchi tous les quarts de seconde
-  assert(not e.incidents.red and e.incidents.relaunch and e.panel.kind=='fcy','relaunch lap under FCY (no safety car) after the hold')
+  -- Beta 1.34 : tour de relance annoncé comme un départ lancé (RS).
+  assert(not e.incidents.red and e.incidents.relaunch and e.incidents.neutralMode=='fcy' and e.panel.kind=='rolling' and e.panel.title==L.flagTitles.rolling,'relaunch lap under FCY (no safety car) after the hold')
   assert(HOST.messages[#HOST.messages]:find(L.messages.redRestartFcy[2],1,true),'relaunch announced')
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
   assert(HOST.flag==0,'native flag untouched')
@@ -1586,6 +1587,48 @@ return function(source)
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
   assert(HOST.flag==0,'handed back on unload')
  end)
+ -- Beta 1.34 : conditions de la session Imola du pilote (course, drapeau de départ d'AC tenu, joueur dans une zone
+ -- jaune) ; en 1.32, aucune couleur n'était écrite et rien n'était noté.
+ check('Beta 1.34 : en course, drapeau de départ d AC tenu : panneaux allumés, drapeau d AC et refus notés',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
+  local sep=string.char(92); local function path(...) return table.concat({...},sep) end
+  HOST.files[path('tracks','test','extension','ext_config.ini')]='[INCLUDE]\nINCLUDE = common/conditions.ini, ext_config-flags.ini\n'
+  HOST.files[path('tracks','test','extension','ext_config-flags.ini')]='[MATERIAL_ADJUSTMENT_0]\nACTIVE=1\nCONDITION=RACING_FLAG\n'
+  HOST.files[path('cfgsys','tracks','common','conditions.ini')]='[CONDITION_85]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\n'
+  HOST.nativeFlag=C.K.flagStart; HOST.sim.raceFlagType=C.K.flagStart
+  assert(loadstring(source))()
+  local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); E.changed(e)
+  local function logged(text) for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end return false end
+  H.tick(HOST,2); assert(e.profile=='C' and logged('drapeau d AC: 1 (depart)'),'AC start flag logged')
+  HOST.cars[0].splinePosition=0.995; HOST.cars[3].speedKmh=0; HOST.cars[3].velocity={x=0,z=0}
+  H.tick(HOST,8)
+  assert(HUMANAI.host.trackLights==true and e.incidents.playerYellow,'equipped track, player under yellow')
+  assert(HOST.flag==C.K.flagCaution and logged('panneaux lumineux du circuit: jaune'),'yellow written over the held start flag, and logged')
+  -- Drapeau bleu d'AC : à respecter ; le refus est noté avec sa cause.
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+  HOST=H.create(true); HOST.sim.raceSessionType=3
+  HOST.files[path('tracks','test','extension','ext_config.ini')]='[INCLUDE]\nINCLUDE = common/conditions.ini, ext_config-flags.ini\n'
+  HOST.files[path('tracks','test','extension','ext_config-flags.ini')]='[MATERIAL_ADJUSTMENT_0]\nACTIVE=1\nCONDITION=RACING_FLAG\n'
+  HOST.files[path('cfgsys','tracks','common','conditions.ini')]='[CONDITION_85]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\n'
+  HOST.nativeFlag=C.K.flagFasterCar; HOST.sim.raceFlagType=C.K.flagFasterCar
+  assert(loadstring(source))(); e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); E.changed(e)
+  HOST.cars[0].splinePosition=0.995; HOST.cars[3].speedKmh=0; HOST.cars[3].velocity={x=0,z=0}
+  H.tick(HOST,8)
+  assert(HOST.sim.raceFlagType==C.K.flagFasterCar and HOST.flagOverrides==0 and e.incidents.playerYellow,'AC blue kept')
+  assert(logged('panneaux lumineux du circuit: jaune voulu, non ecrit (drapeau natif 12)'),'refusal logged with its cause')
+  HUMANAI.release()
+ end)
+ check('Beta 1.34 : configuration du circuit lue même sans onglet coché',function()
+  HUMANAI.release(); HOST=H.create(true)
+  local sep=string.char(92)
+  HOST.files[table.concat({'tracks','test','extension','ext_config.ini'},sep)]='[MATERIAL_ADJUSTMENT_0]\nACTIVE=1\nCONDITION=RACING_FLAG\n'
+  HOST.files[table.concat({'cfgsys','tracks','common','conditions.ini'},sep)]='[CONDITION_85]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\n'
+  assert(loadstring(source))()
+  local e=HUMANAI.engine; for _,p in pairs(e.profiles) do for _,group in ipairs(C.sections) do p['section_'..group]=false end end; E.changed(e)
+  H.tick(HOST,2)
+  assert(e.guard=='nosections' and HUMANAI.host.trackLights==true,'track read with every section unticked')
+  HUMANAI.release()
+ end)
  check('Beta 1.32 : circuit non équipé, drapeau d AC jamais modifié',function()
   HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))()
   local e=HUMANAI.engine; C.preset('Nordschleife','J',e.profiles.J); E.changed(e)
@@ -1614,6 +1657,7 @@ return function(source)
  end)
  -- Beta 1.33 : mise à jour depuis GitHub, app complète sur une imitation de CSP (réseau, empreinte, zips, fichiers).
  local Fake=require('tests/updatefake')
+ local function ver(d) local major,minor=C.release:match('(%d+)%.(%d+)'); return 'Beta '..major..'.'..(tonumber(minor)+d) end
  local Update=require('src/update')
  local API='get https://api.github.com/repos/VincentChevalier44/ACAdvancedIA/releases/latest'
  local function logged(text) local e=HUMANAI.engine; for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end; return false end
@@ -1621,34 +1665,34 @@ return function(source)
  local function updated(setup,body)
   HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
   local F=Fake.install({root='local',files=HOST.files})
-  local ok,err=pcall(function() F.app('Beta 1.33'); if setup then setup(F) end; assert(loadstring(source))(); body(F) end)
+  local ok,err=pcall(function() F.app(ver(0)); if setup then setup(F) end; assert(loadstring(source))(); body(F) end)
   HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
   F.restore(); assert(ok,err)
  end
  check('Beta 1.33 : vérification au lancement, mise à jour d un clic depuis l en-tête, IA rendues avant le redémarrage',function()
-  updated(function(F) F.release('Beta 1.34') end,function(F)
+  updated(function(F) F.release(ver(1)) end,function(F)
    local u=HUMANAI.updater; assert(HUMANAI.port.ready and u.phase=='idle' and u.installed==C.release)
    H.tick(HOST,5); assert(u.phase=='idle' and not F.find(API),'no request before the delay')
    H.tick(HOST,6); assert(u.phase=='available' and F.find(API),'checked once after the delay')
-   assert(logged('mise a jour disponible: Beta 1.34'),'logged')
+   assert(logged('mise a jour disponible: '..ver(1)),'logged')
    H.tick(HOST,30); local requests=0; for _,c in ipairs(F.calls) do if c==API then requests=requests+1 end end; assert(requests==1,'one request per launch')
    pause(true); script.update(1/60); assert(HUMANAI.host.updateStopped,'paused: stopped')
    go('home'); redraw(); assert(drawn('update_header') and lit('update_header') and drawn('update_home'),'header button and home alert')
-   assert(drawnText(string.format(L.updateAlert,'Beta 1.34')),'home alert text')
+   assert(drawnText(string.format(L.updateAlert,ver(1))),'home alert text')
    local order={}
    F.onRestart=function() order[#order+1]=next(HOST.releases)==nil and 'released' or 'running' end
    HOST.releasing=true; press('update_header'); HOST.releasing=false
    assert(F.restarts==1 and order[1]=='released','AI handed back to AC before the restart')
    local files=HOST.files
-   assert(files['local/ACAdvancedIA.lua']=='main Beta 1.34' and Update.manifestVersion(files['local/manifest.ini'])=='Beta 1.34' and files['local/src/new.lua']=='new Beta 1.34')
-   assert(files['local/backup/updated.txt']=='update Beta 1.33 -> Beta 1.34' and files['local/backup/installing.txt']==nil and files['local/backup/previous.txt']=='Beta 1.33')
+   assert(files['local/ACAdvancedIA.lua']=='main '..ver(1) and Update.manifestVersion(files['local/manifest.ini'])==ver(1) and files['local/src/new.lua']=='new '..ver(1))
+   assert(files['local/backup/updated.txt']=='update '..ver(0)..' -> '..ver(1) and files['local/backup/installing.txt']==nil and files['local/backup/previous.txt']==ver(0))
    local bk,mk,un=F.find('zip backup/previous.zip.tmp'),F.find('save backup/installing.txt'),F.find('save backup/updated.txt')
    assert(bk and mk and un and bk<mk and mk<F.find('move manifest.ini') and F.find('move manifest.ini')<un and un<F.find('restartApp'),'backup -> mark -> extract -> report -> restart')
-   assert(logged('Beta 1.34 installee, commandes des IA rendues a AC'),'journal written before the restart')
+   assert(logged(ver(1)..' installee, commandes des IA rendues a AC'),'journal written before the restart')
   end)
  end)
  check('Beta 1.33 : mise à jour refusée en conduite, information de l overlay aux stands une fois par lancement',function()
-  updated(function(F) F.release('Beta 1.34') end,function(F)
+  updated(function(F) F.release(ver(1)) end,function(F)
    local e=HUMANAI.engine; local u=HUMANAI.updater
    H.tick(HOST,11); assert(u.phase=='available' and not HUMANAI.host.updateStopped,'on track: not stopped')
    assert(not Update.install(u,HUMANAI.port,HUMANAI.host.updateStopped) and u.error=='driving' and not F.last('get https://github.com/'),'refused while driving, nothing downloaded')
@@ -1666,60 +1710,60 @@ return function(source)
  end)
  check('Beta 1.33 : erreurs de mise à jour sans rien changer, annulation, option de vérification coupée',function()
   -- Empreinte différente : version installée intacte, erreur affichée, aucun redémarrage.
-  updated(function(F) F.release('Beta 1.34',{actual=string.rep('cd',32)}) end,function(F)
+  updated(function(F) F.release(ver(1),{actual=string.rep('cd',32)}) end,function(F)
    H.tick(HOST,11); halt(); go('diagnostic'); redraw()
    press('update_install'); redraw()
-   assert(HUMANAI.updater.error=='integrity' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main Beta 1.33' and HOST.files['local/backup/previous.zip']==nil)
+   assert(HUMANAI.updater.error=='integrity' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0) and HOST.files['local/backup/previous.zip']==nil)
    assert(drawnText(L.updateStates.errHash),'error shown')
   end)
   -- Téléchargement annulé : la réponse arrivée ensuite est ignorée.
-  updated(function(F) F.release('Beta 1.34') end,function(F)
+  updated(function(F) F.release(ver(1)) end,function(F)
    H.tick(HOST,11); halt(); go('diagnostic'); redraw()
    F.hold=true; press('update_install'); assert(HUMANAI.updater.phase=='downloading')
    redraw(); assert(drawn('update_cancel')); press('update_cancel'); F.hold=false; F.flush()
-   assert(HUMANAI.updater.phase=='available' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main Beta 1.33')
+   assert(HUMANAI.updater.phase=='available' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0))
   end)
   -- Vérification au lancement coupée : aucune requête ; le bouton de vérification la fait à la demande.
-  updated(function(F) F.release('Beta 1.34') end,function(F)
+  updated(function(F) F.release(ver(1)) end,function(F)
    halt(); go('diagnostic'); redraw(); press('global_updateCheck'); assert(HUMANAI.engine.g.updateCheck==false)
    pause(false); H.tick(HOST,15); assert(not F.find(API) and HUMANAI.updater.phase=='idle','no request when turned off')
    pause(true); redraw(); assert(drawnText(L.updateStates.unchecked))
    press('update_check'); assert(F.find(API) and HUMANAI.updater.phase=='available')
   end)
   -- GitHub sans version publiée : état affiché.
-  updated(function(F) F.release('Beta 1.34',{apiStatus=404}) end,function()
+  updated(function(F) F.release(ver(1),{apiStatus=404}) end,function()
    H.tick(HOST,11); halt(); go('diagnostic'); redraw(); assert(HUMANAI.updater.phase=='none' and drawnText(L.updateStates.none))
   end)
  end)
  check('Beta 1.33 : retour à la version sauvegardée, compte rendu après le redémarrage',function()
   updated(function(F)
-   F.files['local/backup/previous.zip']=F.zip({[Fake.prefix..'manifest.ini']='VERSION=Beta 1.32',[Fake.prefix..'ACAdvancedIA.lua']='main Beta 1.32',
-    [Fake.prefix..'src/update.lua']='update Beta 1.32',[Fake.prefix..'src/remote.lua']='remote Beta 1.32',[Fake.prefix..'src/ui.lua']='ui Beta 1.32'})
-   F.files['local/backup/previous.txt']='Beta 1.32'; F.files['local/backup/updated.txt']='update Beta 1.32 -> Beta 1.33'
-   F.release('Beta 1.33')
+   F.files['local/backup/previous.zip']=F.zip({[Fake.prefix..'manifest.ini']='VERSION='..ver(-1),[Fake.prefix..'ACAdvancedIA.lua']='main '..ver(-1),
+    [Fake.prefix..'src/update.lua']='update '..ver(-1),[Fake.prefix..'src/remote.lua']='remote '..ver(-1),[Fake.prefix..'src/ui.lua']='ui '..ver(-1)})
+   F.files['local/backup/previous.txt']=ver(-1); F.files['local/backup/updated.txt']='update '..ver(-1)..' -> '..ver(0)
+   F.release(ver(0))
   end,function(F)
-   local u=HUMANAI.updater; assert(u.updated and u.updated.kind=='update' and u.previous=='Beta 1.32' and HOST.files['local/backup/updated.txt']==nil)
-   assert(logged('mise a jour reussie: Beta 1.32 -> Beta 1.33'))
-   halt(); go('home'); redraw(); assert(drawnText(string.format(L.updateDone.update,'Beta 1.32','Beta 1.33')),'report on the home page')
+   local u=HUMANAI.updater; assert(u.updated and u.updated.kind=='update' and u.previous==ver(-1) and HOST.files['local/backup/updated.txt']==nil)
+   assert(logged('mise a jour reussie: '..ver(-1)..' -> '..ver(0)))
+   halt(); go('home'); redraw(); assert(drawnText(string.format(L.updateDone.update,ver(-1),ver(0))),'report on the home page')
    H.tick(HOST,0); go('diagnostic'); redraw(); assert(drawn('update_rollback') and not drawn('update_install'))
    HOST.releasing=true; press('update_rollback'); HOST.releasing=false
-   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main Beta 1.32' and Update.manifestVersion(HOST.files['local/manifest.ini'])=='Beta 1.32')
-   assert(HOST.files['local/backup/updated.txt']=='rollback Beta 1.33 -> Beta 1.32')
+   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(-1) and Update.manifestVersion(HOST.files['local/manifest.ini'])==ver(-1))
+   assert(HOST.files['local/backup/updated.txt']=='rollback '..ver(0)..' -> '..ver(-1))
   end)
  end)
  check('Beta 1.33 : installation interrompue au lancement précédent, sauvegarde remise en place, moteur arrêté',function()
   -- Sauvegarde présente : remise en place au chargement, puis redémarrage.
   updated(function(F)
-   F.files['local/manifest.ini']='VERSION=Beta 1.32'
-   F.files['local/backup/previous.zip']=F.zip({[Fake.prefix..'manifest.ini']='VERSION=Beta 1.32',[Fake.prefix..'ACAdvancedIA.lua']='main Beta 1.32',
-    [Fake.prefix..'src/update.lua']='update Beta 1.32',[Fake.prefix..'src/remote.lua']='remote Beta 1.32',[Fake.prefix..'src/ui.lua']='ui Beta 1.32'})
-   F.files['local/backup/previous.txt']='Beta 1.32'; F.files['local/backup/installing.txt']='update Beta 1.32 -> Beta 1.33'
+   F.files['local/manifest.ini']='VERSION='..ver(-1)
+   F.files['local/backup/previous.zip']=F.zip({[Fake.prefix..'manifest.ini']='VERSION='..ver(-1),[Fake.prefix..'ACAdvancedIA.lua']='main '..ver(-1),
+    [Fake.prefix..'src/update.lua']='update '..ver(-1),[Fake.prefix..'src/remote.lua']='remote '..ver(-1),[Fake.prefix..'src/ui.lua']='ui '..ver(-1)})
+   F.files['local/backup/previous.txt']=ver(-1); F.files['local/backup/installing.txt']='update '..ver(-1)..' -> '..ver(0)
   end,function(F)
-   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main Beta 1.32' and HOST.files['local/backup/installing.txt']==nil)
-   assert(HOST.files['local/backup/updated.txt']=='recovered Beta 1.32 -> Beta 1.33')
+   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(-1) and HOST.files['local/backup/installing.txt']==nil)
+   assert(HOST.files['local/backup/updated.txt']=='recovered '..ver(-1)..' -> '..ver(0))
   end)
   -- Sauvegarde illisible : le moteur ne pilote rien, la fenêtre l'explique.
-  updated(function(F) F.files['local/manifest.ini']='VERSION=Beta 1.32'; F.files['local/backup/installing.txt']='update Beta 1.32 -> Beta 1.33' end,function(F)
+  updated(function(F) F.files['local/manifest.ini']='VERSION='..ver(-1); F.files['local/backup/installing.txt']='update '..ver(-1)..' -> '..ver(0) end,function(F)
    local e=HUMANAI.engine; local calls=HOST.calls
    H.tick(HOST,5); assert(HUMANAI.updater.phase=='failed' and HOST.calls==calls and e.time==0 and F.restarts==0,'engine gated')
    assert(HOST.files['local/backup/installing.txt']~=nil,'marker kept for the next launch')
