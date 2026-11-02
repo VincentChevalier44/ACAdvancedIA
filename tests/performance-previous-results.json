@@ -1,0 +1,70 @@
+{
+  "version": "Beta 1.26",
+  "profiling": false,
+  "results": [
+    {
+      "vmstates": {},
+      "errors": 0,
+      "frames": 30000,
+      "stacks": {},
+      "ai": 9,
+      "meanMs": 0.04444277666916605,
+      "p99Ms": 0.11910000466741621,
+      "peakMs": 2.0056000066688284
+    },
+    {
+      "vmstates": {},
+      "errors": 0,
+      "frames": 30000,
+      "stacks": {},
+      "ai": 30,
+      "meanMs": 0.208011583291227,
+      "p99Ms": 0.4791999963345006,
+      "peakMs": 10.933799989288673
+    },
+    {
+      "vmstates": {},
+      "errors": 0,
+      "frames": 30000,
+      "stacks": {},
+      "ai": 60,
+      "meanMs": 0.5713212299990118,
+      "p99Ms": 1.3082999939797446,
+      "peakMs": 10.639500003890134
+    }
+  ],
+  "sources": {
+    "applier.lua": "ea8a87ad20551ef84af8c9af71e20dbfed62180a071dddfdff4995d6ce8a8cf2",
+    "calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
+    "caps.lua": "85f54153fb4952b79661962c900c806ab18edd1fef015a4452fa064ddb854d61",
+    "classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
+    "config.lua": "727bcee2a60fb79c5621b7459236782048fc097f47baf411378ce7f5b3f07a13",
+    "delta.lua": "cebd950b028cb380e2d410bade1ddfcde57cbe0e3317aa569918b9a8110096f8",
+    "director.lua": "037c55233f959bcdf231d1836b64be036adb1d3697780c246741a0728f5573ad",
+    "engine.lua": "9d8012f789a1da2aaccf6b325015ea42d7668aaf98c733a10df70341de80f4d2",
+    "flash.lua": "c2c9de819d328be59e40725c94543b9208463215cff78648a084265e63f8592e",
+    "flood.lua": "0527562daed5d283c2474666b3d5d584fb36bc57964990a7807db3188c49f31d",
+    "hudinfo.lua": "370714b976b9a0ea94f38d582e6ac8954701660a33e6b2e8c649924ebfa9dbe4",
+    "incidents.lua": "185585000e3006dfa37dfc4d1572625118c206496cebb0863eaf7c80e12adc3b",
+    "journal.lua": "8150b1c51eec68b8497c77efb4db8f40e017baa359cc9660d891e8ad1f687c08",
+    "lang.lua": "817962dae5ce3b58a51b406dd92360ce1abd05c93169fd2b0029c2b9149e668c",
+    "lang_en.lua": "86a6be6ecc3043b4b3e8a8b0da8264b740252c7e6970fa2e7b81ce626e184fc8",
+    "locale.lua": "02b406dc86cc1a5548877d8e897fd5d28764ae71d2296fe78547649c947e9bbd",
+    "mistakes.lua": "654f42f62b5da427996680a30a6ad12246bcf4cc6e8b7f77c7f71b7a91f0fe9a",
+    "panel.lua": "fc97eff511b13da3780cdcebba6655bdfe890a4c299d8f7b39932bc9817aa4ff",
+    "penalties.lua": "277295124bc828d4347b6ceff4fcf761d4b66077a9e474e8e0183b395c3b78a3",
+    "perception.lua": "e41cfac98907532015aeee30276925e369eb2b6634c971a38590997847e563f4",
+    "persona.lua": "fc995df594e4e17ef0dc0a30bda8d3f14bd217fae46a9adc9ee3d87618c392c2",
+    "pits.lua": "aaabf723c4a6412f4bb7f10e490bd1c9302fd44143cdf089ecc6fb8a675519d7",
+    "presets.lua": "5531b919d5df43896921f323484b3a7847f81bce079d0d7568421d8dcb915873",
+    "snapshot.lua": "998dc0bb9b3c21fa66f3a048a947d2373b1c340fdb45cff7ab99be41f2fdd29c",
+    "tips.lua": "0be4eabe4f2ca15a13bda421575476c46a852260d033d547b83a91e408ced234",
+    "tips_en.lua": "fb8eae037c6080ff8d0a82ee656d2d70053c6c2613264ec610c40bfba6a6764b",
+    "traffic.lua": "3fe2afb14819cea4c836e0757441ce933a800c2b3aa786dcabdc2d29e200826d",
+    "ui.lua": "ce40992896801b26d999015547b478d24c0b3e4f832f9776a0c93baceafdadcc",
+    "util.lua": "533d16b986fc80b7d27d6754e4e36c8e984ae16b1dbbab925341a56ca0bc624d",
+    "weather.lua": "574e6c04dd73cded2d96dcdd8386c35991827c5c3ac59ed4ac7d1d17f48f13f5",
+    "widgets.lua": "4d7ed220ab6c67c8847d5cb5a4d2474a7975fe8a93f720ac3c7d6139663f43f4",
+    "zones.lua": "0ef2b144ec13d660a2bfd47cba5f213514c07d833976f78dbdbb599a43848a33"
+  }
+}

@@ -1,0 +1,6 @@
+# Python packages installed for the test suites: python -m pip install --target tests/_vendor -r tests/requirements.txt
+tests/_vendor/
+__pycache__/
+*.pyc
+# Older release packages (each release replaces the previous one in dist/)
+dist/*.tmp

@@ -1,0 +1,1498 @@
+{
+  "ABORT_YELLOW_REASON": {
+    "ok": true,
+    "seconds": 0.0253
+  },
+  "ACCIDENT_WRITES_AND_RESTORE": {
+    "ok": true,
+    "seconds": 0.0133
+  },
+  "AI_DRS": {
+    "ok": true,
+    "seconds": 0.0116
+  },
+  "AI_FLASH_BETWEEN_AI": {
+    "ok": true,
+    "seconds": 0.0685
+  },
+  "AI_FLASH_VISUAL_PULSES": {
+    "ok": true,
+    "seconds": 0.003
+  },
+  "AI_GIVE_BACK": {
+    "ok": true,
+    "seconds": 0.1039
+  },
+  "AI_GIVE_BACK_DYNAMIC": {
+    "ok": true,
+    "seconds": 0.1249
+  },
+  "AI_OFFTRACK_KEEPS_REGIME": {
+    "ok": true,
+    "seconds": 0.0431
+  },
+  "AI_PASS_BY_CUTTING": {
+    "ok": true,
+    "seconds": 0.0742
+  },
+  "AI_PENALTY_FAIRNESS": {
+    "ok": true,
+    "seconds": 0.003
+  },
+  "AI_SANCTIONS_ESCALATE": {
+    "ok": true,
+    "seconds": 0.1009
+  },
+  "AI_ZONE_QUEUE": {
+    "ok": true,
+    "seconds": 0.0284
+  },
+  "APPLIER_CDATA": {
+    "ok": true,
+    "seconds": 0.0
+  },
+  "APPLIER_FILTERS": {
+    "ok": true,
+    "seconds": 0.0044
+  },
+  "AUTO_PROFILE_SELECTION": {
+    "ok": true,
+    "seconds": 0.0096
+  },
+  "AUTO_YIELD_FREE_SIDE": {
+    "ok": true,
+    "seconds": 0.0561
+  },
+  "AVOID_BEATS_DIRECTION_REST": {
+    "ok": true,
+    "seconds": 0.03
+  },
+  "AVOID_ENDS_WHEN_TARGET_MOVES": {
+    "ok": true,
+    "seconds": 0.0074
+  },
+  "AVOID_NEVER_TOWARDS_OBSTACLE": {
+    "ok": true,
+    "seconds": 0.0118
+  },
+  "AVOID_NOT_FROZEN_BY_ALONGSIDE": {
+    "ok": true,
+    "seconds": 0.0172
+  },
+  "AVOID_OBSTACLE_SLIDES": {
+    "ok": true,
+    "seconds": 0.0192
+  },
+  "AVOID_TARGET_NOT_ALIASED": {
+    "ok": true,
+    "seconds": 0.0137
+  },
+  "BLOCKED_YIELD_RESET": {
+    "ok": true,
+    "seconds": 0.0035
+  },
+  "BLUE_FLAG_LOG": {
+    "ok": true,
+    "seconds": 0.0432
+  },
+  "BLUE_FLAG_RANGE_WIRED": {
+    "ok": true,
+    "seconds": 0.0339
+  },
+  "BLUE_FLAG_SAME_SPEED": {
+    "ok": true,
+    "seconds": 0.0341
+  },
+  "BLUE_GAP": {
+    "ok": true,
+    "seconds": 0.0076
+  },
+  "BLUE_SIDE_AND_OVERTAKE_CHOICES": {
+    "ok": true,
+    "seconds": 0.0789
+  },
+  "BOP_AND_PRO_AM": {
+    "ok": true,
+    "seconds": 0.0014
+  },
+  "BRAKE_NEUTRAL_AND_PIT_RELEASE": {
+    "ok": true,
+    "seconds": 0.0012
+  },
+  "BRAKE_ONLY_OWNERSHIP": {
+    "ok": true,
+    "seconds": 0.0031
+  },
+  "BRAKE_RELEASED_IN_PITS": {
+    "ok": true,
+    "seconds": 0.001
+  },
+  "BROKEN_CAR_RECOVERED": {
+    "ok": true,
+    "seconds": 0.0498
+  },
+  "BUILTIN_PRESET_ACTIVATIONS": {
+    "ok": true,
+    "seconds": 0.0006
+  },
+  "CALIBRATION_ABORT_OCCUPIED": {
+    "ok": true,
+    "seconds": 0.0011
+  },
+  "CALIBRATION_SAFETY": {
+    "ok": true,
+    "seconds": 0.0024
+  },
+  "CAR_QUARANTINE": {
+    "ok": true,
+    "seconds": 0.0034
+  },
+  "CONFIGURED_AND_PRESETS_USED_MIGRATION": {
+    "ok": true,
+    "seconds": 0.0002
+  },
+  "CONFIG_REVIEW_180": {
+    "ok": true,
+    "seconds": 0.0084
+  },
+  "CONFIG_SEED_INACTIVE_ISOLATION": {
+    "ok": true,
+    "seconds": 0.0128
+  },
+  "CONTACT_LOG": {
+    "ok": true,
+    "seconds": 0.0261
+  },
+  "CORNER_FLASH_YIELD_HELD": {
+    "ok": true,
+    "seconds": 0.0359
+  },
+  "CORNER_OVERTAKE_COMPLETES": {
+    "ok": true,
+    "seconds": 0.1345
+  },
+  "CORNER_YIELD_COMPLETES": {
+    "ok": true,
+    "seconds": 0.2102
+  },
+  "CUSTOM_PRESET_BEFORE_1_3": {
+    "ok": true,
+    "seconds": 0.0009
+  },
+  "CUSTOM_PRESET_REVISION_6": {
+    "ok": true,
+    "seconds": 0.0006
+  },
+  "CUSTOM_PRESET_VALIDATION": {
+    "ok": true,
+    "seconds": 0.0005
+  },
+  "DEBUG_LOG_OPTION": {
+    "ok": true,
+    "seconds": 0.0154
+  },
+  "DEFEND_ENDS_UNDER_BRAKING": {
+    "ok": true,
+    "seconds": 0.0019
+  },
+  "DEFEND_NEEDS_DIRECTION_BUDGET": {
+    "ok": true,
+    "seconds": 0.0377
+  },
+  "DELTA_BEEPS": {
+    "ok": true,
+    "seconds": 0.0593
+  },
+  "DELTA_CORE": {
+    "ok": true,
+    "seconds": 0.0063
+  },
+  "DELTA_FLEET_REFERENCE": {
+    "ok": true,
+    "seconds": 0.0027
+  },
+  "DELTA_REACTION": {
+    "ok": true,
+    "seconds": 0.025
+  },
+  "DELTA_REVERSE_SC_CALL_ZONE_PENALTY": {
+    "ok": true,
+    "seconds": 0.0026
+  },
+  "DELTA_SC_MERGE": {
+    "ok": true,
+    "seconds": 0.0798
+  },
+  "DELTA_ZONE": {
+    "ok": true,
+    "seconds": 0.0028
+  },
+  "DELTA_ZONE_OVERLAP": {
+    "ok": true,
+    "seconds": 0.0548
+  },
+  "DIAGNOSTIC_LABELS": {
+    "ok": true,
+    "seconds": 0.0
+  },
+  "DIRECTION_LIMIT_DIAGNOSTIC": {
+    "ok": true,
+    "seconds": 0.0033
+  },
+  "DRIVE_JITTER_NOT_COUNTED": {
+    "ok": true,
+    "seconds": 0.3463
+  },
+  "DRS_BEEP_AND_PANEL": {
+    "ok": true,
+    "seconds": 0.0143
+  },
+  "DRS_LATE_LOAD_AND_SC_QUEUE": {
+    "ok": true,
+    "seconds": 0.17
+  },
+  "DRS_MESSAGE_RETRIED": {
+    "ok": true,
+    "seconds": 0.0023
+  },
+  "DRS_RULES": {
+    "ok": true,
+    "seconds": 0.6492
+  },
+  "DRY_CHOICE_PRIMARY": {
+    "ok": true,
+    "seconds": 0.0009
+  },
+  "E01": {
+    "ok": true,
+    "seconds": 5.3985
+  },
+  "E02": {
+    "ok": true,
+    "seconds": 0.0036
+  },
+  "E03": {
+    "ok": true,
+    "seconds": 0.0127
+  },
+  "E04": {
+    "ok": true,
+    "seconds": 0.0085
+  },
+  "E05": {
+    "ok": true,
+    "seconds": 0.0027
+  },
+  "E06": {
+    "ok": true,
+    "seconds": 0.0262
+  },
+  "EFFECTIVE_HUMAN_OFF": {
+    "ok": true,
+    "seconds": 0.0002
+  },
+  "EMERGENCY_RELEASE_FACTOR_ONE": {
+    "ok": true,
+    "seconds": 0.0036
+  },
+  "ENDURANCE_PRESET_TRACKDAY": {
+    "ok": true,
+    "seconds": 0.0006
+  },
+  "F01": {
+    "ok": true,
+    "seconds": 0.0073
+  },
+  "F02": {
+    "ok": true,
+    "seconds": 0.0083
+  },
+  "F03": {
+    "ok": true,
+    "seconds": 0.0062
+  },
+  "F04": {
+    "ok": true,
+    "seconds": 0.0026
+  },
+  "F05": {
+    "ok": true,
+    "seconds": 0.0031
+  },
+  "F06": {
+    "ok": true,
+    "seconds": 0.0086
+  },
+  "F07": {
+    "ok": true,
+    "seconds": 0.0019
+  },
+  "F08": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "F09": {
+    "ok": true,
+    "seconds": 0.0124
+  },
+  "F10": {
+    "ok": true,
+    "seconds": 0.008
+  },
+  "F11": {
+    "ok": true,
+    "seconds": 0.0092
+  },
+  "F12": {
+    "ok": true,
+    "seconds": 0.0066
+  },
+  "FAILED_OFFSET_RESTORE_RETAINED": {
+    "ok": true,
+    "seconds": 0.0015
+  },
+  "FLAG_EXPLANATIONS": {
+    "ok": true,
+    "seconds": 0.0128
+  },
+  "FLAG_LIFECYCLE_ALL_PROFILES": {
+    "ok": true,
+    "seconds": 0.1584
+  },
+  "FLAG_OVER_DRS": {
+    "ok": true,
+    "seconds": 0.0157
+  },
+  "FLAG_PANEL_BLUE_HYSTERESIS": {
+    "ok": true,
+    "seconds": 0.0076
+  },
+  "FLAG_PANEL_BLUE_PLAYER": {
+    "ok": true,
+    "seconds": 0.0036
+  },
+  "FLAG_PANEL_LAYOUT": {
+    "ok": true,
+    "seconds": 0.005
+  },
+  "FLAG_PANEL_PRIORITY": {
+    "ok": true,
+    "seconds": 0.0034
+  },
+  "FLASH_ALWAYS_RACE": {
+    "ok": true,
+    "seconds": 0.0049
+  },
+  "FLASH_CALIBRATION": {
+    "ok": true,
+    "seconds": 0.0006
+  },
+  "FLASH_LOST_ADVANTAGE": {
+    "ok": true,
+    "seconds": 0.0168
+  },
+  "FLASH_URGENT_DETECTOR": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "FLOOD_CONFIG_EDIT": {
+    "ok": true,
+    "seconds": 0.0006
+  },
+  "FLOOD_MANAGED_TRACK_DAY": {
+    "ok": true,
+    "seconds": 0.093
+  },
+  "FRONT_RADAR": {
+    "ok": true,
+    "seconds": 0.0286
+  },
+  "FUEL_RULES_MIGRATION": {
+    "ok": true,
+    "seconds": 0.0022
+  },
+  "FUEL_SHORT_TANK": {
+    "ok": true,
+    "seconds": 0.0044
+  },
+  "FUEL_STRATEGY": {
+    "ok": true,
+    "seconds": 0.0019
+  },
+  "FUEL_WRITES_AND_RESTORE": {
+    "ok": true,
+    "seconds": 0.003
+  },
+  "FUZZ_10000": {
+    "ok": true,
+    "seconds": 6.6014
+  },
+  "GEOMETRY_FIXTURES": {
+    "ok": true,
+    "seconds": 0.0041
+  },
+  "GIVE_BACK_DELAY_AND_PENDING_END": {
+    "ok": true,
+    "seconds": 0.1153
+  },
+  "GIVE_BACK_NOT_A_PASS": {
+    "ok": true,
+    "seconds": 0.324
+  },
+  "GRID_IS_NOT_AN_INCIDENT": {
+    "ok": true,
+    "seconds": 0.0548
+  },
+  "HORN_WITHOUT_FLASH_CALIBRATION": {
+    "ok": true,
+    "seconds": 0.0102
+  },
+  "HOTLAP_DEFAULT_RULES": {
+    "ok": true,
+    "seconds": 0.0087
+  },
+  "HOTLAP_MANUAL_KEPT": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "HOTLAP_PROFILE": {
+    "ok": true,
+    "seconds": 0.0098
+  },
+  "HOTLAP_START_FLAG_AND_DRS": {
+    "ok": true,
+    "seconds": 0.0081
+  },
+  "HUD_LAP_AND_SESSION_LINE": {
+    "ok": true,
+    "seconds": 0.0245
+  },
+  "INCIDENT_CLEAR_HYSTERESIS": {
+    "ok": true,
+    "seconds": 0.0182
+  },
+  "INCIDENT_COUNTS_AND_DISMISSAL": {
+    "ok": true,
+    "seconds": 0.1653
+  },
+  "INCIDENT_DEBOUNCE": {
+    "ok": true,
+    "seconds": 0.0811
+  },
+  "INCIDENT_HOLD_ONCE": {
+    "ok": true,
+    "seconds": 0.0071
+  },
+  "INCIDENT_SCAN_SPLINE_COHERENCE": {
+    "ok": true,
+    "seconds": 0.0073
+  },
+  "INCIDENT_SPAWN_AND_QUEUE": {
+    "ok": true,
+    "seconds": 0.0469
+  },
+  "INCIDENT_STOP_HOLD": {
+    "ok": true,
+    "seconds": 0.0317
+  },
+  "INCIDENT_STOP_TIMES_WIRED": {
+    "ok": true,
+    "seconds": 0.0138
+  },
+  "INTEGER_SETTINGS_ROUNDED": {
+    "ok": true,
+    "seconds": 0.0002
+  },
+  "IO_REVIEW_180": {
+    "ok": true,
+    "seconds": 0.0012
+  },
+  "JAM_IS_NOT_AN_INCIDENT": {
+    "ok": true,
+    "seconds": 0.0177
+  },
+  "JOURNAL_COLLECT": {
+    "ok": true,
+    "seconds": 0.0019
+  },
+  "JOURNAL_INTERRUPTED_COUNTER": {
+    "ok": true,
+    "seconds": 0.0022
+  },
+  "JOURNAL_MINUTE_COUNTERS": {
+    "ok": true,
+    "seconds": 0.0387
+  },
+  "JOURNAL_SUPPRESSED_COUNTERS": {
+    "ok": true,
+    "seconds": 0.0093
+  },
+  "JOURNAL_UNMANAGED": {
+    "ok": true,
+    "seconds": 0.0054
+  },
+  "L01": {
+    "ok": true,
+    "seconds": 0.0087
+  },
+  "L02": {
+    "ok": true,
+    "seconds": 0.0064
+  },
+  "L03": {
+    "ok": true,
+    "seconds": 0.0112
+  },
+  "L04": {
+    "ok": true,
+    "seconds": 0.0083
+  },
+  "L05": {
+    "ok": true,
+    "seconds": 0.0131
+  },
+  "L06": {
+    "ok": true,
+    "seconds": 0.0098
+  },
+  "L07": {
+    "ok": true,
+    "seconds": 0.0083
+  },
+  "LANG_PARITY": {
+    "ok": true,
+    "seconds": 0.0075
+  },
+  "LAPPED_CAR_STAYS_BEHIND_FIGHT": {
+    "ok": true,
+    "seconds": 0.0166
+  },
+  "LAPSE_SWITCH_ENDURANCE": {
+    "ok": true,
+    "seconds": 0.0092
+  },
+  "LEGACY_PRESET_MIGRATION": {
+    "ok": true,
+    "seconds": 0.02
+  },
+  "LET_PASS_INVITATION": {
+    "ok": true,
+    "seconds": 0.1871
+  },
+  "LOCALE_ROUND_TRIP": {
+    "ok": true,
+    "seconds": 0.0009
+  },
+  "LOG_BOUNDS": {
+    "ok": true,
+    "seconds": 0.0005
+  },
+  "M01": {
+    "ok": true,
+    "seconds": 0.0097
+  },
+  "M02": {
+    "ok": true,
+    "seconds": 0.0105
+  },
+  "M03": {
+    "ok": true,
+    "seconds": 0.022
+  },
+  "M04": {
+    "ok": true,
+    "seconds": 0.0019
+  },
+  "M05": {
+    "ok": true,
+    "seconds": 0.0155
+  },
+  "M06": {
+    "ok": true,
+    "seconds": 0.0083
+  },
+  "MANDATORY_PIT_WINDOW": {
+    "ok": true,
+    "seconds": 0.0473
+  },
+  "MANEUVER_ZIGZAG_CAPPED": {
+    "ok": true,
+    "seconds": 0.0018
+  },
+  "MESSAGES_HIDDEN_BY_DEFAULT": {
+    "ok": true,
+    "seconds": 0.0002
+  },
+  "MESSAGE_PRIORITY": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "MIGRATION_BETA_1_4": {
+    "ok": true,
+    "seconds": 0.0056
+  },
+  "MIGRATION_DELTA_SOFTER": {
+    "ok": true,
+    "seconds": 0.0008
+  },
+  "MIGRATION_FIRST_INSTALL": {
+    "ok": true,
+    "seconds": 0.0026
+  },
+  "MIGRATION_GT_PITS_OPEN": {
+    "ok": true,
+    "seconds": 0.0005
+  },
+  "MIGRATION_LANGUAGE": {
+    "ok": true,
+    "seconds": 0.002
+  },
+  "MIGRATION_PANEL_ONLY": {
+    "ok": true,
+    "seconds": 0.0013
+  },
+  "MIGRATION_SAFETY_CAR": {
+    "ok": true,
+    "seconds": 0.0065
+  },
+  "MISTAKES": {
+    "ok": true,
+    "seconds": 0.9751
+  },
+  "MISTAKES_ALL_SESSIONS": {
+    "ok": true,
+    "seconds": 0.0047
+  },
+  "MISTAKE_START_WINDOW": {
+    "ok": true,
+    "seconds": 0.1371
+  },
+  "MULTICLASS_SWITCH_ENDURANCE": {
+    "ok": true,
+    "seconds": 0.023
+  },
+  "NATIVE_FLAGS_MIRRORED": {
+    "ok": true,
+    "seconds": 0.0148
+  },
+  "NATIVE_SETTER_ARITY": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "NATIVE_YELLOW_DRS": {
+    "ok": true,
+    "seconds": 0.0045
+  },
+  "NEUTRALIZATION_FCY_VSC": {
+    "ok": true,
+    "seconds": 0.2122
+  },
+  "NEUTRALIZATION_STILL_AND_MAX": {
+    "ok": true,
+    "seconds": 1.4717
+  },
+  "NO_CHAIN_FROM_OVT_OUT": {
+    "ok": true,
+    "seconds": 0.0303
+  },
+  "NO_DEFENSE_DURING_REST": {
+    "ok": true,
+    "seconds": 0.0043
+  },
+  "NO_DEFENSE_UNDER_BRAKING": {
+    "ok": true,
+    "seconds": 0.0081
+  },
+  "NO_MANEUVER_WITHOUT_DIRECTION_BUDGET": {
+    "ok": true,
+    "seconds": 0.0218
+  },
+  "NO_MOVE_UNDER_BRAKING": {
+    "ok": true,
+    "seconds": 0.0334
+  },
+  "NO_TITLE_BAR": {
+    "ok": true,
+    "seconds": 0.0002
+  },
+  "OBSTACLE_CONFIGURED_THRESHOLD": {
+    "ok": true,
+    "seconds": 0.0101
+  },
+  "OFFTRACK_CAR_OCCUPIES_SIDE": {
+    "ok": true,
+    "seconds": 0.0013
+  },
+  "OPTIONS_FALSE_PRESERVED": {
+    "ok": true,
+    "seconds": 0.001
+  },
+  "ORIGINAL_RAIN_NOT_RECAPTURED": {
+    "ok": true,
+    "seconds": 0.0017
+  },
+  "OVERLAY_OPTIONS": {
+    "ok": true,
+    "seconds": 0.0302
+  },
+  "OVERTAKE_FINISHES_AFTER_ALONGSIDE": {
+    "ok": true,
+    "seconds": 0.2616
+  },
+  "OVERTAKE_MODE_BOOST": {
+    "ok": true,
+    "seconds": 0.0556
+  },
+  "OVT_ARM_PULL_OUT_RULES": {
+    "ok": true,
+    "seconds": 0.0028
+  },
+  "OVT_ARM_WAITS": {
+    "ok": true,
+    "seconds": 0.0018
+  },
+  "OVT_OUT_NO_REENTRY": {
+    "ok": true,
+    "seconds": 0.002
+  },
+  "P01": {
+    "ok": true,
+    "seconds": 0.0035
+  },
+  "P02": {
+    "ok": true,
+    "seconds": 0.0122
+  },
+  "P03": {
+    "ok": true,
+    "seconds": 0.0057
+  },
+  "P04": {
+    "ok": true,
+    "seconds": 0.0017
+  },
+  "P05": {
+    "ok": true,
+    "seconds": 0.0089
+  },
+  "PACE_NOT_LEARNED_UNDER_YELLOW": {
+    "ok": true,
+    "seconds": 0.0803
+  },
+  "PARAMETER_BOUNDARY_ENGINE": {
+    "ok": true,
+    "seconds": 2.2672
+  },
+  "PASS_BLOCK_TIMER_INDEPENDENT": {
+    "ok": true,
+    "seconds": 0.0088
+  },
+  "PASS_HOLD_ENDS": {
+    "ok": true,
+    "seconds": 0.1426
+  },
+  "PASS_PENDING_SURVIVES_ZONE_EXIT": {
+    "ok": true,
+    "seconds": 0.0443
+  },
+  "PASS_PILL_AND_PANEL_REBASE": {
+    "ok": true,
+    "seconds": 0.0295
+  },
+  "PASS_SHOWN_ON_PANEL": {
+    "ok": true,
+    "seconds": 0.051
+  },
+  "PASS_STALL_ABORT": {
+    "ok": true,
+    "seconds": 0.024
+  },
+  "PATIENCE_CONSISTENT": {
+    "ok": true,
+    "seconds": 0.0033
+  },
+  "PENALTY_FAST_ENTRY": {
+    "ok": true,
+    "seconds": 0.0711
+  },
+  "PENALTY_RETAKE": {
+    "ok": true,
+    "seconds": 0.196
+  },
+  "PERCEPTION_SHARED_ORDER_EQUIVALENCE": {
+    "ok": true,
+    "seconds": 0.0192
+  },
+  "PILOT_DECISIONS": {
+    "ok": true,
+    "seconds": 0.1645
+  },
+  "PITS_CLOSED": {
+    "ok": true,
+    "seconds": 0.1142
+  },
+  "PIT_CALLS_NEVER_WITHDRAWN": {
+    "ok": true,
+    "seconds": 0.0823
+  },
+  "PIT_CALLS_RELEASED": {
+    "ok": true,
+    "seconds": 0.0099
+  },
+  "PIT_EXIT_CAP": {
+    "ok": true,
+    "seconds": 0.0259
+  },
+  "PIT_EXIT_GUARD": {
+    "ok": true,
+    "seconds": 0.0338
+  },
+  "PIT_EXIT_SPREAD": {
+    "ok": true,
+    "seconds": 0.134
+  },
+  "PIT_REPAIR": {
+    "ok": true,
+    "seconds": 0.0541
+  },
+  "PIT_REQUEST_ARBITER": {
+    "ok": true,
+    "seconds": 0.0012
+  },
+  "PIT_STOPS_SURVIVE_RELOAD": {
+    "ok": true,
+    "seconds": 0.0124
+  },
+  "PLAYER_DISQUALIFIED_AFTER_LIMIT": {
+    "ok": true,
+    "seconds": 0.2145
+  },
+  "PLAYER_GIVE_BACK_ONSET": {
+    "ok": true,
+    "seconds": 0.117
+  },
+  "PLAYER_NONZERO_INDEX": {
+    "ok": true,
+    "seconds": 0.0003
+  },
+  "PLAYER_NO_PASS_DISTANCE": {
+    "ok": true,
+    "seconds": 0.0134
+  },
+  "PLAYER_PENALTY_BRAKING_GRACE": {
+    "ok": true,
+    "seconds": 0.1904
+  },
+  "PLAYER_PENALTY_NEUTRAL_GRACE": {
+    "ok": true,
+    "seconds": 0.4207
+  },
+  "PLAYER_PENALTY_PASS": {
+    "ok": true,
+    "seconds": 0.099
+  },
+  "PLAYER_PENALTY_PASS_IN_PROGRESS": {
+    "ok": true,
+    "seconds": 0.0329
+  },
+  "PLAYER_PENALTY_PASS_LATE": {
+    "ok": true,
+    "seconds": 0.0312
+  },
+  "PLAYER_PENALTY_REGIMES": {
+    "ok": true,
+    "seconds": 0.0041
+  },
+  "PLAYER_PENALTY_SPEED": {
+    "ok": true,
+    "seconds": 0.3225
+  },
+  "PLAYER_RETAKE_ALWAYS": {
+    "ok": true,
+    "seconds": 0.0074
+  },
+  "PLAYER_ZONE_ENVELOPE": {
+    "ok": true,
+    "seconds": 0.6242
+  },
+  "PREDICTABLE_SLOW_CLASS": {
+    "ok": true,
+    "seconds": 0.0183
+  },
+  "PRESET_ALL_FIELDS_ROUNDTRIP": {
+    "ok": true,
+    "seconds": 0.0059
+  },
+  "PRESET_BEHAVIOUR_MATRIX": {
+    "ok": true,
+    "seconds": 0.1119
+  },
+  "PRESET_DELETE_FAILURE": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "PROFILE_ISOLATION": {
+    "ok": true,
+    "seconds": 0.0049
+  },
+  "Q01": {
+    "ok": true,
+    "seconds": 0.0136
+  },
+  "Q02": {
+    "ok": true,
+    "seconds": 0.0202
+  },
+  "Q03": {
+    "ok": true,
+    "seconds": 0.0107
+  },
+  "QUALIFICATIONS_PRESET_AND_AUTO": {
+    "ok": true,
+    "seconds": 0.0118
+  },
+  "QUEUE_NOT_BEHIND_SERVING": {
+    "ok": true,
+    "seconds": 0.04
+  },
+  "QUEUE_YIELD": {
+    "ok": true,
+    "seconds": 0.138
+  },
+  "R01": {
+    "ok": true,
+    "seconds": 0.042
+  },
+  "R02": {
+    "ok": true,
+    "seconds": 0.0127
+  },
+  "R03": {
+    "ok": true,
+    "seconds": 0.0123
+  },
+  "R04": {
+    "ok": true,
+    "seconds": 0.0068
+  },
+  "R05": {
+    "ok": true,
+    "seconds": 0.0028
+  },
+  "R06": {
+    "ok": true,
+    "seconds": 0.0059
+  },
+  "R07": {
+    "ok": true,
+    "seconds": 0.01
+  },
+  "R08": {
+    "ok": true,
+    "seconds": 0.0149
+  },
+  "R09": {
+    "ok": true,
+    "seconds": 0.002
+  },
+  "R10": {
+    "ok": true,
+    "seconds": 0.0045
+  },
+  "RACE_FAST_FOLLOWER_NO_ABORT": {
+    "ok": true,
+    "seconds": 0.0292
+  },
+  "RACE_PASS_ON_YIELD": {
+    "ok": true,
+    "seconds": 0.017
+  },
+  "RACE_RECAP": {
+    "ok": true,
+    "seconds": 0.019
+  },
+  "RAIN_COMPOUND_KEPT": {
+    "ok": true,
+    "seconds": 0.0013
+  },
+  "REBASE_RULE_TIMERS": {
+    "ok": true,
+    "seconds": 0.0049
+  },
+  "REBASE_TIMERS": {
+    "ok": true,
+    "seconds": 0.0014
+  },
+  "RECOVERY_RESPECTS_RULES": {
+    "ok": true,
+    "seconds": 0.1582
+  },
+  "RECOVER_ONLY_INCIDENTS": {
+    "ok": true,
+    "seconds": 0.138
+  },
+  "RED_FLAG_PROCEDURE": {
+    "ok": true,
+    "seconds": 3.3267
+  },
+  "RED_FLAG_QUALIFYING": {
+    "ok": true,
+    "seconds": 0.092
+  },
+  "RED_FLAG_RELAUNCH_SC": {
+    "ok": true,
+    "seconds": 0.1882
+  },
+  "RED_FLAG_STOP_NOT_COUNTED": {
+    "ok": true,
+    "seconds": 0.0014
+  },
+  "RED_FLAG_WORK_AND_WET_RACE": {
+    "ok": true,
+    "seconds": 0.0788
+  },
+  "RED_PENALTY_MESSAGE": {
+    "ok": true,
+    "seconds": 0.5849
+  },
+  "REQUESTED_DEFAULTS": {
+    "ok": true,
+    "seconds": 0.0004
+  },
+  "RESET_OCCUPIED_SIDE": {
+    "ok": true,
+    "seconds": 0.0021
+  },
+  "RESTART_UNTIL_LINE": {
+    "ok": true,
+    "seconds": 0.0064
+  },
+  "RESTORE_AFTER_CAPABILITY_FAILURES": {
+    "ok": true,
+    "seconds": 0.0
+  },
+  "RESTORE_KEEPS_TABS_AND_RULES": {
+    "ok": true,
+    "seconds": 0.0011
+  },
+  "RESTORE_TRACK_DAY_RULES": {
+    "ok": true,
+    "seconds": 0.001
+  },
+  "RETURNING_CLEARS_WHEN_UNREACHABLE": {
+    "ok": true,
+    "seconds": 0.0049
+  },
+  "REVIEW2_MISC": {
+    "ok": true,
+    "seconds": 0.0508
+  },
+  "RNG_DETERMINISM": {
+    "ok": true,
+    "seconds": 0.0
+  },
+  "RULES_CLOSEST": {
+    "ok": true,
+    "seconds": 0.0042
+  },
+  "RULES_ON_FRESH_PROFILES": {
+    "ok": true,
+    "seconds": 0.0004
+  },
+  "RULES_SIGNAL_WITHOUT_ACCIDENTS": {
+    "ok": true,
+    "seconds": 0.0002
+  },
+  "RULE_CATEGORIES": {
+    "ok": true,
+    "seconds": 0.002
+  },
+  "S01": {
+    "ok": true,
+    "seconds": 0.0031
+  },
+  "S02": {
+    "ok": true,
+    "seconds": 0.0039
+  },
+  "S03": {
+    "ok": true,
+    "seconds": 0.0112
+  },
+  "S04": {
+    "ok": true,
+    "seconds": 0.0031
+  },
+  "S05": {
+    "ok": true,
+    "seconds": 0.0016
+  },
+  "S06": {
+    "ok": true,
+    "seconds": 0.0003
+  },
+  "S07": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "S08": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "S09": {
+    "ok": true,
+    "seconds": 0.0139
+  },
+  "S10": {
+    "ok": true,
+    "seconds": 0.068
+  },
+  "S11": {
+    "ok": true,
+    "seconds": 0.0002
+  },
+  "S12": {
+    "ok": true,
+    "seconds": 0.0138
+  },
+  "S13": {
+    "ok": true,
+    "seconds": 0.0139
+  },
+  "S14": {
+    "ok": true,
+    "seconds": 0.0002
+  },
+  "SAFETY_CAR_CYCLE": {
+    "ok": true,
+    "seconds": 0.2826
+  },
+  "SAFETY_CAR_DEFAULT_MODEL": {
+    "ok": true,
+    "seconds": 0.0655
+  },
+  "SAFETY_CAR_ESCALATION": {
+    "ok": true,
+    "seconds": 1.1421
+  },
+  "SAFETY_CAR_PIT_EXIT": {
+    "ok": true,
+    "seconds": 0.7419
+  },
+  "SAFETY_CAR_SKIN": {
+    "ok": true,
+    "seconds": 0.0059
+  },
+  "SAFETY_CAR_STAYS_OUT": {
+    "ok": true,
+    "seconds": 0.2223
+  },
+  "SAFETY_CAR_STUCK": {
+    "ok": true,
+    "seconds": 0.0964
+  },
+  "SAFETY_CAR_WRITES": {
+    "ok": true,
+    "seconds": 0.0019
+  },
+  "SANCTION_RAMP_AND_SERVING_PLAYER": {
+    "ok": true,
+    "seconds": 0.0079
+  },
+  "SCHEMA_MIGRATION": {
+    "ok": true,
+    "seconds": 0.0004
+  },
+  "SECTIONS_DEFAULT_OFF": {
+    "ok": true,
+    "seconds": 0.0007
+  },
+  "SECTIONS_EFFECT_ISOLATION": {
+    "ok": true,
+    "seconds": 0.015
+  },
+  "SESSION_DIRECTION_RESET": {
+    "ok": true,
+    "seconds": 0.0029
+  },
+  "SIDE_ORIENTATION_CALIBRATED_SIGN": {
+    "ok": true,
+    "seconds": 0.1687
+  },
+  "SIGNS_RESTORED": {
+    "ok": true,
+    "seconds": 0.003
+  },
+  "SLIPPERY_FLAG": {
+    "ok": true,
+    "seconds": 0.0955
+  },
+  "SLIPSTREAM_CONTINUOUS_TIME": {
+    "ok": true,
+    "seconds": 0.0027
+  },
+  "SLIPSTREAM_NEVER_RAISES_CAUTION": {
+    "ok": true,
+    "seconds": 0.0081
+  },
+  "SLOW_ZONE": {
+    "ok": true,
+    "seconds": 0.0131
+  },
+  "SNAPSHOT_ANGLE_WRAP": {
+    "ok": true,
+    "seconds": 0.0015
+  },
+  "SPIN_THEN_STOP_ONE_INCIDENT": {
+    "ok": true,
+    "seconds": 0.0167
+  },
+  "SPUN_CAR_AVOIDANCE": {
+    "ok": true,
+    "seconds": 0.0107
+  },
+  "START_DEFAULTS_127": {
+    "ok": true,
+    "seconds": 0.0009
+  },
+  "START_LANE_HOLD": {
+    "ok": true,
+    "seconds": 0.1706
+  },
+  "START_LAUNCH_FLAT_OUT": {
+    "ok": true,
+    "seconds": 0.0197
+  },
+  "START_LINE_NO_FALSE_LAP": {
+    "ok": true,
+    "seconds": 0.0243
+  },
+  "START_MIGRATION": {
+    "ok": true,
+    "seconds": 0.0017
+  },
+  "START_MODULATORS_FROM_GRID": {
+    "ok": true,
+    "seconds": 0.1781
+  },
+  "START_REPORT": {
+    "ok": true,
+    "seconds": 0.0041
+  },
+  "STINT_AND_MIN_PIT_TIME": {
+    "ok": true,
+    "seconds": 0.1507
+  },
+  "STINT_PERSONALITY_SWITCH": {
+    "ok": true,
+    "seconds": 0.0068
+  },
+  "STUCK_AI_RECOVERED": {
+    "ok": true,
+    "seconds": 0.1276
+  },
+  "STUCK_WITHOUT_OWN_PACE": {
+    "ok": true,
+    "seconds": 0.0038
+  },
+  "SWITCHES_DISABLE_BEHAVIOR": {
+    "ok": true,
+    "seconds": 0.0426
+  },
+  "T01": {
+    "ok": true,
+    "seconds": 0.0247
+  },
+  "T02": {
+    "ok": true,
+    "seconds": 0.0136
+  },
+  "T03": {
+    "ok": true,
+    "seconds": 0.014
+  },
+  "T04": {
+    "ok": true,
+    "seconds": 0.0491
+  },
+  "T05": {
+    "ok": true,
+    "seconds": 0.0131
+  },
+  "T06": {
+    "ok": true,
+    "seconds": 0.0182
+  },
+  "T07": {
+    "ok": true,
+    "seconds": 0.0029
+  },
+  "T08": {
+    "ok": true,
+    "seconds": 0.0116
+  },
+  "T09": {
+    "ok": true,
+    "seconds": 0.016
+  },
+  "T10": {
+    "ok": true,
+    "seconds": 0.0065
+  },
+  "T11": {
+    "ok": true,
+    "seconds": 0.0095
+  },
+  "T12": {
+    "ok": true,
+    "seconds": 0.0004
+  },
+  "T13": {
+    "ok": true,
+    "seconds": 0.0096
+  },
+  "T14": {
+    "ok": true,
+    "seconds": 0.0031
+  },
+  "T15": {
+    "ok": true,
+    "seconds": 0.0063
+  },
+  "TARGET_LOST_GRACE": {
+    "ok": true,
+    "seconds": 0.0039
+  },
+  "TIME_WRAP": {
+    "ok": true,
+    "seconds": 0.0039
+  },
+  "TIPS_COMPLETE": {
+    "ok": true,
+    "seconds": 0.001
+  },
+  "TIPS_COMPLETE_EN": {
+    "ok": true,
+    "seconds": 0.0022
+  },
+  "TIPS_PARITY": {
+    "ok": true,
+    "seconds": 0.0031
+  },
+  "TOWED_NOT_A_STOP": {
+    "ok": true,
+    "seconds": 0.0022
+  },
+  "TRACK_DAY_SPREAD_ON_TRACK": {
+    "ok": true,
+    "seconds": 0.049
+  },
+  "TRAFFIC_CORNER_EXIT_NO_RATCHET": {
+    "ok": true,
+    "seconds": 0.1079
+  },
+  "TRAFFIC_DENSITY_RANDOMIZATION": {
+    "ok": true,
+    "seconds": 0.0072
+  },
+  "TRAFFIC_FASTER_NOT_HELD": {
+    "ok": true,
+    "seconds": 0.0054
+  },
+  "TRAFFIC_FREE_PHASE_RECOVERS_PACE": {
+    "ok": true,
+    "seconds": 0.3064
+  },
+  "TRAFFIC_MIGRATION": {
+    "ok": true,
+    "seconds": 0.0043
+  },
+  "TRAFFIC_NATIVE_RECOVERY": {
+    "ok": true,
+    "seconds": 0.0016
+  },
+  "TRAFFIC_NO_SPEED_RATCHET": {
+    "ok": true,
+    "seconds": 2.8472
+  },
+  "TRAFFIC_PROGRESSIVE_LIMIT": {
+    "ok": true,
+    "seconds": 0.0314
+  },
+  "TRAFFIC_RESET_DURING_EPISODE": {
+    "ok": true,
+    "seconds": 0.0012
+  },
+  "TRANSIENT_IDENTITY_GUARDS": {
+    "ok": true,
+    "seconds": 0.0018
+  },
+  "TYRE_VISIT_RESET": {
+    "ok": true,
+    "seconds": 0.0027
+  },
+  "UNCLASSIFIED_NOT_SLOWER": {
+    "ok": true,
+    "seconds": 0.0118
+  },
+  "VSC_ENDING": {
+    "ok": true,
+    "seconds": 0.215
+  },
+  "VSC_REFERENCE_LATCHED": {
+    "ok": true,
+    "seconds": 0.0489
+  },
+  "WEATHER_DECISIONS": {
+    "ok": true,
+    "seconds": 0.0024
+  },
+  "WEATHER_SCHEMA_MIGRATION": {
+    "ok": true,
+    "seconds": 0.0005
+  },
+  "WEATHER_SKIPS_SAFETY_CAR": {
+    "ok": true,
+    "seconds": 0.0055
+  },
+  "WEATHER_SWITCH_DETECTION": {
+    "ok": true,
+    "seconds": 0.0424
+  },
+  "WEATHER_SWITCH_PHYSICS": {
+    "ok": true,
+    "seconds": 0.0219
+  },
+  "WEEKEND_SWITCHES": {
+    "ok": true,
+    "seconds": 0.0036
+  },
+  "WIRING_REVIEW_180": {
+    "ok": true,
+    "seconds": 0.0105
+  },
+  "WRONG_WAY_INCIDENT": {
+    "ok": true,
+    "seconds": 0.0153
+  },
+  "YELLOW_BLOCKS_OVERTAKE": {
+    "ok": true,
+    "seconds": 0.0551
+  },
+  "YELLOW_ZONE_SPEED_AND_NO_PASS": {
+    "ok": true,
+    "seconds": 0.0623
+  },
+  "ZONES_FILE_ABSENT": {
+    "ok": true,
+    "seconds": 0.0001
+  },
+  "ZONES_SECURITY": {
+    "ok": true,
+    "seconds": 0.0006
+  },
+  "ZONE_SPEC_FORMAT": {
+    "ok": true,
+    "seconds": 0.0001
+  }
+}

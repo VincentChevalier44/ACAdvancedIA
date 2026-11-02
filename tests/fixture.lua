@@ -1,0 +1,59 @@
+local C=require('src/config')
+local E=require('src/engine')
+local S=require('src/snapshot')
+local P=require('src/perception')
+local M={}
+function M.scene(profile,count)
+ local g=C.validateGlobals(C.globalDefaults); g.offsetSign=1; g.sideSign=1
+ local profiles={J=C.defaults('J'),P=C.defaults('P'),Q=C.defaults('Q'),C=C.defaults('C')}
+ for _,p in pairs(profiles) do for _,group in ipairs(C.sections) do p['section_'..group]=group~='traffic' end end
+ local e=E.new(g,profiles); local f=S.new()
+ f.count=count or 3; f.player=1; f.session=0; f.type=profile=='C' and 3 or profile=='Q' and 2 or 1
+ -- Essais : session d'essais déclarée dans race.ini, hors Journée circuit.
+ if profile=='P' then f.configType=1; f.configTrackDay=false end
+ f.online=false; f.replay=false; f.paused=false; f.started=true; f.finished=false; f.length=10000; f.time=100; f.track='test'; f.left=1000
+ for i=1,f.count do
+  local a=f.cars[i]
+  a.valid=true; a.control=i~=1; a.player=i==1; a.pit=false; a.offtrack=false; a.finished=false
+  a.x=0; a.z=(i-2)*1000; a.y=0; a.lx=0; a.lz=1; a.sideDot=1; a.yawRate=0; a.kmh=100; a.speed=100/3.6
+ a.spline=(a.z/10000)%1; a.splineValid=true; a.lap=1+math.floor(a.z/10000); a.lapValid=true; a.leftWidth=6; a.rightWidth=6; a.splineLat=0; a.splineLatValid=true
+  a.id='car_'..i; a.name='Driver_'..i; a.length=4.4; a.width=1.85; a.stopped=0; a.slip=0
+ end
+ E.step(e,f,1/60)
+ e.startedAt=-100; e.returning=false
+ for i=1,f.count do local s=e.states[i]; s.persona.laneBias=0; s.base=0; s.offset=0; s.filtered=0; s.velocity=0; s.direction=0; s.lastDirectionAt=-math.huge; s.directionCount=0; for j=1,6 do s.directions[j]=-math.huge end; s.nextPerception=0 end
+ return e,f
+end
+function M.place(f,i,z,kmh,x)
+ local a=f.cars[i]; a.z=z; a.x=x or 0; a.splineLat=a.x; a.spline=(z/f.length)%1; a.lap=1+math.floor(z/f.length); a.kmh=kmh or 100; a.speed=a.kmh/3.6
+ return a
+end
+function M.tick(e,f,seconds,kinematic)
+ local n=math.floor(seconds*60+0.5)
+ for _=1,n do
+  if kinematic then for i=1,f.count do local a=f.cars[i]; a.z=a.z+a.speed/60; a.spline=(a.z/f.length)%1 end end
+  E.step(e,f,1/60)
+  assert(e.errors==0,'unhandled car error')
+  for i=1,f.count do
+   local s=e.states[i]; local cmd=e.commands[i]; local row=e.perception.rows[i]
+   assert(s.offset==s.offset and math.abs(s.offset)<=0.950001,'offset bound')
+   assert(s.directionCount<=6,'direction count')
+   if cmd.active then assert(cmd.level>=0.3 and cmd.level<=1.1 and cmd.caution>=0.5 and cmd.caution<=16,'command bound') end
+   local old=s.testOffset
+   if old then assert(not(row.left and s.offset<old-1e-9),'movement towards occupied left'); assert(not(row.right and s.offset>old+1e-9),'movement towards occupied right') end
+   s.testOffset=s.offset
+  end
+ end
+end
+function M.rear(e,f,gap,sa,index)
+ M.place(f,2,0,100); M.place(f,index or 3,-gap-4.4,100+sa)
+ e.states[2].nextPerception=0
+end
+function M.front(e,f,gap,sa)
+ M.place(f,2,0,100+sa); M.place(f,3,gap+4.4,100)
+ e.states[2].nextPerception=0
+end
+function M.yielding(state) return state=='YIELD_IN' or state=='YIELD_HOLD' end
+function M.passing(state) return state=='OVT_ARM' or state=='OVT_IN' or state=='OVT_HOLD' end
+function M.refresh(e,f,i) P.refresh(e.perception,f.cars,f.count,i,f.length) end
+return M
