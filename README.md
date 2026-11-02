@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/icon-512.png" width="180" alt="ACAdvancedIA icon: a racing helmet with cyan light lines"></p>
+<p align="center"><img src="docs/banner.jpg" width="100%" alt="ACAdvancedIA, more human, more racing: smarter opponents, more immersive offline racing. Human-like AI, overtaking and defence, flags and Safety Car, pit and weather strategy."></p>
 
 # ACAdvancedIA
 
@@ -1424,7 +1424,7 @@ src/                    the HumanAI engine and its interface
 sounds/                 delta-beep.wav, drs-available-beep.wav
 tracks/                 optional per-track zone files (<trackId>.lua); none shipped
 tests/                  offline test bench (Python + LuaJIT through lupa); never loaded by the game
-docs/                   audits, CSP API notes, measurements, validation status, official icon (icon-512.png)
+docs/                   audits, CSP API notes, measurements, validation status, official icon (icon-512.png) and banner (banner.jpg)
 HumanAI_PDR_v1.0.md     product design requirements; the test bench checks its 78 catalogued cases
 CHANGELOG.md            changes, newest first
 COMPATIBILITY.md, AUDIT.md   compatibility notes and the original adversarial review

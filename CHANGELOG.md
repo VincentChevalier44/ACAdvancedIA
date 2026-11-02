@@ -12,6 +12,7 @@ Overtakes between AI and the repeated spins at the same corners (your Imola sess
   - in the minute summary, real passes between AI (two cars within 20 m swapping places), how many followed an app manoeuvre, and AI passing you.
 - Not confirmed in game yet. Your own spin at 2,858 m shows that Acque Minerali is tricky in itself; the context line will tell whether the app plays a part.
 - **Official icon**: a racing helmet with cyan light lines, as the app icon in the game (`icon.png`, 64×64) and in 512×512 for GitHub and Overtake (`docs/icon-512.png`).
+- **Official banner** at the top of the README (`docs/banner.jpg`).
 
 **Verification**: 387 checks; 91 integration cases; 774 mutations, all detected; clean lint, parameter audit; 8-hour soak without errors (memory between 7.5 and 8.4 MB); benchmark 30 AI 0.24 ms (Beta 1.30: 0.25), 60 AI 0.63 ms (Beta 1.30: 0.77).
 
