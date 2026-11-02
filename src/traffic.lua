@@ -33,7 +33,12 @@ local function check(x,frame,now,log)
   if x.checkAt[i]>-math.huge and now>=x.checkAt[i] then
    local a=frame.cars[i]; x.checkAt[i]=-math.huge; x.checked=x.checked+1
    local slip=a.valid and a.slip or 0; x.maxSlip=math.max(x.maxSlip,slip)
-   if not a.valid or a.pit or a.offtrack or a.kmh<K.spreadTroubleKmh or slip>K.slipDegrees then x.trouble=x.trouble+1 end
+   local reason=not a.valid and 'absente' or (a.pit or a.inPitBox) and 'aux stands' or a.offtrack and 'hors piste' or a.kmh<K.spreadTroubleKmh and 'lente' or slip>K.slipDegrees and 'glissade' or nil
+   if reason then
+    x.trouble=x.trouble+1
+    -- Beta 1.28 : chaque IA en difficulté nommée, avec la raison (les premières seulement).
+    if x.trouble<=K.spreadTroubleLines then U.log(log,now,'WARN',string.format('repartition des IA: %s (%s) en difficulte apres le placement (%s, %.0f km/h, glissement %.0f deg)',a.name,a.id,reason,a.kmh,slip),i) end
+   end
   end
  end
  if not x.checkReported and x.reported and x.checked>=x.placed and x.placed>0 then

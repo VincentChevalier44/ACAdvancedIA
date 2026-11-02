@@ -428,12 +428,13 @@ The exact names of the light fields are not guaranteed. The tool:
 3. The choice is persisted. If no field toggles, the `flash` capability is marked unavailable, the UI says so, and the other yield triggers (C1–C3) remain active.
 
 ### 11.4 Who reacts?
-An AI `i` is a **recipient** if: `P.flashMode ≠ never` · the player is `behind` · `sameDir` · `splOK` · `long_player` negative and `gap ∈ [0, P.flashRange]` (120 m) · `|lat| ≤ 6.0 m` · `v_player > 30 km/h` · the AI is not in `IDLE`/`CALM`.
+An AI `i` is a **recipient** if: `P.flashMode ≠ never` · the player is `behind` · `sameDir` · `splOK` · `long_player` negative and `gap ∈ [0, P.flashRange]` (120 m; 200 m since Beta 1.29) · `|lat| ≤ 6.0 m` · `v_player > 30 km/h` · the AI is not in `IDLE`/`CALM`.
 Ranked by increasing `gap`; **at most `P.flashMaxReactors` (3)** AI react; rank `r` (0,1,2) adds a delay of `0.5·r` s (the request propagates).
 In a race (`flashMode = lapped`, default): only the cars in a `LAPPING` relation (the player is lapping them) react. In `always`: all recipient AI. In trackday/qualifying: `always`.
 
 ### 11.5 Decision
 - The player must be “really faster”: `sa ≥ P.flashMinAdvantage` (12 km/h trackday, 8 qualifying, 15 race/always), **or** `gap ≤ 30 m` ∧ `sa ≥ P.flashCloseAdvantage` (5 km/h).
+- *Beta 1.29, at the author's request:* the close range becomes `gap ≤ 60 m` and `P.flashCloseAdvantage` defaults to −5 km/h outside the race (6 in the race): a flash from a car stuck behind at the same speed means “let me by”. Beyond it, the player must also catch the AI within `P.yieldMaxHold − 5 s` (`gap ≤ sa/3.6 · (P.yieldMaxHold − 5)`); otherwise the AI would move over too early, time out and ignore him. The decision is re-evaluated while the request lives, so a flash refused from further back is understood once the player closes in.
 - Probability of ignoring: `oblivious(i, eventId)` = true with probability `P.flashObliviousPct` (10%, trackday) for an isolated **first** pulse; a 2nd pulse within 4 s cancels the inattention (always noticed).
 - If accepted: *yield request* `req = {from=player, until = t + P.flashRequestTTL (8 s), urgent = (count ≥ 3 or 2nd event)}`.
 - If refused because the pace difference is too small: no yield, but **defending disabled** against this follower for the TTL, and the `confirmTime` of triggers C1/C2 halved.
@@ -546,9 +547,9 @@ Columns: **J** = Track day · **Q** = Qualifying · **C** = Race/weekend. All va
 | Key | Bounds | J | Q | C |
 |---|---|---|---|---|
 | `flashMode` | never/lapped/always | always | always | lapped |
-| `flashRange` | 40–250 m | 120 | 150 | 100 |
+| `flashRange` | 40–250 m | 120 (200 since Beta 1.29) | 150 (200) | 100 (150) |
 | `flashMinAdvantage` | 3–40 km/h | 12 | 8 | 15 |
-| `flashCloseAdvantage` | 1–15 km/h | 5 | 4 | 6 |
+| `flashCloseAdvantage` | −10–15 km/h (1–15 until Beta 1.28) | −5 (5 until Beta 1.28) | −5 (4) | 6 |
 | `flashRequestTTL` | 3–20 s | 8 | 8 | 8 |
 | `flashObliviousPct` | 0–40% | 10 | 5 | 10 |
 | `flashMaxReactors` | 1–6 | 3 | 3 | 3 |
@@ -801,7 +802,7 @@ At each milestone: written adversarial review (defects found, fixes), tests run 
 | T15 | Car spinning ahead | `AVOID`, then `CALM` for the car involved | 10.8, 10.14 |
 | **Headlight flashes (F)** | | | |
 | F01 | Headlight flash, player +15 km/h | Yield in < 2 s | 11.5 |
-| F02 | Headlight flash, player +2 km/h, gap 40 m | No yield; defending disabled | 11.5 |
+| F02 | Headlight flash, player +2 km/h, gap 100 m (40 m until Beta 1.28) | No yield; defending disabled | 11.5 |
 | F03 | Burst ×3 | Urgent mode, amplitude ×1.1 | 11.6 |
 | F04 | 3 AI ahead in a line | 3 reactors max, delay +0.5 s per rank | 11.4 |
 | F05 | First pulse ignored (inattention) | 2nd pulse → always noticed | 11.5 |

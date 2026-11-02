@@ -1,6 +1,6 @@
 track 30 IA 20000 images, erreurs 0
   stats abort_slow=2,abort_stall=1,alongside=83,chain=17,clear=142,direction_limit=1,flash=3,guard=7,limit=1,pass=45,pass_end=143,pass_position=91,passed=158,ready=37,target_lost=2,yield=165,yield_end=156,yield_position=161,yielded=115
-  empreintes 5000:ffffffff97faf8e3 10000:2f3a043e 15000:ffffffffb9a5600a 20000:7e36319e
+  empreintes 5000:3ac96150 10000:225c4fb8 15000:2e113852 20000:78afc880
 rules 30 IA 40000 images, erreurs 0
   stats abort_slow=33,abort_yellow=1,alongside=71,attacker=24,chain=15,clear=96,defense_end=24,direction_limit=4,drsAsk=191,flash=5,guard=21,limit=4,obstacle=20,obstacle_clear=20,pass=136,pass_end=131,pass_position=54,passed=172,pull_out=113,ready=81,target_lost=3,yellow=8,yield=181,yield_end=177,yield_position=175
   empreintes 10000:ffffffff811329b8 20000:ffffffffe3fc7c89 30000:ffffffffcc52865c 40000:30594d1c

@@ -98,7 +98,8 @@ tests.F01=function()
  request(e,f); F.tick(e,f,1.6); yielding(e)
 end
 tests.F02=function()
- local e,f=setup(); e.p.flashObliviousPct=0; F.rear(e,f,40,2,1); request(e,f); F.tick(e,f,3); notYielding(e); assert(e.flash.requests[2].untilTime>e.time)
+ -- Beta 1.29 : à moins de 60 m, un joueur retenu derrière est compris ; F02 se joue donc à 100 m.
+ local e,f=setup(); e.p.flashObliviousPct=0; F.rear(e,f,100,2,1); request(e,f); F.tick(e,f,3); notYielding(e); assert(e.flash.requests[2].untilTime>e.time)
 end
 tests.F03=function()
  local e,f=setup(); e.p.flashObliviousPct=0; F.rear(e,f,20,20,1); request(e,f,3); F.tick(e,f,2); yielding(e); assert(e.states[2].urgent)

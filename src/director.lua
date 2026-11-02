@@ -6,6 +6,7 @@ local Classes=require('src/classes')
 local Zones=require('src/zones')
 local Incidents=require('src/incidents')
 local Penalties=require('src/penalties')
+local Flash=require('src/flash')
 local K=C.K
 local abs,min,max=math.abs,math.min,math.max
 local M={}
@@ -26,7 +27,7 @@ function M.newState()
   alongside=false,passAlongside=false,aborts=0,previousIdentity='',fatigue=1,yellow=false,aiFlashAt=-math.huge,overtakeArmed=false,overtakeSpline=-1,yieldClass=false,bop=0,
   hazardRel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},
   scanRel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},avoidClear=0,invited=0,avoidSide=0,passStall=0,holdStall=0,holdLong=math.huge,
-  lane=0,laneActive=false,laneLatched=false,laneSeen=-math.huge,laneMeters=0,laneAt=0,laneLogged=false}
+  lane=0,laneActive=false,laneLatched=false,laneSeen=-math.huge,laneMeters=0,laneAt=0,laneLogged=false,passedByPlayerAt=-math.huge,playerBehind=false}
  for j=1,K.paceBins do s.pace[j]=0 end
  for j=1,K.directionLimit do s.directions[j]=-math.huge; s.directionStates[j]=''; s.directionSides[j]=0 end
  for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0 end
@@ -199,7 +200,11 @@ function M.lateral(s,desired,row,a,p,g,dt,now)
  -- Plafond anti-zigzag (PDR §7.5) : seules les manœuvres comptent. La variation lente de la ligne en conduite libre
  -- et le retour à la ligne pendant le repos imposé ne sont pas des changements de direction.
  local maneuver=s.state~='DRIVE' and s.state~='IDLE'
- if maneuver and not directionAllowed(s,desired,now,p,emergency or s.state=='CALM' or s.state=='AVOID',intended,frozen) then s.velocity=0; s.filtered=s.offset; return s.offset end
+ -- Beta 1.29 (bilan des journaux du 2 novembre : 1225 des 3780 changements notés, 38 %, venaient de la borne) : le côté
+ -- compté est celui que vise la manœuvre, pas la cible bornée par la largeur ; dans un virage, la borne retombe presque
+ -- à zéro et passait pour un retour à la ligne, puis un nouveau départ du même côté. Le repos de 20 s qui suivait
+ -- coupait cessions et dépassements.
+ if maneuver and not directionAllowed(s,emergency and desired or intended,now,p,emergency or s.state=='CALM' or s.state=='AVOID',intended,frozen) then s.velocity=0; s.filtered=s.offset; return s.offset end
  local rate=p.rampSpeed*U.clamp(K.lateralSpeedBase/max(a.kmh,K.lateralSpeedFloor),K.lateralRateMin,K.lateralRateMax)*factor
  local velocity=U.sign(delta)*rate
  s.velocity=U.approach(s.velocity,velocity,p.rampAccel*dt)
@@ -283,8 +288,10 @@ local function yieldTrigger(e,s,a,row,p,profile,now,dt)
  -- En essais et qualifications, l'écart de tours ne dit que le temps passé en piste : il faut s'approcher.
  local blue=laps>0 and back.gap<=blueRange and (back.sa>=K.lapSpeed or profile=='C' and back.gap<=K.blueCloseGap and back.sa>=-K.blueSlack)
  local classYield=upper and back.sa>=p.classYieldMargin and (back.sa>=K.classFightSpeed or row.front==0 or row.neighbors[row.front].gap>K.followRange)
- local currentAdvantage=back.sa>=p.flashMinAdvantage or back.gap<=K.flashCloseGap and back.sa>=p.flashCloseAdvantage
- local acceptedFlash=activeFlash and back.index==e.frame.player and flash.advantage and currentAdvantage
+ -- Beta 1.29 : appel du joueur jugé tant que la demande vit (plus rapide, ou retenu juste derrière) : appelé de loin un
+ -- peu trop lentement, il est compris dès que le joueur se rapproche.
+ local currentAdvantage=Flash.advantage(p,back.gap,back.sa)
+ local acceptedFlash=activeFlash and back.index==e.frame.player and currentAdvantage
  local permittedFlash=acceptedFlash and (profile~='C' or p.flashMode=='always' or blue or classYield)
  -- Appel d'une IA : en course, admis pour un tour ou une classe supérieure, même à vitesse égale (voiture bloquée).
  -- Dans une file (Beta 1.21) : collée à une voiture, une IA qui s'écarte et ralentit pour une voiture à peine plus rapide
@@ -345,6 +352,7 @@ local function yieldTrigger(e,s,a,row,p,profile,now,dt)
  s.linger=0; s.postPass=false; s.yieldStart=now; s.yieldBlue=blue or classYield; s.urgent=c4 and flash.urgent
  s.yieldClass=(classYield or c5 and upper) and not blue
  if c5 then U.log(e.log,now,'INFO','cede sur appel de phares de '..other.name,a.slot) end
+ if c4 then U.log(e.log,now,'INFO',string.format('cede sur appel de phares du joueur (%.0f m, %+.0f km/h)',back.gap,back.sa),a.slot) end
  return back
 end
 -- Réduction progressive depuis la vitesse actuelle, jamais sous la limite cible : après un freinage ou un virage,
@@ -422,10 +430,18 @@ function M.step(e,i,dt,now)
   if not source or source.long>(a.length+frame.cars[ai.source].length)*0.5+K.passBuffer or source.gap>p.flashRange*K.lostRange then ai.untilTime=0 end
  end
  s.playerGap=player and player.gap or math.huge; s.playerSa=player and player.sa or 0
+ -- Beta 1.29 (demande du pilote) : hors course, pas de bagarre avec le joueur. Juste doublée par lui (il passe de
+ -- derrière à devant, tout près), l'IA ne cherche pas à le repasser pendant K.courtesyTime s ; tant qu'il est collé
+ -- derrière, à côté, ou juste devant après l'avoir doublée, elle lâche de l'agressivité : l'IA native ne force plus.
+ if player and player.long>0 and s.playerBehind and player.gap<=K.courtesyRange then s.passedByPlayerAt=now end
+ s.playerBehind=player~=nil and player.long<=0
+ local passedByPlayer=profile~='C' and player~=nil and player.long>0 and now-s.passedByPlayerAt<K.courtesyTime
+ local courtesy=profile~='C' and player~=nil and player.gap<=K.courtesyRange and (player.long<=0 or passedByPlayer)
  s.lappedByPlayer=player and Classes.laps(a,frame.cars[frame.player],player,frame.length)>0 or false
  s.alongside=false
  for j=1,row.count do local r=row.neighbors[j]; if r.alongside and abs(r.lat)>=K.nearLine and abs(r.lat)<=g.occLatMax then s.alongside=true; break end end
  local level,aggression,caution=baseModifiers(s,p,now,a)
+ if courtesy then aggression=aggression*K.courtesyAggression end
  local desired=0; local elapsed=now-e.startedAt
  cmd.active=true; cmd.brake=0
  local startPhase=profile=='C' and elapsed<p.startDelay+p.startRelax
@@ -650,6 +666,8 @@ function M.step(e,i,dt,now)
       s.invited=invited and s.invited+dt or 0
       invited=s.invited>=K.inviteTime
       trigger=trigger or invited
+      -- Beta 1.29 : hors course, pas de riposte sur le joueur qui vient de la doubler, sauf s'il ralentit nettement.
+      if passedByPlayer and front.index==frame.player and not invited and front.sa<K.courtesyPassSa then trigger=false end
       if trigger and (potential>=advantage or invited) and not slowClass and not fight then
        if s.passCandidate~=front.index then s.passCandidate=front.index; s.passConfirm=0 end
        s.passConfirm=s.passConfirm+dt; s.passLost=0

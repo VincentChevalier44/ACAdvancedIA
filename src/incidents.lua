@@ -7,7 +7,7 @@ local M={}
 local function clearCar(c)
  c.incident=false; c.dismissed=false; c.since=0; c.spline=0; c.onTrack=false; c.clearedAt=-math.huge; c.wrong=0; c.spin=0; c.contact=false; c.lastSpline=-1; c.calm=0
  c.still=0; c.halt=0; c.moved=false; c.fresh=true; c.slow=0; c.counted=false; c.lastCrash=-math.huge; c.window=0; c.windowStart=-math.huge; c.crashAt=-math.huge; c.holding=false; c.holdUntil=0; c.holdMax=0; c.announced=false
- c.restart=false; c.restartLast=0
+ c.restart=false; c.restartLast=0; c.stuckFor=0; c.anchorX=math.huge; c.anchorZ=math.huge
 end
 function M.new()
  local t={cars={},zones={},zoneCount=0,activeCount=0,holdCount=0,neutral=false,neutralMode='local',neutralSince=0,neutralUntil=0,
@@ -134,6 +134,11 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
   local eligible=ready and a.valid and not a.pit and not a.finished and a.splineValid and not a.safetyCar
   -- Voiture réellement arrêtée (drapeau rouge, incident majeur) : un tête-à-queue qui roule encore n'en est pas une.
   if eligible and a.kmh<K.redStopSpeed then c.still=c.still+dt else c.still=0 end
+  -- Beta 1.29 (séance d'essais du pilote) : voiture qui n'avance plus (bac à sable : elle patine, avance et recule sur
+  -- place, au-delà du seuil d'arrêt par moments) : temps passé sans s'éloigner de plus de K.stuckRadius m.
+  if ready and a.valid and not a.pit and not a.finished and not a.safetyCar then
+   if (a.x-c.anchorX)^2+(a.z-c.anchorZ)^2>K.stuckRadius^2 then c.anchorX=a.x; c.anchorZ=a.z; c.stuckFor=0 else c.stuckFor=c.stuckFor+dt end
+  else c.stuckFor=0; c.anchorX=math.huge; c.anchorZ=math.huge end
   -- Arrêt : voiture presque arrêtée (moins de 10 km/h, pas un bouchon qui avance au pas) qui roulait déjà (pas un départ
   -- arrêté en début de session ni une sortie des stands) et qui n'attend pas simplement derrière une autre voiture
   -- lente, sauf si elle vient de heurter quelque chose. Une voiture découverte plus tard dans la session (rechargement de

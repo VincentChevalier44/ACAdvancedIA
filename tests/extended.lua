@@ -115,7 +115,8 @@ tests.FLASH_LOST_ADVANTAGE=function()
  local e,f=F.scene('J'); F.rear(e,f,40,20,1); e.p.yieldBehindMargin=30; e.p.pressureEnabled=false; e.p.flashObliviousPct=0
  F.tick(e,f,0.2); e.flash.eventId=1; e.flash.eventCount=2
  Flash.dispatch(e.flash,f.cars,f.count,1,e.perception,e.states,e.p,e.g,e.profile,e.time)
- F.tick(e,f,0.1); f.cars[1].kmh=102; f.cars[1].speed=102/3.6; e.states[2].nextPerception=0
+ -- Beta 1.29 : resté juste derrière à la même allure, le joueur est retenu (appel compris) ; il doit donc lâcher prise.
+ F.tick(e,f,0.1); f.cars[1].kmh=90; f.cars[1].speed=90/3.6; e.states[2].nextPerception=0
  F.tick(e,f,2); assert(not F.yielding(e.states[2].state)); assert(e.states[2].pendingAt==0)
 end
 tests.FLASH_ALWAYS_RACE=function()
@@ -627,15 +628,15 @@ tests.QUALIFICATIONS_PRESET_AND_AUTO=function()
  local e,f=scene(false,2); E.step(e,f,1/60); assert(e.profile=='Q' and not C.anySection(e.profiles.Q),'first install must stay neutral')
  e,f=scene(true,2); local j=Presets.signature('J',e.profiles.J,e.g); local c=Presets.signature('C',e.profiles.C,e.g)
  E.step(e,f,1/60)
- assert(e.profile=='Q' and e.profiles.Q.configured and e.profiles.Q.section_yield and e.g.loadedPreset=='builtin:Qualifications' and e.settingsChanged)
+ assert(e.profile=='Q' and e.profiles.Q.configured and e.profiles.Q.section_yield and e.g.loadedPreset=='' and e.settingsChanged)
  assert(Presets.signature('Q',e.profiles.Q,e.g)==Presets.signature('Q',p,e.g))
  assert(Presets.signature('J',e.profiles.J,e.g)==j and Presets.signature('C',e.profiles.C,e.g)==c,'configured profiles changed')
  e,f=scene(true,2); e.profiles.Q.configured=true; E.step(e,f,1/60); assert(not C.anySection(e.profiles.Q),'cleared profile reapplied')
  e,f=scene(true,1); f.configTrackDay=true; C.validate('J',C.defaults('J'),e.profiles.J); E.step(e,f,1/60)
- assert(e.profile=='J' and e.profiles.J.section_traffic and e.g.loadedPreset=='builtin:Nordschleife')
+ assert(e.profile=='J' and e.profiles.J.section_traffic and e.g.loadedPreset=='')
  -- Essai seul ou essais d'un week-end : profil Essais et son préréglage, sans Espacement ni drapeau bleu.
  e,f=scene(true,1); C.validate('P',C.defaults('P'),e.profiles.P); E.step(e,f,1/60)
- assert(e.profile=='P' and e.profiles.P.section_yield and not e.profiles.P.section_traffic and not e.profiles.P.section_blue and e.g.loadedPreset=='builtin:Essais')
+ assert(e.profile=='P' and e.profiles.P.section_yield and not e.profiles.P.section_traffic and not e.profiles.P.section_blue and e.g.loadedPreset=='')
  assert(Presets.signature('P',e.profiles.P,e.g)==Presets.signature('P',C.preset('Essais','P',{}),e.g) and not e.profiles.P.enduranceOverlay)
 end
 tests.CONFIGURED_AND_PRESETS_USED_MIGRATION=function()
@@ -686,7 +687,7 @@ tests.CUSTOM_PRESET_BEFORE_1_3=function()
  store.revision=0; store.p_section_accidents=false; store.p_section_rules=false; store.p_section_start=true
  local entry=Presets.decode(store)
  assert(entry and entry.p.section_accidents and not entry.p.yellowEnabled and not entry.p.incidentStop and entry.p.obstacleEnabled)
- local saved=Presets.encode(entry); assert(saved.revision==12)
+ local saved=Presets.encode(entry); assert(saved.revision==13)
  saved.p_yellowEnabled=true; local again=Presets.decode(saved); assert(again.p.section_accidents and again.p.yellowEnabled)
 end
 tests.RULE_CATEGORIES=function()
@@ -2133,7 +2134,7 @@ tests.CONFIG_REVIEW_180=function()
  store.revision=3; entry=Pr.decode(store); assert(entry.p.playerPenalties==false,'current preset: stored choice kept')
  store.p_levelPct=9999; local bad,n=Pr.decode(store)
  assert(bad and n>0 and bad.p.levelPct==C.defaults('C').levelPct,'invalid value replaced, preset kept')
- assert(Pr.encode(entry).revision==12)
+ assert(Pr.encode(entry).revision==13)
 end
 -- 1.8.0 (relecture des écritures) : drapeau rendu à AC même capacité suspendue ; drapeau noir levé à la restitution ;
 -- journal limité pour de bon ; bip non joué libéré ; sanctions conservées à travers un rechargement.
@@ -3122,9 +3123,16 @@ tests.DIRECTION_LIMIT_DIAGNOSTIC=function()
  assert(text:find('YIELD_IN>%-1 %-%d+s %(voulu %-0%.60%)') and text:find('YIELD_IN>%+1 %-%d+s %(voulu %+0%.60%)'),'wanted target noted: '..text)
  -- Borne de largeur effondrée (trajectoire le long d'un bord) et cible figée sur le décalage du moment : notées.
  local s3=e.states[3]; local a3=f.cars[3]; s3.state='YIELD_HOLD'; s3.offset=-0.5; s3.filtered=-0.5; s3.direction=-1
- a3.leftWidth=0.95; a3.rightWidth=11; D.lateral(s3,s3.offset,row,a3,e.run,e.runtimeG,1/60,now+60)
+ -- Beta 1.29 : la borne effondrée n'est plus un changement de côté (côté visé compté) : rien n'est noté.
  local h=s3.directionHead
- assert(s3.directionSides[h]==0 and s3.directionIntended[h]==-0.5 and s3.directionFrozen[h]==true,'collapse noted with the wanted target, frozen')
+ a3.leftWidth=0.95; a3.rightWidth=11; D.lateral(s3,s3.offset,row,a3,e.run,e.runtimeG,1/60,now+60)
+ assert(s3.directionHead==h and s3.direction==-1 and not s3.newDirectionLimit,'collapse of the width bound is not a change of side')
+ -- Vrai changement de côté, cible figée sur le décalage du moment et bornée par la largeur : noté avec la cible voulue
+ -- (avant la borne) et marqué figé.
+ s3.direction=0; s3.offset=-0.5; s3.filtered=-0.5; s3.velocity=0; s3.lastDirectionAt=-math.huge; for j=1,C.K.directionLimit do s3.directions[j]=-math.huge end
+ D.lateral(s3,s3.offset,row,a3,e.run,e.runtimeG,1/60,now+120)
+ local h3=s3.directionHead
+ assert(s3.directionSides[h3]==-1 and s3.directionIntended[h3]==-0.5 and s3.directionFrozen[h3]==true,'change noted with the wanted target, frozen')
  -- Moteur : la ligne du journal porte le détail.
  local e2,f2=F.scene('J',3); local s2=e2.states[2]
  for j=1,C.K.directionLimit do s2.directions[j]=e2.time-j; s2.directionStates[j]='OVT_IN'; s2.directionSides[j]=j%2==0 and 1 or -1 end
@@ -4010,7 +4018,7 @@ tests.MIGRATION_SAFETY_CAR=function()
   local store=Presets.layout(); store.name='Ancien'; store.profile='C'; store.revision=revision
   for k,v in pairs(p) do store['p_'..k]=v end
   local entry=Presets.decode(store)
-  assert(entry.p.safetyCarEscalation and C.ruleCategory('C',entry.p)=='base' and Presets.encode(entry).revision==12,'revision '..revision..' custom preset updated')
+  assert(entry.p.safetyCarEscalation and C.ruleCategory('C',entry.p)=='base' and Presets.encode(entry).revision==13,'revision '..revision..' custom preset updated')
  end
  -- Modèle par défaut : Ferrari 458 Italia Stage 3 du jeu de base ; un choix existant est gardé.
  assert(C.validateGlobals({}).safetyCarModel=='ferrari_458_s3','first install: Ferrari 458 Italia Stage 3')
@@ -4125,7 +4133,7 @@ tests.TRAFFIC_MIGRATION=function()
  local store=Presets.layout(); store.name='Ancien'; store.profile='J'; store.revision=10
  for k,v in pairs(p) do store['p_'..k]=v end
  local entry=Presets.decode(store)
- assert(entry.p.trafficGapSeconds==2.5 and entry.p.trafficVariation==45 and Presets.encode(entry).revision==12,'Beta 1.19 custom preset updated')
+ assert(entry.p.trafficGapSeconds==2.5 and entry.p.trafficVariation==45 and Presets.encode(entry).revision==13,'Beta 1.19 custom preset updated')
 end
 -- Beta 1.21 : dans une file, pas de cession pour une voiture à peine plus rapide, ni à la pression, ni sur l'appel de
 -- phares d'une IA : elle ne passerait pas et toute la file ralentirait (train de voitures identiques en journée circuit,
@@ -4326,7 +4334,7 @@ tests.START_MIGRATION=function()
  for k,v in pairs(p) do store['p_'..k]=v end
  store.g_useBrakeAssist=false
  local entry=Presets.decode(store)
- assert(math.abs(entry.p.startCautionMult-1.3)<1e-9 and entry.g.useBrakeAssist and Presets.encode(entry).revision==12,'Beta 1.23 custom preset updated')
+ assert(math.abs(entry.p.startCautionMult-1.3)<1e-9 and entry.g.useBrakeAssist and Presets.encode(entry).revision==13,'Beta 1.23 custom preset updated')
 end
 -- Beta 1.24 : contacts entre voitures notés au journal (qui touche l'arrière de qui, ou sur le côté), une fois par paire
 -- toutes les 10 s ; un mur n'en est pas un.
@@ -4617,6 +4625,12 @@ tests.TRACK_DAY_SPREAD_ON_TRACK=function()
  for i=2,12 do local a=f.cars[i]; a.spline=e.commands[i].place; a.kmh=60; a.speed=60/3.6 end
  F.tick(e,f,0.1)
  for i=2,12 do assert(e.commands[i].place<0,'at its place: no more placement '..i) end
+ -- Beta 1.28 : 3 s après, une IA restée au pas est nommée avec la raison.
+ f.cars[5].kmh=5; f.cars[5].speed=5/3.6
+ F.tick(e,f,K.spreadCheck+0.1)
+ assert(found(e,f.cars[5].name..' ('..f.cars[5].id..') en difficulte apres le placement (lente'),'troubled AI named with its reason')
+ assert(found(e,'10 IA roulent normalement, 1 en difficulte'),'trouble counted')
+ f.cars[5].kmh=60; f.cars[5].speed=60/3.6
  assert(x.placed==11 and found(e,'11 IA posees en piste sur 11'),'report')
  -- IA partie d'elle-même, déjà lancée en piste avant d'être posée : laissée telle quelle ; fenêtre écoulée : abandon.
  local g,fg=boxed(false); fg.time=K.spreadDelay+0.5; F.tick(g,fg,0.1)
@@ -4717,5 +4731,216 @@ tests.START_DEFAULTS_127=function()
  mine.C.startDelay=5; mine.C.startLaneHold=true; mine.C.startRelax=12
  C.migrate(tuned,mine)
  assert(mine.C.startDelay==5 and mine.C.startLaneHold==false and mine.C.startRelax==25,'each value follows on its own: a tuned delay stays')
+end
+-- Beta 1.28 : IA anormalement lente qui retient le trafic (diagnostic) : une ligne au journal après K.slowLogTime s
+-- (modèle, vitesse, allure de sa classe, voitures derrière, état, limite de l'app, dégâts), une à la fin ; rien sans
+-- voiture derrière, à un endroit dont l'allure n'est pas apprise, ni juste après un déplacement.
+tests.SLOW_CAR_DIAGNOSTIC=function()
+ local K=C.K
+ local function count(e,text) local n=0; for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find(text,1,true) then n=n+1 end end; return n end
+ local function scene(follower,learned)
+  local e,f=F.scene('J',6); E.select(e,'J'); e.profiles.J.section_traffic=true; E.changed(e)
+  f.length=20000
+  for i=2,6 do local s=e.states[i]; s.paceCount=K.paceBins; for b=1,K.paceBins do s.pace[b]=learned==false and 0 or 50 end end
+  F.place(f,1,-9000,0); F.place(f,2,0,100); F.place(f,3,follower and -30 or -3000,100)
+  F.place(f,4,5000,180); F.place(f,5,9000,180); F.place(f,6,13000,180)
+  F.tick(e,f,2)
+  return e,f
+ end
+ local e,f=scene(true)
+ F.tick(e,f,K.slowLogTime-3)
+ assert(count(e,'IA anormalement lente: ')==0,'not before '..K.slowLogTime..' s')
+ F.tick(e,f,4)
+ local name=f.cars[2].name
+ assert(count(e,'IA anormalement lente: '..name..' ('..f.cars[2].id..') a 100 km/h')==1,'slow car logged with its model and speed')
+ assert(count(e,'allure de sa classe ici 180 km/h, 1 voiture(s) derriere')==1,'class pace and queue logged')
+ assert(count(e,'limite de vitesse app ')==1,'app speed limit reported')
+ assert(f.cars[2].watchDamage==true,'damage watched while slow')
+ F.tick(e,f,10); assert(count(e,'IA anormalement lente: '..name..' (')==1,'once per episode')
+ F.place(f,2,0,180); F.tick(e,f,K.slowEnd+1)
+ assert(count(e,'IA anormalement lente: '..name..' roule de nouveau normalement')==1 and not f.cars[2].watchDamage,'end of the episode logged')
+ local e2,f2=scene(false); F.tick(e2,f2,K.slowLogTime+5); assert(count(e2,'IA anormalement lente')==0,'nobody held up: nothing')
+ local e3,f3=scene(true,false); F.tick(e3,f3,K.slowLogTime+5); assert(count(e3,'IA anormalement lente')==0,'pace not learned here: nothing')
+ local e4,f4=scene(true); f4.cars[2].teleport=true; F.tick(e4,f4,1/60); f4.cars[2].teleport=false
+ F.tick(e4,f4,K.slowSettle+K.slowLogTime-3); assert(count(e4,'IA anormalement lente')==0,'just moved: settling time first')
+ F.tick(e4,f4,5); assert(count(e4,'IA anormalement lente: ')==1,'then logged')
+end
+-- Beta 1.29 (demande du pilote) : collé derrière une IA à la même allure, l'appel du joueur est compris ; plus loin à la
+-- même allure, non ; appelé de loin un peu lentement, compris dès que le joueur se rapproche (demande en cours) ; portée
+-- de 200 m en journée circuit ; chaque appel et chaque cession sur appel du joueur au journal.
+tests.FLASH_HELD_129=function()
+ local function count(e,text) local n=0; for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find(text,1,true) then n=n+1 end end; return n end
+ local function scene(gap,sa)
+  local e,f=F.scene('J'); e.p.flashObliviousPct=0; e.p.pressureEnabled=false; e.p.yieldBehindMargin=30; e.p.personalLineJitter=0
+  F.rear(e,f,gap,sa,1); F.tick(e,f,0.2)
+  return e,f
+ end
+ local function flash(e,f)
+  e.flash.eventId=e.flash.eventId+1; e.flash.eventCount=2; F.tick(e,f,0.15)
+  return Flash.dispatch(e.flash,f.cars,f.count,1,e.perception,e.states,e.p,e.g,e.profile,e.time)
+ end
+ local e,f=scene(40,0); assert(flash(e,f)==1 and e.flash.heard==1,'held up right behind: flash understood')
+ F.tick(e,f,2); assert(F.yielding(e.states[2].state),'yields to a held-up player')
+ assert(count(e,'cede sur appel de phares du joueur (')==1,'yield on the player flash logged')
+ e,f=scene(100,0); flash(e,f); F.tick(e,f,3); assert(not F.yielding(e.states[2].state) and e.flash.heard==0,'same speed further back: not a request to pass')
+ e,f=scene(30,-8); flash(e,f); F.tick(e,f,3); assert(not F.yielding(e.states[2].state),'dropping back: not held up')
+ e,f=scene(100,2); flash(e,f); F.tick(e,f,1); assert(not F.yielding(e.states[2].state))
+ F.rear(e,f,45,2,1); F.tick(e,f,2); assert(F.yielding(e.states[2].state),'request still alive: understood once the player is close')
+ e,f=scene(180,40); assert(flash(e,f)==1 and e.flash.heard==1,'seen from 180 m on a track day'); F.tick(e,f,2); assert(F.yielding(e.states[2].state),'and accepted with a large advantage')
+ e,f=scene(180,20); flash(e,f); assert(e.flash.heard==0,'180 m at +20 km/h: the AI would give up before the player arrives')
+ -- Appel réel (feux de route appris) : une ligne au journal par appel.
+ e,f=scene(40,0); e.g.flashField='highBeams'; e.p.section_flash=true
+ local car=f.cars[1]
+ for _,on in ipairs({true,false,true,false}) do car.highBeams=on; F.tick(e,f,0.2) end
+ assert(count(e,'appel de phares du joueur: 1 IA visee(s) a moins de 200 m, la plus proche a 40 m (+0 km/h), vu par 1, compris par 1')==1,'player flash logged')
+end
+-- Beta 1.29 : portée des appels de phares 200 m (journée circuit, hotlap, essais, qualifications) et 150 m (course) ; une
+-- portée restée à l'ancien défaut le suit, une portée réglée reste telle quelle.
+tests.FLASH_RANGE_DEFAULTS_129=function()
+ assert(C.defaults('J').flashRange==200 and C.defaults('P').flashRange==200 and C.defaults('Q').flashRange==200 and C.defaults('C').flashRange==150 and C.defaults('H').flashRange==200,'new defaults')
+ local g={}; for k,v in pairs(C.globalDefaults) do g[k]=v end; g.dataRevision=16; g.presetsUsed=true; g.offsetSign=-1; g.sideSign=-1
+ local profiles={}; for _,x in ipairs(C.profiles) do profiles[x]=C.validate(x,C.defaults(x),{}) end
+ profiles.J.flashRange=120; profiles.P.flashRange=150; profiles.Q.flashRange=90; profiles.C.flashRange=100; profiles.H.flashRange=120
+ profiles.J.flashCloseAdvantage=5; profiles.P.flashCloseAdvantage=4; profiles.Q.flashCloseAdvantage=10
+ local upgraded=C.migrate(g,profiles)
+ assert(profiles.J.flashRange==200 and profiles.P.flashRange==200 and profiles.C.flashRange==150 and profiles.H.flashRange==200,'old defaults follow')
+ assert(profiles.Q.flashRange==90,'a tuned range stays')
+ assert(profiles.J.flashCloseAdvantage==-5 and profiles.P.flashCloseAdvantage==-5 and profiles.Q.flashCloseAdvantage==10 and profiles.C.flashCloseAdvantage==6,'close-range advantage follows, a tuned one stays')
+ local Pr=require('src/presets')
+ local store=Pr.layout(); store.name='Ancien'; store.profile='J'; store.revision=12; store.p_flashRange=120; store.p_flashCloseAdvantage=5
+ local entry=Pr.decode(store); assert(entry.p.flashRange==200 and entry.p.flashCloseAdvantage==-5,'custom preset at the old defaults follows')
+ store.p_flashRange=90; entry=Pr.decode(store); assert(entry.p.flashRange==90,'tuned custom preset kept')
+ assert(Pr.encode(entry).revision==13)
+ local listed=false; for _,u in ipairs(upgraded) do if u=='J:phares' then listed=true end end; assert(listed,'logged')
+end
+-- Beta 1.29 (demande du pilote) : un préréglage règle tout son profil, règles de championnat comprises ; il ne garde que
+-- les préférences du pilote et les motifs de classes. Ses règles valent pour tout le week-end (Essais, Qualifications,
+-- Course), sans cocher l'onglet Règles ; jamais depuis la journée circuit ou le hotlap.
+tests.PRESETS_COMPLETE_129=function()
+ for key in pairs(C.presetKeptKeySet) do assert(not C.ruleKeySet[key],'no championship rule kept by a preset: '..key) end
+ for _,key in ipairs(C.preferenceKeys) do assert(C.presetKeptKeySet[key],'driver preference kept: '..key) end
+ assert(C.presetKeptKeySet.classPatterns and not C.presetKeptKeySet.mandatoryStops and not C.presetKeptKeySet.safetyCarEscalation)
+ local profiles={}; for _,x in ipairs(C.profiles) do profiles[x]=C.validate(x,C.defaults(x),{}) end
+ for _,x in ipairs({'P','Q','C'}) do C.preset(C.recommended[x],x,profiles[x]) end
+ C.applyRules('F1',profiles); profiles.C.section_rules=false
+ C.preset('Qualifications','Q',profiles.Q)
+ assert(C.spreadRules('Q',profiles))
+ for _,x in ipairs({'P','Q','C'}) do assert(C.ruleCategory(x,profiles[x])=='base' and profiles[x].mandatoryStops==0,'weekend rules follow the preset: '..x) end
+ assert(profiles.C.section_rules==false,'race Rules tab left unticked')
+ profiles.J.mandatoryStops=2; C.applyRules('GT',profiles)
+ assert(C.spreadRules('J',profiles)==false and C.spreadRules('H',profiles)==false)
+ for _,x in ipairs({'P','Q','C'}) do assert(C.ruleCategory(x,profiles[x])=='GT','weekend untouched by a track day preset: '..x) end
+ local fresh={}; for _,x in ipairs(C.profiles) do fresh[x]=C.validate(x,C.defaults(x),{}) end
+ C.preset('Course','C',fresh.C); fresh.C.mandatoryStops=1
+ C.spreadRules('C',fresh)
+ assert(not fresh.P.configured and fresh.P.mandatoryStops==1 and fresh.Q.mandatoryStops==1,'unconfigured profiles: weekend rules copied, left unconfigured')
+ -- Préréglage intégré allumé après un clic seulement, profil par profil.
+ local g={builtinMarks=''}; C.setMark(g,'J','Nordschleife'); C.setMark(g,'C','Endurance'); C.setMark(g,'P','Essais'); C.setMark(g,'P','')
+ assert(g.builtinMarks=='J=Nordschleife,C=Endurance' and C.mark(g,'J')=='Nordschleife' and C.mark(g,'P')=='' and C.mark(g,'H')=='','marks per profile')
+ local checked=C.validateGlobals({builtinMarks='J=Nordschleife'}); assert(checked.builtinMarks=='J=Nordschleife')
+ checked=C.validateGlobals({builtinMarks='J=\n'}); assert(checked.builtinMarks=='','invalid marks dropped')
+ local race=C.withRules('Endurance','C',C.preset('Endurance','C',{}))
+ assert(C.ruleCategory('C',race)=='Endurance','endurance race preset carries the Endurance rules')
+end
+-- Beta 1.29 : appel de loin sans pouvoir rejoindre l'IA avant la fin de sa cession : refusé (elle s'écarterait pour
+-- rien, abandonnerait puis ignorerait le joueur) ; renouvelé une fois assez près : compris, cession menée jusqu'à
+-- l'arrivée du joueur, sans jamais l'ignorer.
+tests.FLASH_CATCH_129=function()
+ local K=C.K
+ local e,f=F.scene('J'); e.p.flashObliviousPct=0; e.p.pressureEnabled=false; e.p.yieldBehindMargin=30; e.p.personalLineJitter=0
+ F.rear(e,f,190,13,1); F.tick(e,f,0.2)
+ local function flash() e.flash.eventId=e.flash.eventId+1; e.flash.eventCount=2; F.tick(e,f,0.15); return Flash.dispatch(e.flash,f.cars,f.count,1,e.perception,e.states,e.p,e.g,e.profile,e.time) end
+ assert(flash()==1 and e.flash.heard==0,'190 m at +13 km/h: seen, not understood')
+ local catch=13/3.6*(e.p.yieldMaxHold-K.flashCatchMargin)
+ while e.states[2].playerGap>catch-5 do F.tick(e,f,0.5,true); assert(not F.yielding(e.states[2].state),'no early yield at '..math.floor(e.states[2].playerGap)..' m') end
+ assert(flash()==1 and e.flash.heard==1,'close enough to catch it: understood')
+ local yielded=false
+ while e.states[2].playerGap>10 do
+  F.tick(e,f,0.5,true); local s=e.states[2]
+  yielded=yielded or F.yielding(s.state)
+  assert(s.ignoreTarget~=1 or e.time>=s.ignoreUntil,'the AI never ignores the player')
+  if yielded then assert(F.yielding(s.state),'yield held until the player arrives') end
+ end
+ assert(yielded,'yields to the renewed flash')
+end
+-- Beta 1.29 (séance d'essais du pilote) : hors course, pas de bagarre avec le joueur. Collé derrière l'IA, elle lâche de
+-- l'agressivité (l'IA native ne lui ferme plus la porte) ; juste doublée par lui, elle ne cherche pas à le repasser
+-- pendant K.courtesyTime s, sauf s'il ralentit nettement. En course, rien ne change.
+tests.COURTESY_PRACTICE_129=function()
+ local K=C.K
+ local passStates={OVT_ARM=true,OVT_IN=true,OVT_HOLD=true,OVT_OUT=true}
+ local function scene(profile)
+  local e,f=F.scene(profile); e.p.personalLineJitter=0; e.p.flashObliviousPct=0; e.p.pressureEnabled=false
+  F.place(f,2,0,100); F.place(f,1,-600,100); F.tick(e,f,3)
+  return e,f
+ end
+ for _,profile in ipairs({'P','Q','J','C'}) do
+  local e,f=scene(profile); local alone=e.commands[2].aggression
+  F.place(f,1,-12,100); e.states[2].nextPerception=0; F.tick(e,f,3)
+  local attacked=e.commands[2].aggression
+  if profile=='C' then assert(math.abs(attacked-alone)<0.02,'race: aggression unchanged with the player behind')
+  else assert(attacked<alone*0.6,profile..': aggression eased with the player right behind') end
+ end
+ -- Joueur qui double l'IA puis ralentit un peu devant elle : pas de riposte hors course pendant la courtoisie.
+ local e,f=scene('P'); e.p.overtakeDetectAhead=60
+ F.place(f,1,-12,100); e.states[2].nextPerception=0; F.tick(e,f,1)
+ F.place(f,1,8,88); e.states[2].nextPerception=0; F.tick(e,f,0.2)
+ assert(e.time-e.states[2].passedByPlayerAt<1,'pass by the player noted')
+ for _=1,10 do F.tick(e,f,0.5); assert(not passStates[e.states[2].state],'no attack on the player who just passed it') end
+ assert(e.commands[2].aggression<0.6*require('src/config').defaults('P').aggressionPct/100+0.05,'aggression eased right after the pass')
+ -- Il ralentit nettement : la courtoisie ne retient plus l'IA.
+ local e2,f2=scene('P'); e2.p.overtakeDetectAhead=60
+ F.place(f2,1,-12,100); e2.states[2].nextPerception=0; F.tick(e2,f2,1)
+ F.place(f2,1,8,60); e2.states[2].nextPerception=0; F.tick(e2,f2,0.2)
+ local attacked=false; for _=1,10 do F.tick(e2,f2,0.5); attacked=attacked or passStates[e2.states[2].state] or false end
+ assert(attacked,'a player who slows sharply can be passed')
+end
+-- Beta 1.29 (séance d'essais du pilote) : voiture bloquée dans un bac à sable, qui patine sur place (par moments au-dessus
+-- du seuil d'arrêt) : dépannée à son stand après K.stuckRecoverTime s sans avancer ; une voiture qui repart doucement
+-- hors piste ne l'est pas.
+tests.STUCK_GRAVEL_129=function()
+ local K=C.K
+ local function scene()
+  local e,f=F.scene('P',3); e.p.section_accidents=true; E.changed(e)
+  F.place(f,2,1000,100); F.place(f,3,3000,100); F.place(f,1,-2000,100); F.tick(e,f,1,true)
+  local a=f.cars[2]; a.offtrack=true; a.kmh=0; a.speed=0; F.tick(e,f,4)
+  assert(e.incidents.cars[2].incident and not e.incidents.cars[2].onTrack,'off-track incident')
+  return e,f,a
+ end
+ local e,f,a=scene()
+ local t=0
+ -- Déjà 4 s à l'arrêt : la dépanneuse vient au bout de K.stuckRecoverTime s sans avancer en tout.
+ while t<K.stuckRecoverTime-4-2 do
+  a.kmh=(math.floor(t*2)%2==0) and 8 or 0; a.speed=a.kmh/3.6; F.tick(e,f,0.5); t=t+0.5
+  assert(not e.commands[2].recover,'not recovered before '..K.stuckRecoverTime..' s')
+ end
+ assert(e.incidents.cars[2].still<1,'never still for long: the old timer would wait forever')
+ for _=1,10 do a.kmh=(a.kmh==0) and 8 or 0; a.speed=a.kmh/3.6; F.tick(e,f,0.5) end
+ assert(e.commands[2].recover and e.commands[2].recoverReason=='bloquee','stuck in the gravel: recovered to its pit')
+ -- Voiture qui repart doucement hors piste : elle avance, jamais dépannée.
+ local e2,f2,b=scene()
+ b.kmh=8; b.speed=8/3.6
+ for _=1,80 do F.tick(e2,f2,0.5,true); assert(not e2.commands[2].recover,'a car driving out of the gravel is left alone') end
+end
+-- Beta 1.29 (bilan des journaux) : une cession tenue du même côté, dont la cible bornée par la largeur retombe à zéro à
+-- chaque virage, ne compte aucun changement de direction ; un vrai zigzag (côté visé qui change) reste plafonné.
+tests.DIRECTION_CLAMP_129=function()
+ local K=C.K
+ local e,f=F.scene('J'); e.g.offsetSign=-1; F.tick(e,f,0.5)
+ local s,a,row=e.states[2],f.cars[2],e.perception.rows[2]
+ s.state='YIELD_HOLD'; s.direction=-1; s.offset=-0.5; s.filtered=-0.5; s.velocity=0; s.driveUntil=0
+ for j=1,K.directionLimit do s.directions[j]=-math.huge end
+ local now=e.time
+ for k=1,30 do
+  local narrow=k%2==0
+  a.leftWidth=narrow and 1.1 or 6; a.rightWidth=6
+  now=now+2; D.lateral(s,-0.7,row,a,e.p,e.g,1/60,now)
+  assert(not s.newDirectionLimit and now>=s.driveUntil,'same side held through the corners: no limit (step '..k..')')
+ end
+ assert(s.direction==-1,'still counted on the yielding side')
+ -- Vrai zigzag : côté visé alterné, le plafond le retient.
+ s.state='OVT_IN'; a.leftWidth=6; a.rightWidth=6; local limited=false
+ for k=1,K.directionLimit+3 do now=now+e.p.lateralCooldown+0.5; D.lateral(s,k%2==0 and -0.7 or 0.7,row,a,e.p,e.g,1/60,now); limited=limited or s.newDirectionLimit end
+ assert(limited,'a real zigzag is still capped')
 end
 return tests

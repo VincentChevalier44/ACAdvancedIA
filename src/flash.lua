@@ -36,7 +36,17 @@ function M.step(self,signal,now)
  self.eventId=self.eventId%K.counterMax+1; self.eventTime=now; self.eventCount=self.burst; self.lastEvent=now
  return true
 end
+-- Appel du joueur compris (Beta 1.29) : à moins de K.flashCloseGap m (60), avec l'avantage à courte distance (−5 km/h
+-- hors course : collé derrière une voiture à la même allure, l'appel veut dire « laisse-moi passer ») ; plus loin,
+-- nettement plus rapide (avantage réglé) et assez pour rejoindre l'IA avant la fin de sa cession (durée maximale moins
+-- K.flashCatchMargin s) : écartée trop tôt, elle abandonnerait sa cession puis ignorerait le joueur.
+function M.advantage(p,gap,sa)
+ if gap<=K.flashCloseGap and sa>=p.flashCloseAdvantage then return true end
+ return sa>=p.flashMinAdvantage and gap<=sa/3.6*(p.yieldMaxHold-K.flashCatchMargin)
+end
 function M.dispatch(self,cars,count,player,perception,states,p,g,_profile,now)
+ -- Bilan du dernier appel, pour le journal : IA visées, la plus proche, appels compris.
+ self.ranked=0; self.heard=0; self.nearestGap=0; self.nearestSa=0
  if not player or p.flashMode=='never' or cars[player].kmh<=K.flashSpeed then return 0 end
  local ranked=0
  for i=1,count do
@@ -63,11 +73,14 @@ function M.dispatch(self,cars,count,player,perception,states,p,g,_profile,now)
    req.event=self.eventId; req.untilTime=now+p.flashRequestTTL; req.readyAt=now+(rank-1)*K.flashPropagation
    req.cornerUntil=now+math.max(p.flashRequestTTL,K.pendingTTL); req.extended=false
    req.urgent=second or self.eventCount>=K.flashUrgentCount; req.second=second
-   req.advantage=sa>=p.flashMinAdvantage or (st.playerGap<=K.flashCloseGap and sa>=p.flashCloseAdvantage)
+   req.advantage=M.advantage(p,st.playerGap,sa)
+   if req.advantage then self.heard=self.heard+1 end
    if st.state=='YIELD_IN' or st.state=='YIELD_HOLD' then st.holdUntil=math.max(st.holdUntil,now+p.yieldHoldMin); st.urgent=st.urgent or req.urgent end
    reacted=reacted+1
   end
  end
+ self.ranked=ranked
+ if ranked>0 then local st=states[self.rank[1]]; self.nearestGap=st.playerGap; self.nearestSa=st.playerSa end
  return reacted
 end
 return M

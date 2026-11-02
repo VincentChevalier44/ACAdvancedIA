@@ -470,7 +470,8 @@ return function(source)
   assert(e.profiles.J.section_traffic and e.profiles.C.section_blue)
   H.tick(HOST,0.1); main()
   assert(e.profile=='P' and e.profiles.P.configured and e.profiles.P.section_yield and not e.profiles.P.section_traffic)
-  main(); assert(lit('builtin_Essais'),'Essais not recognised in practice')
+  -- Beta 1.29 (demande du pilote) : préréglage recommandé appliqué tout seul : aucun bouton présélectionné.
+  main(); assert(not lit('builtin_Essais'),'recommended preset applied on its own: nothing highlighted')
   assert(not e.profiles.Q.configured and not C.anySection(e.profiles.Q))
   local function nextSession(index,kind)
    HOST.sim.currentSessionIndex=index; HOST.sim.raceSessionType=kind
@@ -478,7 +479,7 @@ return function(source)
   end
   nextSession(1,2)
   assert(e.profile=='Q' and e.profiles.Q.configured and e.profiles.Q.section_yield and not e.profiles.Q.section_blue)
-  main(); assert(lit('builtin_Qualifications') and HOST.storage['humanai:p:Q:'].section_yield==true)
+  main(); assert(not lit('builtin_Qualifications') and HOST.storage['humanai:p:Q:'].section_yield==true)
   nextSession(2,3); main(); assert(e.profile=='C' and lit('builtin_Course'))
   -- Un profil Qualifications vidé volontairement n'est jamais réappliqué.
   nextSession(1,2); for _,group in ipairs(C.sections) do e.profiles.Q['section_'..group]=false end; E.changed(e); H.tick(HOST,0.1)
@@ -891,19 +892,71 @@ return function(source)
   press('auto'); main(); assert(e.g.autoProfile and lit('profile_'..e.profile),'back to the running profile')
   pause(false)
  end)
- check('1.4.0 : règles sélectionnables depuis la journée circuit et indépendantes des préréglages de session',function()
+ check('1.4.0 et Beta 1.29 : règles sélectionnables depuis la journée circuit, préréglages complets (règles de championnat comprises), interrupteurs de course éteints en journée circuit et en hotlap',function()
   HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
   local e=HUMANAI.engine
-  go('home'); press('profile_J'); section('rules'); press('rules_F1'); main()
+  -- Jeux de règles réglables depuis la journée circuit (1.4.0) : ils règlent le week-end de course.
+  -- Journée circuit et hotlap : arrêt obligatoire et voiture de sécurité éteints, clic sans effet (course sans arrêt
+  -- ni voiture de sécurité : un clic pris en compte les ajouterait).
+  go('home'); press('profile_J'); section('rules'); press('rules_base'); main(); e.profiles.C.safetyCarEscalation=false
+  press('mandatory_stop'); press('safety_switch'); main()
+  assert(e.profiles.C.mandatoryStops==0 and e.profiles.C.safetyCarEscalation==false,'clicks ignored in the track day view')
+  press('rules_F1'); main()
   assert(C.ruleCategory('C',e.profiles.C)=='F1' and lit('rules_F1') and not lit('rules_base'),'F1 lit from the track day view')
-  go('home'); press('profile_C'); press('builtin_Course'); main()
-  assert(lit('builtin_Course'),'session preset lit')
-  section('rules'); assert(C.ruleCategory('C',e.profiles.C)=='F1' and lit('rules_F1'),'championship rules kept by the session preset')
-  press('rules_GT'); main()
-  go('home'); press('builtin_Course'); main(); assert(C.ruleCategory('C',e.profiles.C)=='GT' and lit('builtin_Course'),'both lit after reloading the preset')
-  press('builtin_Endurance'); main()
+  assert(e.profiles.C.mandatoryStops>0 and not lit('mandatory_stop') and not lit('safety_switch'),'race switches off in the track day view')
+  press('mandatory_stop'); press('safety_switch'); main()
+  assert(e.profiles.C.mandatoryStops>0 and e.profiles.C.safetyCarEscalation==true,'clicks ignored outside the weekend')
+  go('home'); press('profile_H'); section('rules'); main(); assert(not lit('mandatory_stop') and not lit('safety_switch'),'race switches off in the hotlap view')
+  -- Préréglage de journée circuit : le week-end de course reste tel quel.
+  go('home'); press('profile_J'); press('builtin_Nordschleife'); main()
+  assert(C.ruleCategory('C',e.profiles.C)=='F1','track day preset leaves the race weekend alone')
+  section('rules'); main(); assert(not lit('mandatory_stop'),'still off in the track day view')
+  -- Course : avec les règles F1, le préréglage n'est plus reconnu ; chargé, règles de base pour tout le week-end.
+  go('home'); press('profile_C'); main(); assert(not lit('builtin_Course'),'F1 rules: Course preset not recognised')
+  section('rules'); main(); assert(lit('mandatory_stop'),'race view shows the race mandatory stop')
+  e.profiles.C.flagPanel=false
+  go('home'); press('builtin_Course'); main(); assert(lit('builtin_Course'),'session preset lit')
+  assert(e.profiles.C.flagPanel==false,'driver preference kept by the preset')
+  for _,x in ipairs({'P','Q','C'}) do assert(C.ruleCategory(x,e.profiles[x])=='base' and e.profiles[x].mandatoryStops==0,'base rules for the weekend: '..x) end
+  e.profiles.C.drsBeepVolume=350; main(); assert(lit('builtin_Course'),'preset still lit with a personal preference')
+  section('rules'); main(); assert(not lit('mandatory_stop') and lit('safety_switch') and lit('rules_base'),'mandatory stop unticked by the preset')
+  -- Essais : un arrêt obligatoire ajouté à la main est retiré pour tout le week-end ; onglet Règles de la course gardé.
+  press('mandatory_stop'); main(); assert(e.profiles.C.mandatoryStops>0 and e.profiles.P.mandatoryStops>0)
+  e.profiles.C.section_rules=false
+  go('home'); press('profile_P'); press('builtin_Essais'); main()
+  for _,x in ipairs({'P','Q','C'}) do assert(e.profiles[x].mandatoryStops==0,'practice preset unticks the weekend mandatory stop: '..x) end
+  assert(e.profiles.C.section_rules==false,'race Rules tab left as it was'); e.profiles.C.section_rules=true
+  -- Seul le préréglage chargé pour le profil affiché s'allume (capture du pilote : Nordschleife allumé en essais).
+  main(); assert(lit('builtin_Essais') and not lit('builtin_Nordschleife') and not lit('builtin_Course'),'only the displayed profile preset lights up')
+  go('home'); press('profile_J'); main(); assert(lit('builtin_Nordschleife') and not lit('builtin_Essais'),'track day view: its own preset')
+  press('restore'); main(); assert(not lit('builtin_Nordschleife'),'restored: no preset highlighted')
+  e.profiles.J.multiClass=true; main(); assert(not lit('builtin_Nordschleife'),'same values set by hand after a restore: not a click')
+  -- Préréglage personnel de qualifications : ses règles pour tout le week-end.
+  go('home'); press('profile_Q'); section('rules'); press('rules_GT'); main()
+  go('home'); HOST.inputEdits['##aai_preset_name']='Qualifs GT'; press('save_preset'); main()
+  section('rules'); press('rules_base'); main(); assert(C.ruleCategory('C',e.profiles.C)=='base')
+  go('home'); press('custom_1'); main()
+  for _,x in ipairs({'P','Q','C'}) do assert(C.ruleCategory(x,e.profiles[x])=='GT','custom qualifying preset sets the weekend rules: '..x) end
+  -- Endurance multi-classes en course : règles Endurance pour le week-end, reconnu depuis les essais.
+  go('home'); press('profile_C'); press('builtin_Endurance'); main()
   assert(C.ruleCategory('C',e.profiles.C)=='Endurance' and C.ruleCategory('P',e.profiles.P)=='Endurance' and lit('builtin_Endurance'),'endurance preset brings endurance rules')
-  go('home'); press('profile_P'); main(); assert(lit('builtin_Endurance'),'endurance preset lit from the practice view (it sets the race profile)')
+  go('home'); press('profile_P'); main(); assert(not lit('builtin_Endurance'),'endurance sets the race profile: not lit in the practice view')
+  pause(false)
+  -- Marques des préréglages intégrés enregistrées avec les réglages.
+  local marks=e.g.builtinMarks
+  HUMANAI.release(); assert(loadstring(source))(); H.tick(HOST,0.5)
+  assert(marks:find('C=Endurance',1,true) and HUMANAI.engine.g.builtinMarks==marks,'built-in preset marks saved with the settings')
+ end)
+ check('Beta 1.29 : règles du week-end gardées par le préréglage recommandé d’un profil jamais réglé',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.storage['humanai:g:']={dataRevision=4}
+  HOST.raceIni={SESSION_0={NAME='Practice',TYPE=1},SESSION_1={NAME='Qualifying',TYPE=2},SESSION_2={NAME='Race',TYPE=3}}
+  assert(loadstring(source))(); pause(true)
+  local e=HUMANAI.engine; H.tick(HOST,0.1); main(); assert(e.profile=='P' and not C.anySection(e.profiles.P))
+  go('home'); press('profile_C'); press('builtin_Course'); main()
+  e.profiles.C.mandatoryStops=1; e.profiles.C.neutralization='fcy'; C.spreadRules('C',e.profiles); E.changed(e)
+  assert(not e.profiles.P.configured and e.profiles.P.mandatoryStops==1,'weekend rules copied, profile left unconfigured')
+  H.tick(HOST,0.1); main()
+  assert(e.profile=='P' and e.profiles.P.configured and e.profiles.P.section_yield and e.profiles.P.mandatoryStops==1 and e.profiles.P.neutralization=='fcy','recommended preset keeps the weekend rules')
   pause(false)
  end)
  check('Beta 1.4 : DRS coupé par les règles rendu à toutes les voitures (app désactivée, onglet décoché, instance arrêtée net)',function()
@@ -1266,13 +1319,22 @@ return function(source)
   press('rules_F1'); P.C.pitWindowOpenPct=30; P.C.mandatoryStops=0; redraw(); assert(not lit('rules_F1'),'F1 edited on the right: custom')
   press('rules_reset'); redraw()
   assert(lit('rules_F1') and P.C.pitWindowOpenPct==20 and P.C.mandatoryStops==1 and P.C.safetyCarEscalation,'reset to the closest rule set')
-  -- Journée circuit affichée : les vues Arrêt obligatoire et Voiture de sécurité règlent le profil Course.
-  go('home'); press('profile_J'); go('rules'); press('rules_view_stops'); redraw()
-  local race,track=P.C.mandatoryStops,P.J.mandatoryStops
-  assert(lit('profile_J') and drawn('set_mandatoryStops'),'race pit stop settings shown from the track day')
-  press('set_mandatoryStops_plus'); assert(P.C.mandatoryStops==race+1 and P.J.mandatoryStops==track,'race profile edited, track day untouched')
-  press('rules_view_safety'); redraw(); local before=P.C.safetyCarEscalation; press('set_safetyCarEscalation')
-  assert(P.C.safetyCarEscalation==not before and not P.J.safetyCarEscalation,'race safety car edited from the track day')
+  -- Beta 1.29 (demande du pilote) : journée circuit et hotlap affichés : arrêt obligatoire et voiture de sécurité sans
+  -- objet ; leurs vues restent fermées, interrupteurs éteints, une note renvoie aux profils du week-end.
+  local function noted(note) for _,t in ipairs(HOST.drawnTexts) do if #t>15 and note:find(t,1,true)==1 then return true end end return false end
+  press('rules_view_stops'); redraw(); assert(lit('rules_view_stops'),'race view: pit stop title selected')
+  -- Essais affichés : la vue Arrêt obligatoire règle toujours le profil Course, le seul où elle agit.
+  go('home'); press('profile_P'); go('rules'); press('rules_view_stops'); redraw()
+  local race,practice=P.C.mandatoryStops,P.P.mandatoryStops
+  assert(lit('rules_view_stops') and drawn('set_mandatoryStops'),'pit stop settings shown from practice')
+  press('set_mandatoryStops_plus'); assert(P.C.mandatoryStops==race+1 and P.P.mandatoryStops==practice,'race profile edited from practice')
+  press('set_mandatoryStops_minus'); assert(P.C.mandatoryStops==race)
+  for _,view in ipairs({'J','H'}) do
+   go('home'); press('profile_'..view); go('rules'); press('rules_view_stops'); redraw()
+   assert(lit('profile_'..view) and lit('rules_view_all') and not drawn('set_mandatoryStops') and not lit('mandatory_stop') and noted(L.raceSwitchesSolo),'race pit stop settings not shown: '..view)
+   press('rules_view_safety'); redraw(); assert(lit('rules_view_all') and not drawn('set_safetyCarEscalation') and not lit('safety_switch'),'nor the safety car: '..view)
+  end
+  assert(P.C.mandatoryStops==1 and P.C.safetyCarEscalation,'race profile untouched')
   HOST.space={x=1000,y=780}; pause(false); HUMANAI.release()
   -- En course : voiture de sécurité absente de la grille signalée ; ajoutée, l'avertissement disparaît.
   HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); H.tick(HOST,1); pause(true); go('rules'); redraw()

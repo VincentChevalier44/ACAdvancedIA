@@ -77,7 +77,7 @@ end
 function M.new(e,host,calibration,dirty)
  local v={e=e,host=host,calibration=calibration,dirty=dirty,open={},controls={},logFilter=1,patternInvalid=false,category='general',keptRules={},
   patternRows={},patternFragments={},patternSource=false,patternProfile='',presetName='',presetMessage='',derived={},signatureValues={},builtinSignatures={},
-  builtinConfigs={Nordschleife={J=C.preset('Nordschleife','J',{})},Essais={P=C.preset('Essais','P',{})},Qualifications={Q=C.preset('Qualifications','Q',{})},Course={C=C.preset('Course','C',{})},Endurance={J=C.preset('Endurance','J',{}),C=C.preset('Endurance','C',{})}}}
+  builtinConfigs={Nordschleife={J=C.preset('Nordschleife','J',{})},Essais={P=C.preset('Essais','P',{})},Qualifications={Q=C.preset('Qualifications','Q',{})},Course={C=C.preset('Course','C',{})},Endurance={J=C.preset('Endurance','J',{}),C=C.withRules('Endurance','C',C.preset('Endurance','C',{}))}}}
  for i=1,K.maxPatterns do v.patternRows[i]={pattern='',class=1} end
  for _,s in ipairs(C.schema) do
   local control={schema=s,labels={},hint={}}
@@ -111,20 +111,23 @@ local function presetTarget(v,profile)
  v.view=profile; v.viewFor=v.e.profile
  v.presetMessage=v.e.profile~=profile and string.format(L.presetAppliedTo,L.profiles[profile]) or ''
 end
--- Les règles de championnat forment un axe indépendant : un préréglage de session les conserve. Endurance
--- multi-classes en course y ajoute les règles Endurance (FCY, Slow Zone, BoP, Pro-Am) pour tout le week-end.
+-- Beta 1.29 (demande du pilote) : un préréglage intégré règle tout son profil, règles de championnat comprises (arrêt
+-- obligatoire, voiture de sécurité, jeu de règles) ; seules les préférences du pilote et les motifs de classes restent.
+-- Essais, Qualifications et Course : ses règles valent pour tout le week-end ; Endurance multi-classes en course y met
+-- les règles Endurance (FCY, Slow Zone, BoP, Pro-Am). Journée circuit : le week-end de course reste tel quel.
 local function loadBuiltin(v,name,profile)
  local e=v.e; local p=e.profiles[profile]; local kept=v.keptRules
- for key in pairs(C.keptKeySet) do kept[key]=C.kept(profile,key) and p[key] or nil end
+ for key in pairs(C.presetKeptKeySet) do kept[key]=p[key] end
  C.preset(name,profile,p)
  for key,value in pairs(kept) do p[key]=value end
  C.validate(profile,p,p)
- if name=='Endurance' and profile=='C' then C.applyRules('Endurance',e.profiles) end
+ if name=='Endurance' and profile=='C' then C.applyRules('Endurance',e.profiles) else C.spreadRules(profile,e.profiles) end
  presetTarget(v,profile); v.presetName=''
- e.g.loadedPreset='builtin:'..name; e.g.presetsUsed=true; mark(v)
+ e.g.loadedPreset='builtin:'..name; e.g.presetsUsed=true; C.setMark(e.g,profile,name); mark(v)
 end
--- Allumé quand le profil visé par le bouton porte ce préréglage (règles de championnat, préférences du pilote et
--- motifs de classes exclus), quel que soit le profil affiché ; seul le profil affiché est annoncé comme reconnu.
+-- Allumé quand le profil visé par le bouton porte ce préréglage (préférences du pilote et motifs de classes exclus ;
+-- règles de championnat comprises depuis la Beta 1.29). Beta 1.29 (demande du pilote) : seulement pour le profil affiché,
+-- et seulement si le pilote y a chargé ce préréglage ; aucun bouton n'est présélectionné.
 local noGlobals={}
 local function builtinActive(v,name,profile,label)
  local e=v.e
@@ -132,12 +135,12 @@ local function builtinActive(v,name,profile,label)
  -- Les deux signatures finissent par les mêmes réglages globaux : comparées sans eux ; celle du préréglage intégré
  -- (jamais modifié) est calculée une seule fois.
  local active=false
- if candidate~=nil then
+ if candidate~=nil and profile==v.view and C.mark(e.g,profile)==name then
   local key=name..'|'..profile; local expected=v.builtinSignatures[key]
-  if not expected then expected=Presets.signature(profile,candidate,noGlobals,v.signatureValues,C.keptKeySet); v.builtinSignatures[key]=expected end
-  active=Presets.signature(profile,e.profiles[profile],noGlobals,v.signatureValues,C.keptKeySet)==expected
+  if not expected then expected=Presets.signature(profile,candidate,noGlobals,v.signatureValues,C.presetKeptKeySet); v.builtinSignatures[key]=expected end
+  active=Presets.signature(profile,e.profiles[profile],noGlobals,v.signatureValues,C.presetKeptKeySet)==expected
  end
- if active and profile==v.view then v.activePreset=label end
+ if active then v.activePreset=label end
  return active
 end
 -- Base des voitures (dossiers content/cars), lue une fois à la demande.
@@ -573,7 +576,7 @@ local function homeTab(v,e,host)
  if v.activePreset then y=y+W.paragraph(L.activePreset..v.activePreset,x,y,464,13,c.blue)+8
  elseif e.g.loadedPreset~='' then y=y+W.paragraph(L.loadedPreset..v.loadedName..L.presetModified,x,y,464,12,c.grey)+8
  else y=y+W.paragraph(L.noActivePreset,x,y,464,12,c.grey)+8 end
- if W.visible(y,32) and W.button('restore',L.restoreShort..L.profiles[view],x,y,464,32,false,v.tips.ui.restore) then C.restore(view,p); touch(v,p) end
+ if W.visible(y,32) and W.button('restore',L.restoreShort..L.profiles[view],x,y,464,32,false,v.tips.ui.restore) then C.restore(view,p); C.setMark(e.g,view,''); touch(v,p) end
  local left=y+40
  -- Colonne de droite.
  x=520; y=top+8-offset
@@ -615,7 +618,8 @@ local function homeTab(v,e,host)
    if not tip then tip=wrap(string.format(L.tipCustom,entry.name,L.profiles[entry.profile] or entry.profile)..'\n\n'..T.ui.customPreset); v.customTips[entry.name..'|'..entry.profile]=tip end
    if W.visible(y,32) then
     if W.button('custom_'..i,entry.name..' · '..L.shortProfiles[entry.profile],x,y,330,32,custom[i],tip) then
-     local profile=Presets.apply(entry,e.profiles,e.g); e.profiles[profile].configured=true; presetTarget(v,profile)
+     -- Beta 1.29 : préréglage personnel d'essais, de qualifications ou de course : ses règles pour tout le week-end.
+     local profile=Presets.apply(entry,e.profiles,e.g); e.profiles[profile].configured=true; C.spreadRules(profile,e.profiles); C.setMark(e.g,profile,''); presetTarget(v,profile)
      e.g.loadedPreset=id; e.g.presetsUsed=true; mark(v)
      v.presetName=entry.name
     end
@@ -708,21 +712,28 @@ local function rulesTab(v,e)
  local shown,toggled=ruleRow(v,'all','section_rules',L.rulesToggle,y,on,v.tips.ui.rulesViewAll,v.tips.sections.rules)
  if toggled then p.section_rules=not on; touch(v,p) elseif shown then v.rulesView='all' end
  -- Arrêt obligatoire et voiture de sécurité (Beta 1.18) : état du profil Course (ils n'agissent qu'en course), réglés
- -- ensemble pour les Essais, Qualifications et Course ; chaque jeu de règles les règle aussi.
+ -- ensemble pour les Essais, Qualifications et Course ; chaque jeu de règles les règle aussi. Beta 1.29 : en journée
+ -- circuit et en hotlap, où rien de cela n'agit, interrupteurs éteints et sans effet, réglages de course non affichés.
  local race=e.profiles.C
- local stops=race.mandatoryStops>0
+ local solo=C.solo(view)
+ if solo then v.rulesView='all' end
+ local stops=not solo and race.mandatoryStops>0
  shown,toggled=ruleRow(v,'stops','mandatory_stop',L.mandatorySwitch,y+33,stops,v.tips.ui.rulesViewStops,v.tips.ui.mandatoryStop)
- if toggled then C.weekendSwitch(e.profiles,'mandatoryStops',not stops); mark(v) elseif shown then v.rulesView='stops' end
- local safety=race.safetyCarEscalation==true
+ if not solo then
+  if toggled then C.weekendSwitch(e.profiles,'mandatoryStops',not stops); mark(v) elseif shown then v.rulesView='stops' end
+ end
+ local safety=not solo and race.safetyCarEscalation==true
  shown,toggled=ruleRow(v,'safety','safety_switch',L.safetySwitch,y+66,safety,v.tips.ui.rulesViewSafety,v.tips.ui.safetySwitch)
- if toggled then C.weekendSwitch(e.profiles,'safetyCarEscalation',not safety); mark(v) elseif shown then v.rulesView='safety' end
+ if not solo then
+  if toggled then C.weekendSwitch(e.profiles,'safetyCarEscalation',not safety); mark(v) elseif shown then v.rulesView='safety' end
+ end
  y=y+106
  -- Ce que fera la voiture de sécurité en course : aucune voiture choisie alors qu'elle servirait (repli VSC ou FCY,
  -- prioritaire), neutralisation « Voiture de sécurité » choisie (elle sort de toute façon).
  -- En course, voiture choisie absente de la grille : la VSC ou la FCY continue (Beta 1.19).
  local used=race.neutralization=='sc' or race.safetyCarEscalation
- local note=used and e.g.safetyCarModel=='' and L.safetySwitchNoCar or used and e.profile=='C' and e.frame and e.incidents.safety==0 and L.safetySwitchNotOnGrid or race.neutralization=='sc' and L.safetySwitchDirect
- if note then y=y+W.paragraph(note,22,y,252,12,c.warn)+10 end
+ local note=solo and L.raceSwitchesSolo or used and e.g.safetyCarModel=='' and L.safetySwitchNoCar or used and e.profile=='C' and e.frame and e.incidents.safety==0 and L.safetySwitchNotOnGrid or race.neutralization=='sc' and L.safetySwitchDirect
+ if note then y=y+W.paragraph(note,22,y,252,12,solo and c.grey or c.warn)+10 end
  y=ruleBlock(v,e,p,22,y,252)
  -- Réinitialisation (Beta 1.19) : valeurs du jeu de règles surligné, ou du plus proche s'il a été retouché à droite,
  -- interrupteurs compris ; préférences du pilote gardées, comme avec les boutons des jeux de règles.

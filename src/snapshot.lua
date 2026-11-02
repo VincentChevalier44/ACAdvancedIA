@@ -67,7 +67,8 @@ local function readCar(a,index,dt,lane)
  else a.fuel=-1; a.maxFuel=-1; a.fuelPerLap=0 end
  -- Dégâts lus seulement à l'emplacement ; un champ absent laisse la voiture valide, sans dégât connu.
  -- Beta 1.24 : aussi sur une IA lente ou arrêtée (voiture cassée à évacuer aussitôt).
- if not (a.control and (a.inPitBox or a.kmh<K.damageReadSpeed) and pcall(damageRead,a,raw)) then a.damageBody=0; a.damageSuspension=0; a.engineLife=K.engineLifeNew; a.repairingNative=false; a.damageGearbox=0 end
+ -- Beta 1.28 : aussi sur une IA anormalement lente surveillée par le moteur (diagnostic).
+ if not (a.control and (a.inPitBox or a.kmh<K.damageReadSpeed or a.watchDamage) and pcall(damageRead,a,raw)) then a.damageBody=0; a.damageSuspension=0; a.engineLife=K.engineLifeNew; a.repairingNative=false; a.damageGearbox=0 end
  a.nativeRainTyresKnown=type(raw.isAIUsingRainTyres)=='boolean'
  a.offtrack=not U.finite(raw.wheelsOutside) or raw.wheelsOutside>2
  a.splineValid=U.finite(raw.splinePosition) and raw.splinePosition>=0 and raw.splinePosition<=1

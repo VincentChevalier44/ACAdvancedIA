@@ -1,5 +1,37 @@
 # Changelog
 
+## Beta 1.29 — 2 November 2026
+
+Presets now set the whole profile, and your headlight flashes are understood earlier, at your request. Your Imola practice session and a review of all of the day's logs brought three driving fixes.
+
+- **Anti-zigzag cap counted wrongly** (found by reviewing the 2 November logs: 630 triggers in four sessions). The cap counts how often a manoeuvre changes side (at most 6 a minute, then 20 s of rest in a straight line). It looked at the target after the track-width bound; in a corner that bound drops to almost nothing, so a yield or an overtake held on the same side counted as a return to the line and then a new start. That was 1225 of the 3780 recorded changes (38%); only about 47 of the 630 triggers were real zigzags. Each trigger cut the yield or overtake under way and blocked new ones for 20 s. The cap now counts the side the manoeuvre aims for; a real zigzag is still capped.
+- **No fighting with you outside the race** (your practice session): when you pass an AI, it does not try to pass you back for 20 s, unless you slow down sharply (25 km/h slower). While you are right behind it, alongside, or just ahead after passing it (within 30 m), it eases its aggressiveness, so the game's AI no longer forces its way into the corner. The app's own defending already only acted in the race. The race is unchanged.
+- **AI stuck in a gravel trap** (your practice session: a car stayed in the gravel for more than a lap under yellow): it kept spinning its wheels and moving back and forth on the spot, sometimes above the 5 km/h stop threshold, so the 30 s recovery timer kept restarting. An off-track incident now counts the time spent without moving more than 15 m: after 30 s the car is taken back to its pit. A car that drives slowly out of the gravel is left alone, and a crashed car still waits for a clear track before rejoining.
+- **Presets include the championship rules**: a built-in or custom preset now sets its profile's rules too (mandatory stop, Safety Car, rule set). This reverses the 1.4.0 behaviour (“rules independent of session presets”).
+  - A Practice, Qualifying or Race preset sets those rules for the whole weekend, without ticking or unticking the Racing rules tab. **Free practice**, **Flying-lap qualifying** and **Realistic race** bring the Base rules: a mandatory stop added by hand is removed.
+  - **Multi-class endurance** in the Race still brings the Endurance rules. A Track day preset leaves the race weekend as it is.
+  - A profile you never configured receives the weekend rules and keeps them when its recommended preset is applied.
+- **Track day and Hotlap**: **Mandatory stop in the race** and **Safety Car** are shown off and ignore clicks there, since they only act in the race. Their settings are reached from the Practice, Qualifying or Race view.
+- **No pre-selected built-in preset**: a built-in preset button lights up only for the profile shown, after you click it for that profile, and while the profile still matches it. In Practice, **Nordschleife Touristenfahrten** no longer lights up because the Track day profile carries it. A recommended preset applied on its own lights nothing and is no longer reported as *Last preset loaded*; **Restore defaults** switches the highlight off.
+- **Headlight flashes**:
+  - Why the AI only reacted when you were very close (found in the code; the logs had no line for yields to your flashes): it wanted you at least 12 km/h faster, or 5 km/h faster within 30 m. Stuck behind at the same speed, your flash was never understood.
+  - Close range is now 60 m, and **Close-range advantage (km/h)** defaults to −5 km/h outside the race (was 5 / 4; 6 in the race, unchanged): stuck behind an AI at the same speed, your flash is understood.
+  - **Flash range (m)** goes to 200 m on a Track day, in Practice and in Qualifying, and to 150 m in the Race (was 120 / 150 / 100 m). Beyond 60 m you must also be able to reach the AI before its yield would end (maximum yield duration minus 5 s): an AI that moved over too early would give up and then ignore you.
+  - The advantage is judged for as long as the request lives (8 s): a flash refused from further back is understood as soon as you close in.
+  - Values still at the old defaults follow the new ones, in your profiles and custom presets; values you set stay as they are.
+  - The log records each of your flashes (`appel de phares du joueur`) and each yield to it (`cede sur appel de phares du joueur`).
+
+**Verification**: 382 checks; 91 integration cases; 757 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.28; 8-hour soak without errors (memory between 7.8 and 8.7 MB); benchmark 30 AI 0.18 ms (Beta 1.28: 0.19), 60 AI 0.49 ms (Beta 1.28: 0.50).
+
+## Beta 1.28 — 2 November 2026
+
+Diagnostics after your Nordschleife 24h track day (60 cars), where a Porsche running at about 100 km/h held up a long queue. The log did not record which car was slow or why, so this version adds the lines needed to find the cause; the driving itself is unchanged.
+
+- **Abnormally slow AI** (log line `IA anormalement lente`): an AI on track, outside the pits and yellow zones, running below 60% of its class's learned pace at that spot for 20 s with a car stuck behind it (within 60 m) is reported once, with its model, speed, class pace, queue, state, the app's command and speed limit, and its damage (read while it is slow). A second line closes the episode. Nothing is commanded: the fix will follow the cause found.
+- **AI distribution check**: 3 s after placement, each car in trouble is now named with its model and the reason (in the pits, off track, slow or sliding).
+
+**Verification**: 375 checks; 90 integration cases; 722 mutations, all detected; clean lint, parameter audit; 8-hour soak without errors (memory between 7.4 and 8.3 MB); benchmark 30 AI 0.19 ms (Beta 1.27: 0.21), 60 AI 0.55 ms (Beta 1.27: 0.55).
+
 ## Beta 1.27 — 2 November 2026
 
 Race start defaults taken from your custom preset “Course Test”, which you found more realistic.

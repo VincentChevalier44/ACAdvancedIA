@@ -225,6 +225,44 @@ local function flood(e,frame,now)
  U.log(e.log,now,'INFO',string.format('AI flood de CSP: %s (%d IA, seuil %d, portee %.1f km), effet au prochain lancement',decision=='off' and 'desactive' or decision=='on' and 'active' or 'reglage d origine rendu',count,e.run.spawnMinCars or 0,e.run.floodRangeKm or 1),-1)
  HudInfo.flood(e.hud,decision,count,e.run.floodRangeKm or 1,now)
 end
+-- IA anormalement lente (Beta 1.28, diagnostic seulement) : en piste, hors stands et zone jaune, en conduite, en
+-- cession ou en dépassement (jamais en évitement ni au calme après un incident), plus lente que K.slowRatio fois l'allure de sa classe à cet endroit (allure apprise), avec une
+-- voiture derrière à moins de K.slowFollowGap m, pendant K.slowLogTime s : une ligne au journal (cause probable :
+-- limite de l'app, dégâts, stands), puis une à la fin de l'épisode. Rien n'est commandé.
+local slowStates={DRIVE=true,YIELD_IN=true,YIELD_HOLD=true,YIELD_OUT=true,OVT_ARM=true,OVT_IN=true,OVT_HOLD=true,OVT_OUT=true,DEFEND=true}
+local function slowCars(e,frame,now,dt)
+ local multi=e.run.multiClass==true
+ for i=1,frame.count do
+  local a=frame.cars[i]; local s=e.states[i]; local cmd=e.commands[i]
+  if a.teleport then s.slowTeleportAt=now end
+  local behind,expected=0,0
+  if a.valid and a.control and not a.player and not a.safetyCar and not a.pit and not a.inPitBox and not a.offtrack and a.splineValid
+   and not s.yellow and slowStates[s.state] and now-(s.slowTeleportAt or -math.huge)>=K.slowSettle then
+   local fleet=e.delta.fleet[multi and s.class or 1]
+   expected=fleet and fleet[Delta.bin(a.spline)] or 0
+   if expected*3.6>=K.slowMinPaceKmh and a.kmh>=K.slowMinKmh and a.speed<expected*K.slowRatio then
+    local row=e.perception.rows[i]
+    for j=1,row.count do local r=row.neighbors[j]; if r.long<0 and r.gap<K.slowFollowGap then behind=behind+1 end end
+   end
+  end
+  if behind>0 then
+   s.slowFor=(s.slowFor or 0)+dt; s.slowCalm=0; a.watchDamage=s.slowFor>=K.slowLogTime*0.5
+   if not s.slowLogged and s.slowFor>=K.slowLogTime then
+    s.slowLogged=true
+    local cap=math.min(cmd.speedLimit or K.unlimitedSpeed,cmd.yellowLimit or K.unlimitedSpeed,cmd.scSpeed or K.unlimitedSpeed)
+    local capText=cap<K.unlimitedSpeed and string.format('%.0f km/h',cap) or 'aucune'
+    U.log(e.log,now,'WARN',string.format('IA anormalement lente: %s (%s) a %.0f km/h depuis %.0f s, allure de sa classe ici %.0f km/h, %d voiture(s) derriere a moins de %.0f m | etat %s, commande app %s, limite de vitesse app %s, niveau %.2f, degats carrosserie %.0f, suspension %.2f, moteur %.0f, boite %.2f',
+     a.name,a.id,a.kmh,s.slowFor,expected*3.6,behind,K.slowFollowGap,s.state,cmd.active and 'oui' or 'non',capText,cmd.level or 0,a.damageBody or 0,a.damageSuspension or 0,a.engineLife or 0,a.damageGearbox or 0),i)
+   end
+  elseif (s.slowFor or 0)>0 then
+   s.slowCalm=(s.slowCalm or 0)+dt
+   if s.slowCalm>=K.slowEnd then
+    if s.slowLogged then U.log(e.log,now,'INFO',string.format('IA anormalement lente: %s roule de nouveau normalement apres %.0f s',a.name,s.slowFor),i) end
+    s.slowFor=0; s.slowCalm=0; s.slowLogged=false; a.watchDamage=false
+   end
+  end
+ end
+end
 function M.step(e,frame,dt)
  e.frame=frame
  e.rebaseDelta=0
@@ -271,7 +309,13 @@ function M.step(e,frame,dt)
  if e.g.presetsUsed and selected and not selected.configured and not C.anySection(selected) and C.recommended[e.profile] then
   -- Profil jamais réglé : son préréglage intégré recommandé, une seule fois. Un profil déjà réglé n'est jamais modifié.
   local name=C.recommended[e.profile]
-  C.preset(name,e.profile,selected); e.g.loadedPreset='builtin:'..name
+  -- Beta 1.29 : règles de championnat du week-end gardées (copiées par le préréglage d'une autre session).
+  local rules=e.keptWeekendRules or {}; e.keptWeekendRules=rules
+  local weekend=not C.solo(e.profile)
+  if weekend then for _,s in ipairs(C.ruleSchema) do rules[s.key]=selected[s.key] end end
+  -- Beta 1.29 (demande du pilote) : appliqué tout seul, il n'est pas noté comme chargé par le pilote.
+  C.preset(name,e.profile,selected)
+  if weekend then for _,s in ipairs(C.ruleSchema) do selected[s.key]=rules[s.key] end; C.validate(e.profile,selected,selected) end
   e.settingsChanged=true; M.changed(e); U.log(e.log,now,'INFO','preset_auto:'..name,-1)
  end
  -- Réglages réels de la session dans le journal : onglets cochés du profil et jeu de règles.
@@ -373,6 +417,7 @@ function M.step(e,frame,dt)
  Incidents.update(e.incidents,frame,e.run,e.profile,now,dt,ready,e.runtimeG.seed)
  -- Allure de référence de la flotte (temps delta), quelques endroits par image.
  Delta.refresh(e.delta,frame,e.states,e.run.multiClass==true)
+ slowCars(e,frame,now,dt)
  local player=frame.player>0 and frame.cars[frame.player] or nil
  if player then
   local learned=Flash.sampleLearn(e.flash,player,now)
@@ -534,7 +579,11 @@ function M.step(e,frame,dt)
  if player and e.p.section_flash and (e.g.flashField~='' or e.run.hornEnabled) then
   local signal=player[e.g.flashField]==true or e.run.hornEnabled and player.hornActive
   if Flash.step(e.flash,signal,now) then
-   Flash.dispatch(e.flash,frame.cars,frame.count,frame.player,e.perception,e.states,e.run,e.runtimeG,e.profile,now)
+   local reacted=Flash.dispatch(e.flash,frame.cars,frame.count,frame.player,e.perception,e.states,e.run,e.runtimeG,e.profile,now)
+   -- Beta 1.29 : chaque appel du joueur au journal (IA visées, la plus proche, appel vu et compris).
+   local f=e.flash
+   U.log(e.log,now,'INFO',f.ranked>0 and string.format('appel de phares du joueur: %d IA visee(s) a moins de %.0f m, la plus proche a %.0f m (%+.0f km/h), vu par %d, compris par %d',f.ranked,e.run.flashRange,f.nearestGap,f.nearestSa,reacted,f.heard)
+    or string.format('appel de phares du joueur: aucune IA visee devant a moins de %.0f m',e.run.flashRange),frame.player)
   end
  end
  if e.run.multiClass then Classes.update(e.classes,frame.cars,e.states,frame.count,e.run,now) end
@@ -580,6 +629,9 @@ function M.step(e,frame,dt)
    -- Sortie des stands échelonnée après un drapeau rouge (relance de course, reprise d'essais ou de qualifications).
    elseif now<e.incidents.releaseAt[i] then cmd.pitHold=a.inPitBox==true end
    local c=e.incidents.cars[i]; local still=c.still
+   -- Beta 1.29 : incident hors piste, temps passé sans avancer (une voiture qui patine dans un bac à sable n'est jamais
+   -- à l'arrêt assez longtemps) ; drapeau rouge, neutralisation et pleine piste gardent l'immobilisation.
+   local stalled=c.incident and not c.onTrack and math.max(still,c.stuckFor or 0) or still
    -- Beta 1.24 : en pleine piste, jamais avant la décision de la direction de course (decisionTime) ; sinon après
    -- K.trackRecoverTime s (20 avant). Hors piste (aucune règle n'en découle) après K.stuckRecoverTime s (90 avant),
    -- jamais pendant sa retenue. Cassée (suspension, moteur ou boîte hors d'usage) : dès K.brokenRecoverTime s, en
@@ -587,10 +639,11 @@ function M.step(e,frame,dt)
    local wait=c.onTrack and decide or 0
    local neutralStuck=c.incident and neutral and still>=math.max(K.neutralRecoverTime,wait)
    local trackStuck=c.incident and c.onTrack and not c.holding and e.run.section_accidents and still>=math.max(K.trackRecoverTime,wait)
-   local stuck=c.incident and not c.holding and e.run.section_accidents and still>=math.max(K.stuckRecoverTime,wait)
-   local broken=c.incident and e.run.section_accidents and still>=math.max(K.brokenRecoverTime,wait) and ((a.damageSuspension or 0)>=K.brokenSuspension or (a.engineLife or K.engineLifeNew)<=K.brokenEngine or (a.damageGearbox or 0)>=K.brokenGearbox)
+   local stuck=c.incident and not c.holding and e.run.section_accidents and stalled>=math.max(K.stuckRecoverTime,wait)
+   local broken=c.incident and e.run.section_accidents and stalled>=math.max(K.brokenRecoverTime,wait) and ((a.damageSuspension or 0)>=K.brokenSuspension or (a.engineLife or K.engineLifeNew)<=K.brokenEngine or (a.damageGearbox or 0)>=K.brokenGearbox)
    cmd.recover=not a.pit and (red and still>=K.redRecoverTime or neutralStuck or trackStuck or broken or stuck)
-   cmd.recoverReason=red and 'drapeau rouge' or neutralStuck and 'neutralisation' or broken and 'cassee' or trackStuck and 'en piste' or 'bloquee'; cmd.recoverStill=still
+   cmd.recoverReason=red and 'drapeau rouge' or neutralStuck and 'neutralisation' or broken and 'cassee' or trackStuck and 'en piste' or 'bloquee'
+   cmd.recoverStill=(red or neutralStuck or trackStuck) and still or stalled
   end
  end
  -- Carburant des arrêts forcés, une fois toutes les demandes d'arrêt connues (règles, météo, drapeau rouge).

@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.27',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
+local M={version=3,release='Beta 1.29',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -110,9 +110,9 @@ b('blue','blueFlagEnabled','Drapeaux bleus',false,true,true)
 n('blue','blueFlagRange','Portée du drapeau bleu (m)',50,400,150,200,150)
 e('blue','blueFlagSide','Côté sous drapeau bleu','auto','auto','auto',{'auto','left','right'})
 e('flash','flashMode','Appels de phares','always','always','lapped',{'never','lapped','always'})
-n('flash','flashRange','Portée des appels (m)',40,250,120,150,100)
+n('flash','flashRange','Portée des appels (m)',40,250,200,200,150)
 n('flash','flashMinAdvantage','Avantage pour appel (km/h)',3,40,12,8,15)
-n('flash','flashCloseAdvantage','Avantage à courte distance (km/h)',1,15,5,4,6)
+n('flash','flashCloseAdvantage','Avantage à courte distance (km/h)',-10,15,-5,-5,6)
 n('flash','flashRequestTTL','Durée d’une demande (s)',3,20,8,8,8)
 n('flash','flashObliviousPct','Inattention au premier appel (%)',0,40,10,5,10)
 n('flash','flashMaxReactors','Nombre de réactions',1,3,3,3,3)
@@ -257,7 +257,7 @@ n('traffic','trafficVariation','Variation des espacements (%)',0,50,45,45,45)
 n('traffic','trafficMaxReduction','Réduction maximale de vitesse (%)',2,20,14,14,14)
 M.globalDefaults={schemaVersion=1,enabled=true,autoProfile=true,manualProfile='J',offsetSign=0,sideSign=0,
  overrideAwareness=false,levelMode='auto',useGripBoost=false,gripPerLevelPct=0.004,useBrakeAssist=true,
- flashField='',occLatMin=0.3,occLatMax=5.5,occMargin=6,occSpeedGain=0.8,seed=19731019,debugLog=false,loadedPreset='',presetsUsed=false,dataRevision=0,safetyCarModel='ferrari_458_s3',safetyCarPicked=false,journal=true,panelOpacity=86,panelShow='info',overlayX=-1,overlayY=-1,overlayScale=1,overlayLocked=true,overlayBackground='solid',overlayContent=100,overlayClickThrough=true,overlayHideReplay=true,overlayHidePits=false,overlaySession=true,overlayExplain=true,overlayRecap=true,overlayNativeBox=true,overlayMessages=true,overlayBlockMessages=true,floodBackup='',panelInfoTime=0,windowCompacted=false,language='en'}
+ flashField='',occLatMin=0.3,occLatMax=5.5,occMargin=6,occSpeedGain=0.8,seed=19731019,debugLog=false,loadedPreset='',builtinMarks='',presetsUsed=false,dataRevision=0,safetyCarModel='ferrari_458_s3',safetyCarPicked=false,journal=true,panelOpacity=86,panelShow='info',overlayX=-1,overlayY=-1,overlayScale=1,overlayLocked=true,overlayBackground='solid',overlayContent=100,overlayClickThrough=true,overlayHideReplay=true,overlayHidePits=false,overlaySession=true,overlayExplain=true,overlayRecap=true,overlayNativeBox=true,overlayMessages=true,overlayBlockMessages=true,floodBackup='',panelInfoTime=0,windowCompacted=false,language='en'}
 M.globalBounds={panelOpacity={0,100},panelInfoTime={0,60},overlayX={-1,16000},overlayY={-1,16000},overlayScale={0.5,2.5},overlayContent={30,100},dataRevision={0,1000},offsetSign={-1,1},sideSign={-1,1},gripPerLevelPct={0,0.01},occLatMin={0.1,1},occLatMax={2,8},occMargin={2,15},occSpeedGain={0,2},seed={0,2147483647}}
 M.globalChoices={language={'en','fr'},panelShow={'info','always'},overlayBackground={'solid','ghost','transparent'},manualProfile={'J','P','Q','C','H'},levelMode={'auto','native','grip','none'},flashField={'','highBeams','headlightsActive','lowBeams','flashingLightsActive'}}
 -- Constantes physiques et temporisations : unique source des valeurs de comportement.
@@ -292,7 +292,7 @@ M.K={maxCars=61,paceBins=400,logLines=200,logRate=20,logDedup=5,maxZones=64,maxZ
  lapTolerance=0.02,lapRangeMult=1.5,lapSpeed=3,lapConfirm=0.3,lapReaction=0.8,lapCorner=0.7,lapCornerLevel=0.92,
  fightTime=2,fightSpeed=4,flashBurst=1.5,flashHoldMin=0.8,flashHoldMax=4,
  flashDebounce=0.15,flashDedup=0.4,flashLearnTime=6,flashPropagation=0.5,
- flashLat=6,flashSpeed=30,flashCloseGap=30,flashSecondTime=4,flashReact=0.6,flashConfirm=0.1,
+ flashLat=6,flashSpeed=30,flashCloseGap=60,flashCatchMargin=5,courtesyRange=30,courtesyTime=20,courtesyAggression=0.35,courtesyPassSa=25,stuckRadius=15,flashSecondTime=4,flashReact=0.6,flashConfirm=0.1,
  flashMargin=0.5,flashHorizon=1.5,flashUrgentCount=3,flashReactionMin=0.15,flashReactionMax=1.45,
  personaPatienceMin=0.7,personaPatienceMax=1.4,personaBrakeMin=0.9,personaBrakeMax=1.15,
  writePeriod=0.2,readbackPeriod=2,offsetEpsilon=0.002,levelEpsilon=0.005,aggrEpsilon=0.01,cautionEpsilon=0.02,gripEpsilon=0.001,
@@ -308,7 +308,7 @@ M.K={maxCars=61,paceBins=400,logLines=200,logRate=20,logDedup=5,maxZones=64,maxZ
  counterMax=2147483647,blockedYieldTime=3,blockedYieldGap=10,lapseSalt=50000,stintSalt=10000,performanceWindow=60,maxAppWindows=256,metadataLength=128,maxCapabilities=128,
  uiCategoryPadding=32,uiTabPadding=16,uiFallbackColumns=3,uiTipWidth=72,maxPresets=16,presetNameBytes=64,
  neutralReaction=0.3,neutralAwareness=0.5,trafficPeriod=0.5,trafficMinGap=15,trafficDensityCapacity=0.65,trafficMaxCapacity=0.9,
- trafficDecelKmh=4,trafficAccelKmh=8,trafficMinSpeed=30,trafficLogDelay=60,trafficFasterMargin=0.03,targetLostGrace=1,spreadDelay=1,spreadPlanDelay=0.5,spreadReport=8,spreadPlayerGap=300,spreadSpeed=50,spreadLaunchWait=0.5,spreadCheck=3,spreadTroubleKmh=10,spreadRetry=2,spreadReached=100,spreadMinGap=15,spreadWindow=60,spreadMaxKmh=30,trackDayExitSpeed=40,trackDayExitMaxTotal=600,floodPeriod=2,floodMinLength=7000,floodRound=50,messageProbe='ACAdvancedIA',probeFrames=90,probeTime=0.1,parkReturnPeriod=10,blueCloseGap=40,blueSlack=5,radarLatMargin=0.4,radarWarnTTC=2.5,radarCaution=1.4,radarTTC=1.2,radarMinBrake=0.08,radarBrakeMax=0.45,radarApply=1.5,radarRelease=0.8,radarLogPeriod=15,contactLogPeriod=10,contactLogBudget=3,towWindow=3,blueLogTime=3,pitExitWindow=60,pitExitMinCars=10,pitExitSalt=7717,pitExitJitter=0.6,pitExitMaxTotal=180,pitExitSessionShare=0.25,pitExitMinGap=2,
+ trafficDecelKmh=4,trafficAccelKmh=8,trafficMinSpeed=30,trafficLogDelay=60,trafficFasterMargin=0.03,targetLostGrace=1,spreadDelay=1,spreadPlanDelay=0.5,spreadReport=8,spreadPlayerGap=300,spreadSpeed=50,spreadLaunchWait=0.5,spreadCheck=3,spreadTroubleKmh=10,spreadRetry=2,spreadReached=100,spreadTroubleLines=6,slowRatio=0.6,slowMinPaceKmh=60,slowMinKmh=15,slowFollowGap=60,slowLogTime=20,slowEnd=8,slowSettle=10,spreadMinGap=15,spreadWindow=60,spreadMaxKmh=30,trackDayExitSpeed=40,trackDayExitMaxTotal=600,floodPeriod=2,floodMinLength=7000,floodRound=50,messageProbe='ACAdvancedIA',probeFrames=90,probeTime=0.1,parkReturnPeriod=10,blueCloseGap=40,blueSlack=5,radarLatMargin=0.4,radarWarnTTC=2.5,radarCaution=1.4,radarTTC=1.2,radarMinBrake=0.08,radarBrakeMax=0.45,radarApply=1.5,radarRelease=0.8,radarLogPeriod=15,contactLogPeriod=10,contactLogBudget=3,towWindow=3,blueLogTime=3,pitExitWindow=60,pitExitMinCars=10,pitExitSalt=7717,pitExitJitter=0.6,pitExitMaxTotal=180,pitExitSessionShare=0.25,pitExitMinGap=2,
  repairBase=3,repairBodyMin=5,repairBodyRate=0.1,repairSuspensionMin=0.02,repairSuspensionRate=40,repairEngineMin=990,repairEngineTime=30,repairMax=60,engineLifeNew=1000,trafficArmSpeed=60,trafficEpisode=6,trafficCycle=18,unlimitedSpeed=1e9,
  wrongWaySpeed=10,wrongWayTime=2,spinSpeed=15,spinTime=0.6,incidentClear=2,incidentMaxAge=120,crashSettle=4,rejoinWaitMax=10,rejoinSpeed=30,crashSalt=60000,stopPulse=1.5,stopPulsePeriod=0.5,
  yellowApproach=800,yellowNoPass=150,playerFlagLead=150,playerFlagLeadMax=800,flagLeadTime=1.25,gridGrace=6,flagNone=0,flagCaution=2,flagStart=1,flagStop=5,flagReturnToPits=8,flagFasterCar=12,flagFinished=13,flagOneLapLeft=14,penaltyMandatoryPits=1,penaltyTeleportToPits=2,
@@ -389,6 +389,7 @@ function M.validateGlobals(input,out)
   if M.globalChoices[k] then valid=choice(v,M.globalChoices[k]) end
   if k=='floodBackup' then valid=type(v)=='string' and #v<=512 and not v:find('%c') end
   if k=='loadedPreset' then valid=type(v)=='string' and #v<=M.K.presetNameBytes+16 and not v:find('%c') end
+  if k=='builtinMarks' then valid=type(v)=='string' and #v<=128 and v:match('^[%w=,]*$')~=nil end
   if k=='safetyCarModel' then valid=type(v)=='string' and #v<=M.K.metadataLength and v:match('^[%w_%-%.]*$')~=nil end
   if (k=='offsetSign' or k=='sideSign') and valid then valid=v==-1 or v==0 or v==1 end
   if not valid then v=d; errors=errors+1 end
@@ -467,6 +468,9 @@ local startOld={startCautionMult=1.6,startAggrMult=0.6}
 -- Reconnaissance des préréglages 1.2.0 : seules l'attente et la détente y figuraient.
 local startOld126={startDelay=12,startRelax=12}
 local startMoved127={startDelay=12,startRelax=12,startLaneHold=true}
+-- Portée des appels de phares jusqu'à la Beta 1.28 (aussi celle des préréglages 1.2.0).
+local flashOld128={J=120,P=150,Q=150,C=100,H=120}
+local flashCloseOld128={J=5,P=4,Q=4,C=6,H=5}
 -- Interrupteurs indépendants des jeux de règles (Beta 1.19) : ignorés pour reconnaître un jeu (interface, journal).
 M.switchKeys={mandatoryStops=true,safetyCarEscalation=true}
 -- Préréglage intégré 1.2.0 resté strictement identique dans ce profil, ou nil.
@@ -479,7 +483,7 @@ function M.legacyMatch(profile,p)
   local same=true
   for _,s in ipairs(M.schema) do
    if not newKeys[s.key] then
-    local expected=trafficOld[s.key] or profile=='C' and (startOld[s.key] or startOld126[s.key]) or base[s.key]
+    local expected=trafficOld[s.key] or s.key=='flashRange' and flashOld128[profile] or s.key=='flashCloseAdvantage' and flashCloseOld128[profile] or profile=='C' and (startOld[s.key] or startOld126[s.key]) or base[s.key]
     if endurance and (s.key=='enduranceOverlay' or s.key=='multiClass' or s.key=='lapseEnabled') then expected=true end
     if not equal(p[s.key],expected) then same=false; break end
    end
@@ -505,7 +509,7 @@ function M.upgradeObstacles(p) if p.section_start==true and not p.section_accide
 -- profils qui portaient exactement les anciennes règles GT changent. Renvoie la liste des changements faits.
 -- Clés de règles apparues après les révisions qui jugent un jeu de règles : ignorées par ces révisions.
 local keys18={safetyCarEscalation=true}
-M.dataRevision=16
+M.dataRevision=17
 function M.migrateProfile(profile,p,from,preset,out)
  out=out or {}
  if from<5 then
@@ -545,6 +549,14 @@ function M.migrateProfile(profile,p,from,preset,out)
   local moved=false
   for key,old in pairs(startMoved127) do if equal(p[key],old) then p[key]=M.defaults('C')[key]; moved=true end end
   if moved then out[#out+1]='C:depart' end
+ end
+ -- Révision 17 (Beta 1.29, demande du pilote) : appels de phares vus de plus loin et compris collé derrière ; des
+ -- valeurs restées aux anciens défauts les suivent, des valeurs réglées restent telles quelles.
+ if from<17 then
+  local moved=false
+  if equal(p.flashRange,flashOld128[profile]) then p.flashRange=M.defaults(profile).flashRange; moved=true end
+  if equal(p.flashCloseAdvantage,flashCloseOld128[profile]) and not equal(p.flashCloseAdvantage,M.defaults(profile).flashCloseAdvantage) then p.flashCloseAdvantage=M.defaults(profile).flashCloseAdvantage; moved=true end
+  if moved then out[#out+1]=profile..':phares' end
  end
  -- Révision 13 (Beta 1.24) : départ de course moins frileux ; des valeurs restées aux anciens défauts les suivent.
  if from<13 and profile=='C' then
@@ -613,6 +625,9 @@ M.keptKeySet={classPatterns=true}; for _,key in ipairs(M.preferenceKeys) do M.ke
 for _,s in ipairs(M.schema) do if s.group=='rules' and not M.keptKeySet[s.key] or zoneRuleKeys[s.key] then M.ruleSchema[#M.ruleSchema+1]=s end end
 M.ruleKeySet={}
 for _,s in ipairs(M.ruleSchema) do M.keptKeySet[s.key]=true; M.ruleKeySet[s.key]=true end
+-- Beta 1.29 (demande du pilote) : un préréglage intégré ou personnel règle tout son profil, règles de championnat
+-- comprises ; il ne garde que les préférences du pilote et les motifs de classes, aussi ignorés pour le reconnaître.
+M.presetKeptKeySet={classPatterns=true}; for _,key in ipairs(M.preferenceKeys) do M.presetKeptKeySet[key]=true end
 -- Réglage gardé par « Restaurer » et par un préréglage intégré : préférences du pilote, motifs de classes et règles de
 -- championnat choisies ; en journée circuit, qu'aucun jeu de règles ne règle, les règles reviennent aussi au défaut.
 function M.kept(profile,key) return M.keptKeySet[key] and (not M.solo(profile) or not M.ruleKeySet[key]) end
@@ -650,6 +665,35 @@ function M.applyRules(category,profiles)
  end
  return true
 end
+-- Beta 1.29 : préréglage d'essais, de qualifications ou de course : ses règles de championnat valent pour tout le
+-- week-end, comme un jeu de règles ou un interrupteur de l'onglet Règles de course. Seules les valeurs sont copiées
+-- (onglet Règles laissé tel quel, profil jamais réglé laissé tel quel : son préréglage recommandé les garde ensuite).
+-- Journée circuit et hotlap n'y touchent jamais.
+function M.spreadRules(from,profiles)
+ if M.solo(from) then return false end
+ local source=profiles[from]
+ for _,profile in ipairs(M.ruleProfiles) do
+  local p=profiles[profile]
+  if profile~=from then
+   for _,s in ipairs(M.ruleSchema) do p[s.key]=source[s.key] end
+   M.validate(profile,p,p)
+  end
+ end
+ return true
+end
+-- Beta 1.29 (demande du pilote) : un préréglage intégré n'est allumé qu'après un clic, pour le profil affiché qu'il règle
+-- (« J=Nordschleife,C=Endurance ») ; un préréglage recommandé appliqué tout seul n'en pose aucun.
+function M.mark(g,profile)
+ for x,name in (g.builtinMarks or ''):gmatch('(%u)=(%w+)') do if x==profile then return name end end
+ return ''
+end
+function M.setMark(g,profile,name)
+ local parts={}
+ for _,x in ipairs(M.profiles) do local value=x==profile and (name or '') or M.mark(g,x); if value~='' then parts[#parts+1]=x..'='..value end end
+ g.builtinMarks=table.concat(parts,',')
+end
+-- Préréglage intégré portant un jeu de règles (Endurance en course), pour le reconnaître.
+function M.withRules(category,profile,p) applyValues(category,profile,p); return M.validate(profile,p,p) end
 -- Axe et jeux de règles de la Beta 1.3, figés : un profil enregistré resté sur l'un d'eux reçoit sa version Beta 1.4.
 local axis13={'noMoveBraking','neutralization','majorIncidentTime','fcySpeedKmh','fcyDeltaPct','vscDeltaPct','neutralizationHold',
  'safetyCarSpeedKmh','redFlagEnabled','redFlagCars','redFlagSpeedKmh','redDeltaPct','redFlagHold','mandatoryStops','pitWindowOpenPct',
