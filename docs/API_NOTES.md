@@ -152,6 +152,14 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 - `ac.StateCar.racePosition` (1 = first, 0 if unknown): pit exit order at the resumption after a red flag.
 - `jit.opt.start('maxtrace=8000','maxmcode=16384')` in the entry file: enlarged JIT compiler cache (with the default 1,000 traces and 512 KB, the engine recompiled all its code every one to two minutes). No effect on decisions; if it is refused, the app drives the cars one by one as before and the log says so.
 
+## Beta 1.32: track light panels and the player's FIA signals
+
+- Track configurations (the track's `extension/ext_config.ini`, CSP's `extension/config/tracks/loaded/<track>.ini`) define conditions `[CONDITION_…] NAME=… INPUT=FLAG_TYPE` with a LUT from the flag value to a colour. The usual LUT: 1 green, 2 yellow, 3 orange, 4 orange-red, 5 red, 6 grey-white, 12 blue, 13 off or red, 14 white. Materials and light series light up through `CONDITION=<name>`. CSP's shared `common/conditions.ini` defines `RACING_FLAG` on `FLAG_TYPE`, so a track that includes it may light sections with `CONDITION=RACING_FLAG` only (Sepang, Vallelunga).
+- `FLAG_TYPE` is the player's flag. `physics.overrideRacingFlag(flag)` (local SDK, line 15002) overrides it until `ac.FlagType.None`; the SDK note on `ui.drawRaceFlag` says it "would also affect track conditions". `ac.FlagType` 3, 4, 6, 7, 9, 10, 11, 15 and 16 are marked *does not work yet* (AC's own display); 5 (`Stop`) is AC's black flag there.
+- `ac.StateSim.raceFlagType` returns the overridden value: the main loop marks the frame (`flagOwned`) and the panel never reads its own value as an AC flag; AC penalties (`currentPenaltyType`) are still read.
+- Files: `ac.getFolder(ac.FolderID.ContentTracks)` (15), `ac.FolderID.ExtCfgSys` (17), `ac.getTrackID()`, `ac.getTrackLayout()` (line 3208, empty without a layout), `io.load`. Track identifiers with `..` or other characters are not read.
+- Player damage (black flag with an orange disc): `ac.StateCar.damage` (five zones, km/h of impact), `suspensionDamage` (0–1), `engineLifeLeft` (1000 new, breaks at 0), `gearboxDamage` (0–1), `wheels[i].isBlown`, `ac.StateSim.mechanicalDamageRate` (0: damage off). Read once a second under protection, apart from the AI's (read only at their pit box).
+
 ## 1.6.0 to 1.8.0: penalties, DRS, sanctions
 
 - `physics.setCarPenalty(type, parameter)`: `ac.PenaltyType.SlowDown` (3, throttle cut for the given number of seconds; only with race settings that allow it), `BlackFlag` (4, no parameter), `ReleaseBlackFlag` (5, no parameter): the black flag is lifted on unload, on deactivation and on session change, and imposed again after an app reload.

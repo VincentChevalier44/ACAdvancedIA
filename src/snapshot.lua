@@ -13,10 +13,22 @@ local function damageRead(a,raw)
  a.engineLife=U.number(raw.engineLifeLeft,0,K.engineLifeNew,K.engineLifeNew); a.repairingNative=raw.isRepairing==true
  a.damageGearbox=U.number(raw.gearboxDamage,0,1,0)
 end
+-- Dégâts du joueur (Beta 1.32, drapeau noir à disque orange) : rangés à part (ceux des IA ne sont lus qu'à leur
+-- emplacement), avec le taux de dégâts mécaniques de la session (0 : dégâts désactivés).
+local function playerDamage(s,a)
+ local raw=ac.getCar(a.index); local d,sd=raw.damage,raw.suspensionDamage
+ s.playerBody=d and U.number(d[0],0,1000,0)+U.number(d[1],0,1000,0)+U.number(d[2],0,1000,0)+U.number(d[3],0,1000,0) or 0
+ s.playerSuspension=sd and math.max(U.number(sd[0],0,1,0),U.number(sd[1],0,1,0),U.number(sd[2],0,1,0),U.number(sd[3],0,1,0)) or 0
+ s.playerEngine=U.number(raw.engineLifeLeft,0,K.engineLifeNew,K.engineLifeNew); s.playerGearbox=U.number(raw.gearboxDamage,0,1,0)
+ local blown=false; local wheels=raw.wheels
+ if wheels then for w=0,3 do local wheel=wheels[w]; if wheel and wheel.isBlown==true then blown=true end end end
+ s.playerBlown=blown; s.damageRate=U.number(ac.getSim().mechanicalDamageRate,0,1000,1); s.playerDamageSlot=a.slot
+end
 function M.new()
  local s={cars={},count=0,player=0,errors=0,invalid=0,track='',patch='',conflict='',metaAt=-1,session=-1,
   online=true,replay=false,paused=false,menu=false,started=false,finished=false,length=0,time=0,startIn=0,left=0,wet=0,rain=0,water=0,type=1,stamp=-1,configType=0,configTrackDay=false,configSession=-1,
-  flag=0,fuelRate=1,pitWindowStart=0,pitWindowEnd=0,simTime=0,sessionLaps=0,sessionMinutes=0,timedRace=false,leaderLaps=0}
+  flag=0,fuelRate=1,pitWindowStart=0,pitWindowEnd=0,simTime=0,sessionLaps=0,sessionMinutes=0,timedRace=false,leaderLaps=0,
+  playerDamageSlot=0,playerDamageAt=-1,playerBody=0,playerSuspension=0,playerEngine=1000,playerGearbox=0,playerBlown=false,damageRate=1}
  for i=1,K.maxCars do s.cars[i]={slot=i,index=i-1,valid=false,control=false,player=false,pit=false,offtrack=false,
  x=0,y=0,z=0,lx=0,lz=1,speed=0,kmh=0,yaw=0,corner=1,spline=0,splineValid=false,lap=0,lapValid=false,
  length=K.length,width=K.width,brake=0,gas=0,aiLevel=1,aiAggression=0.5,stopped=0,slip=0,leftWidth=0,rightWidth=0,
@@ -181,6 +193,10 @@ function M.read(s,dt,now,light)
  end end
  -- L'indice zéro est réservé au joueur si un mode ne publie pas isUserControlled.
  if not light and s.player==0 and s.count>0 then s.player=1; s.cars[1].player=true; s.cars[1].control=false end
+ if not light and s.player>0 and now>=s.playerDamageAt then
+  s.playerDamageAt=now+K.playerDamagePeriod
+  if not pcall(playerDamage,s,s.cars[s.player]) then s.playerDamageSlot=0 end
+ end
  if now>=s.metaAt or s.configSession~=s.session then
   s.metaAt=now+K.metaPeriod
   -- race.ini est fixe pendant le processus : relu au changement de session, ou de nouveau après un échec.

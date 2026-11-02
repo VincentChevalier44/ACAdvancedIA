@@ -47,6 +47,7 @@ function M.create(native110,options)
   return h.configType or h.sim.raceSessionType or fallback end} end}
  ac.setWindowOpen=function(id,opened) h.windowOpen[id]=opened end; ac.isWindowOpen=function(id) return h.windowOpen[id]==true end
  ac.getTrackID=function() return 'test' end
+ ac.getTrackLayout=function() return h.trackLayout or '' end
  ac.getCarID=function(index) return 'model_'..index end
  ac.getDriverName=function(index) return 'Driver '..index end
  ac.getTyresName=function(index,compound) local t=h.tyreCatalog[index][compound+1]; return t and t.short or nil end
@@ -57,7 +58,7 @@ function M.create(native110,options)
  rawset(_G,'vec3',function(x,y,z) return {x=x or 0,y=y or 0,z=z or 0} end)
  rawset(_G,'vec4',function(x,y,z,w) return {x=x or 0,y=y or 0,z=z or 0,w=w or 0} end)
  ac.getAppWindows=function() return h.windows end
- ac.FolderID={ScriptOrigin=1,Logs=7,ContentCars=13,ExtCfgSys=17,ExtCfgUser=18}; ac.getFolder=function(id) return id==7 and 'logs' or id==13 and 'cars' or id==17 and 'cfgsys' or id==18 and 'cfgext' or 'local' end
+ ac.FolderID={ScriptOrigin=1,Logs=7,ContentCars=13,ContentTracks=15,ExtCfgSys=17,ExtCfgUser=18}; ac.getFolder=function(id) return id==7 and 'logs' or id==13 and 'cars' or id==15 and 'tracks' or id==17 and 'cfgsys' or id==18 and 'cfgext' or 'local' end
  io.scanDir=function(root,mask,callback)
   assert(type(root)=='string' and mask=='*' and type(callback)=='function')
   local model=root:match('^cars/(.+)/skins$')

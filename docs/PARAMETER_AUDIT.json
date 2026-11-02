@@ -1,5 +1,5 @@
 {
-  "version": "Beta 1.31",
+  "version": "Beta 1.32",
   "scope": "Static inventory + UI/storage checks and engine bounds; no physical certification.",
   "globalParameters": [
     {
@@ -13,13 +13,13 @@
         "none"
       ],
       "consumers": [
-        "src/applier.lua:715",
-        "src/applier.lua:722",
+        "src/applier.lua:786",
+        "src/applier.lua:793",
         "src/caps.lua:4",
         "src/caps.lua:41",
         "src/caps.lua:42",
         "src/lang_en.lua:60",
-        "src/tips_en.lua:202"
+        "src/tips_en.lua:203"
       ]
     },
     {
@@ -28,9 +28,9 @@
       "bounds": null,
       "choices": null,
       "consumers": [
-        "src/applier.lua:722",
+        "src/applier.lua:793",
         "src/caps.lua:42",
-        "src/tips_en.lua:203"
+        "src/tips_en.lua:204"
       ]
     },
     {
@@ -42,9 +42,9 @@
       ],
       "choices": null,
       "consumers": [
-        "src/applier.lua:722",
-        "src/lang_en.lua:124",
-        "src/tips_en.lua:214"
+        "src/applier.lua:793",
+        "src/lang_en.lua:126",
+        "src/tips_en.lua:215"
       ]
     },
     {
@@ -53,11 +53,11 @@
       "bounds": null,
       "choices": null,
       "consumers": [
-        "src/applier.lua:703",
-        "src/applier.lua:729",
+        "src/applier.lua:774",
+        "src/applier.lua:800",
         "src/director.lua:764",
-        "src/engine.lua:39",
-        "src/tips_en.lua:204"
+        "src/engine.lua:40",
+        "src/tips_en.lua:205"
       ]
     },
     {
@@ -66,8 +66,8 @@
       "bounds": null,
       "choices": null,
       "consumers": [
-        "src/applier.lua:710",
-        "src/tips_en.lua:205"
+        "src/applier.lua:781",
+        "src/tips_en.lua:206"
       ]
     },
     {
@@ -79,11 +79,11 @@
       ],
       "choices": null,
       "consumers": [
-        "src/lang_en.lua:124",
+        "src/lang_en.lua:126",
         "src/perception.lua:46",
         "src/perception.lua:47",
         "src/perception.lua:48",
-        "src/tips_en.lua:210"
+        "src/tips_en.lua:211"
       ]
     },
     {
@@ -100,11 +100,11 @@
         "src/director.lua:597",
         "src/director.lua:626",
         "src/director.lua:720",
-        "src/lang_en.lua:124",
+        "src/lang_en.lua:126",
         "src/perception.lua:47",
         "src/perception.lua:48",
         "src/perception.lua:98",
-        "src/tips_en.lua:211"
+        "src/tips_en.lua:212"
       ]
     },
     {
@@ -116,9 +116,9 @@
       ],
       "choices": null,
       "consumers": [
-        "src/lang_en.lua:124",
+        "src/lang_en.lua:126",
         "src/perception.lua:43",
-        "src/tips_en.lua:212"
+        "src/tips_en.lua:213"
       ]
     },
     {
@@ -130,9 +130,9 @@
       ],
       "choices": null,
       "consumers": [
-        "src/lang_en.lua:124",
+        "src/lang_en.lua:126",
         "src/perception.lua:43",
-        "src/tips_en.lua:213"
+        "src/tips_en.lua:214"
       ]
     },
     {
@@ -149,12 +149,12 @@
         "src/director.lua:398",
         "src/director.lua:648",
         "src/director.lua:802",
-        "src/engine.lua:91",
-        "src/engine.lua:158",
-        "src/engine.lua:328",
-        "src/engine.lua:417",
-        "src/engine.lua:626",
-        "src/engine.lua:646",
+        "src/engine.lua:92",
+        "src/engine.lua:163",
+        "src/engine.lua:333",
+        "src/engine.lua:422",
+        "src/engine.lua:647",
+        "src/engine.lua:667",
         "src/flash.lua:70",
         "src/incidents.lua:119",
         "src/incidents.lua:195",
@@ -173,9 +173,9 @@
         "src/persona.lua:44",
         "src/pits.lua:46",
         "src/pits.lua:108",
-        "src/tips_en.lua:215",
-        "src/tips_en.lua:232",
-        "src/tips_en.lua:291",
+        "src/tips_en.lua:216",
+        "src/tips_en.lua:233",
+        "src/tips_en.lua:292",
         "src/traffic.lua:69",
         "src/traffic.lua:86",
         "src/traffic.lua:120",
@@ -197,7 +197,7 @@
       "consumers": [
         "src/director.lua:71",
         "src/lang_en.lua:61",
-        "src/tips_en.lua:209"
+        "src/tips_en.lua:210"
       ]
     }
   ],
@@ -217,7 +217,7 @@
       },
       "consumers": [
         "src/director.lua:98",
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/mistakes.lua:33",
         "src/tips_en.lua:6"
       ]
@@ -238,7 +238,7 @@
       "consumers": [
         "src/director.lua:99",
         "src/director.lua:810",
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/tips_en.lua:7"
       ]
     },
@@ -256,15 +256,15 @@
         "C": 1.2
       },
       "consumers": [
-        "src/applier.lua:9",
-        "src/applier.lua:68",
-        "src/applier.lua:262",
-        "src/applier.lua:267",
-        "src/applier.lua:290",
-        "src/applier.lua:714",
-        "src/applier.lua:720",
-        "src/applier.lua:784",
-        "src/applier.lua:804",
+        "src/applier.lua:10",
+        "src/applier.lua:69",
+        "src/applier.lua:265",
+        "src/applier.lua:270",
+        "src/applier.lua:293",
+        "src/applier.lua:785",
+        "src/applier.lua:791",
+        "src/applier.lua:855",
+        "src/applier.lua:875",
         "src/caps.lua:2",
         "src/director.lua:100",
         "src/director.lua:102",
@@ -290,14 +290,14 @@
         "src/director.lua:861",
         "src/director.lua:867",
         "src/director.lua:870",
-        "src/engine.lua:107",
-        "src/engine.lua:152",
-        "src/engine.lua:430",
-        "src/engine.lua:482",
+        "src/engine.lua:110",
+        "src/engine.lua:157",
+        "src/engine.lua:435",
+        "src/engine.lua:487",
         "src/lang_en.lua:59",
         "src/lang_en.lua:62",
-        "src/lang_en.lua:126",
-        "src/lang_en.lua:160",
+        "src/lang_en.lua:128",
+        "src/lang_en.lua:162",
         "src/tips_en.lua:8",
         "src/tips_en.lua:9",
         "src/tips_en.lua:12",
@@ -305,9 +305,9 @@
         "src/tips_en.lua:99",
         "src/tips_en.lua:171",
         "src/tips_en.lua:178",
-        "src/tips_en.lua:219",
-        "src/tips_en.lua:226",
-        "src/tips_en.lua:235"
+        "src/tips_en.lua:220",
+        "src/tips_en.lua:227",
+        "src/tips_en.lua:236"
       ]
     },
     {
@@ -325,7 +325,7 @@
       },
       "consumers": [
         "src/director.lua:815",
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/tips_en.lua:9"
       ]
     },
@@ -343,7 +343,7 @@
         "C": 2
       },
       "consumers": [
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/persona.lua:13",
         "src/tips_en.lua:10"
       ]
@@ -362,7 +362,7 @@
         "C": 10
       },
       "consumers": [
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/persona.lua:14",
         "src/tips_en.lua:11"
       ]
@@ -381,7 +381,7 @@
         "C": 8
       },
       "consumers": [
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/persona.lua:15",
         "src/tips_en.lua:12"
       ]
@@ -400,7 +400,7 @@
         "C": 0
       },
       "consumers": [
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/tips_en.lua:13",
         "src/traffic.lua:17",
         "src/traffic.lua:52",
@@ -426,7 +426,7 @@
       },
       "consumers": [
         "src/flood.lua:105",
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/tips_en.lua:14",
         "src/traffic.lua:26"
       ]
@@ -445,9 +445,9 @@
         "C": 10
       },
       "consumers": [
-        "src/engine.lua:225",
+        "src/engine.lua:230",
         "src/flood.lua:106",
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/tips_en.lua:17",
         "src/traffic.lua:10",
         "src/traffic.lua:67"
@@ -467,7 +467,7 @@
         "C": 25
       },
       "consumers": [
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/tips_en.lua:15",
         "src/traffic.lua:72",
         "src/traffic.lua:74"
@@ -487,7 +487,7 @@
         "C": 100
       },
       "consumers": [
-        "src/lang_en.lua:126",
+        "src/lang_en.lua:128",
         "src/tips_en.lua:16",
         "src/traffic.lua:80",
         "src/traffic.lua:83"
@@ -507,10 +507,10 @@
         "C": 1
       },
       "consumers": [
-        "src/engine.lua:210",
-        "src/engine.lua:225",
-        "src/engine.lua:226",
-        "src/lang_en.lua:126",
+        "src/engine.lua:215",
+        "src/engine.lua:230",
+        "src/engine.lua:231",
+        "src/lang_en.lua:128",
         "src/tips_en.lua:18"
       ]
     },
@@ -530,7 +530,7 @@
       "consumers": [
         "src/director.lua:314",
         "src/director.lua:561",
-        "src/lang_en.lua:127",
+        "src/lang_en.lua:129",
         "src/tips_en.lua:20"
       ]
     },
@@ -558,7 +558,7 @@
         "src/director.lua:90",
         "src/director.lua:353",
         "src/director.lua:520",
-        "src/lang_en.lua:127",
+        "src/lang_en.lua:129",
         "src/persona.lua:23",
         "src/tips_en.lua:21"
       ]
@@ -578,7 +578,7 @@
       },
       "consumers": [
         "src/director.lua:545",
-        "src/lang_en.lua:127",
+        "src/lang_en.lua:129",
         "src/tips_en.lua:22"
       ]
     },
@@ -597,7 +597,7 @@
       },
       "consumers": [
         "src/director.lua:320",
-        "src/lang_en.lua:127",
+        "src/lang_en.lua:129",
         "src/tips_en.lua:23"
       ]
     },
@@ -618,7 +618,7 @@
         "src/director.lua:274",
         "src/director.lua:317",
         "src/director.lua:561",
-        "src/lang_en.lua:127",
+        "src/lang_en.lua:129",
         "src/tips_en.lua:24"
       ]
     },
@@ -637,7 +637,7 @@
       },
       "consumers": [
         "src/director.lua:318",
-        "src/lang_en.lua:127",
+        "src/lang_en.lua:129",
         "src/tips_en.lua:25"
       ]
     },
@@ -657,7 +657,7 @@
       "consumers": [
         "src/director.lua:334",
         "src/director.lua:720",
-        "src/lang_en.lua:127",
+        "src/lang_en.lua:129",
         "src/tips_en.lua:26"
       ]
     },
@@ -679,7 +679,7 @@
         "src/director.lua:562",
         "src/director.lua:577",
         "src/flash.lua:78",
-        "src/lang_en.lua:128",
+        "src/lang_en.lua:130",
         "src/tips_en.lua:27"
       ]
     },
@@ -697,7 +697,7 @@
         "C": 0.8
       },
       "consumers": [
-        "src/lang_en.lua:128",
+        "src/lang_en.lua:130",
         "src/persona.lua:27",
         "src/persona.lua:35",
         "src/tips_en.lua:28"
@@ -717,7 +717,7 @@
         "C": 1.8
       },
       "consumers": [
-        "src/lang_en.lua:128",
+        "src/lang_en.lua:130",
         "src/persona.lua:27",
         "src/persona.lua:35",
         "src/tips_en.lua:29"
@@ -739,7 +739,7 @@
       "consumers": [
         "src/director.lua:549",
         "src/director.lua:818",
-        "src/lang_en.lua:128",
+        "src/lang_en.lua:130",
         "src/tips_en.lua:30"
       ]
     },
@@ -758,7 +758,7 @@
       },
       "consumers": [
         "src/director.lua:554",
-        "src/lang_en.lua:128",
+        "src/lang_en.lua:130",
         "src/tips_en.lua:31"
       ]
     },
@@ -778,7 +778,7 @@
       "consumers": [
         "src/director.lua:579",
         "src/flash.lua:45",
-        "src/lang_en.lua:128",
+        "src/lang_en.lua:130",
         "src/tips_en.lua:32"
       ]
     },
@@ -798,7 +798,7 @@
       "consumers": [
         "src/director.lua:324",
         "src/director.lua:330",
-        "src/lang_en.lua:129",
+        "src/lang_en.lua:131",
         "src/tips_en.lua:33"
       ]
     },
@@ -818,7 +818,7 @@
       "consumers": [
         "src/director.lua:324",
         "src/director.lua:327",
-        "src/lang_en.lua:129",
+        "src/lang_en.lua:131",
         "src/tips_en.lua:34"
       ]
     },
@@ -837,7 +837,7 @@
       },
       "consumers": [
         "src/director.lua:330",
-        "src/lang_en.lua:129",
+        "src/lang_en.lua:131",
         "src/tips_en.lua:35"
       ]
     },
@@ -857,9 +857,9 @@
       "consumers": [
         "src/director.lua:264",
         "src/director.lua:886",
-        "src/engine.lua:39",
-        "src/lang_en.lua:130",
-        "src/panel.lua:17",
+        "src/engine.lua:40",
+        "src/lang_en.lua:132",
+        "src/panel.lua:18",
         "src/tips_en.lua:37"
       ]
     },
@@ -880,9 +880,9 @@
         "src/director.lua:296",
         "src/director.lua:886",
         "src/director.lua:894",
-        "src/engine.lua:39",
-        "src/lang_en.lua:130",
-        "src/panel.lua:26",
+        "src/engine.lua:40",
+        "src/lang_en.lua:132",
+        "src/panel.lua:27",
         "src/tips_en.lua:38"
       ]
     },
@@ -905,7 +905,7 @@
       },
       "consumers": [
         "src/director.lua:80",
-        "src/lang_en.lua:130",
+        "src/lang_en.lua:132",
         "src/tips_en.lua:39"
       ]
     },
@@ -930,7 +930,7 @@
         "src/director.lua:305",
         "src/flash.lua:50",
         "src/flash.lua:59",
-        "src/lang_en.lua:131",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:41"
       ]
     },
@@ -953,10 +953,10 @@
         "src/director.lua:321",
         "src/director.lua:436",
         "src/director.lua:440",
-        "src/engine.lua:620",
-        "src/engine.lua:621",
+        "src/engine.lua:641",
+        "src/engine.lua:642",
         "src/flash.lua:58",
-        "src/lang_en.lua:131",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:42"
       ]
     },
@@ -976,7 +976,7 @@
       "consumers": [
         "src/director.lua:825",
         "src/flash.lua:45",
-        "src/lang_en.lua:131",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:43"
       ]
     },
@@ -995,7 +995,7 @@
       },
       "consumers": [
         "src/flash.lua:44",
-        "src/lang_en.lua:131",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:44"
       ]
     },
@@ -1016,7 +1016,7 @@
         "src/director.lua:834",
         "src/flash.lua:73",
         "src/flash.lua:74",
-        "src/lang_en.lua:131",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:45"
       ]
     },
@@ -1035,7 +1035,7 @@
       },
       "consumers": [
         "src/flash.lua:70",
-        "src/lang_en.lua:131",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:46"
       ]
     },
@@ -1054,7 +1054,7 @@
       },
       "consumers": [
         "src/flash.lua:67",
-        "src/lang_en.lua:131",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:47"
       ]
     },
@@ -1072,9 +1072,9 @@
         "C": false
       },
       "consumers": [
-        "src/engine.lua:614",
-        "src/engine.lua:615",
-        "src/lang_en.lua:131",
+        "src/engine.lua:635",
+        "src/engine.lua:636",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:48"
       ]
     },
@@ -1093,7 +1093,7 @@
       },
       "consumers": [
         "src/director.lua:821",
-        "src/lang_en.lua:131",
+        "src/lang_en.lua:133",
         "src/tips_en.lua:49"
       ]
     },
@@ -1113,7 +1113,7 @@
       "consumers": [
         "src/director.lua:665",
         "src/director.lua:676",
-        "src/lang_en.lua:132",
+        "src/lang_en.lua:134",
         "src/tips_en.lua:51"
       ]
     },
@@ -1139,7 +1139,7 @@
         "src/director.lua:87",
         "src/director.lua:88",
         "src/director.lua:718",
-        "src/lang_en.lua:132",
+        "src/lang_en.lua:134",
         "src/tips_en.lua:52"
       ]
     },
@@ -1158,7 +1158,7 @@
       },
       "consumers": [
         "src/director.lua:583",
-        "src/lang_en.lua:132",
+        "src/lang_en.lua:134",
         "src/tips_en.lua:53"
       ]
     },
@@ -1178,7 +1178,7 @@
       "consumers": [
         "src/director.lua:626",
         "src/director.lua:690",
-        "src/lang_en.lua:132",
+        "src/lang_en.lua:134",
         "src/tips_en.lua:54"
       ]
     },
@@ -1197,7 +1197,7 @@
       },
       "consumers": [
         "src/director.lua:683",
-        "src/lang_en.lua:132",
+        "src/lang_en.lua:134",
         "src/tips_en.lua:55"
       ]
     },
@@ -1216,7 +1216,7 @@
       },
       "consumers": [
         "src/director.lua:690",
-        "src/lang_en.lua:132",
+        "src/lang_en.lua:134",
         "src/tips_en.lua:56"
       ]
     },
@@ -1236,7 +1236,7 @@
       "consumers": [
         "src/director.lua:624",
         "src/director.lua:717",
-        "src/lang_en.lua:132",
+        "src/lang_en.lua:134",
         "src/tips_en.lua:57"
       ]
     },
@@ -1255,7 +1255,7 @@
       },
       "consumers": [
         "src/director.lua:630",
-        "src/lang_en.lua:132",
+        "src/lang_en.lua:134",
         "src/tips_en.lua:58"
       ]
     },
@@ -1274,7 +1274,7 @@
       },
       "consumers": [
         "src/director.lua:626",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:59"
       ]
     },
@@ -1294,7 +1294,7 @@
       "consumers": [
         "src/director.lua:692",
         "src/director.lua:825",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:60"
       ]
     },
@@ -1313,7 +1313,7 @@
       },
       "consumers": [
         "src/director.lua:261",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:61"
       ]
     },
@@ -1332,7 +1332,7 @@
       },
       "consumers": [
         "src/director.lua:621",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:62"
       ]
     },
@@ -1351,7 +1351,7 @@
       },
       "consumers": [
         "src/director.lua:621",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:63"
       ]
     },
@@ -1371,7 +1371,7 @@
       "consumers": [
         "src/director.lua:749",
         "src/director.lua:755",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:64"
       ]
     },
@@ -1390,7 +1390,7 @@
       },
       "consumers": [
         "src/director.lua:642",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:65"
       ]
     },
@@ -1409,7 +1409,7 @@
       },
       "consumers": [
         "src/director.lua:633",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:66"
       ]
     },
@@ -1428,7 +1428,7 @@
       },
       "consumers": [
         "src/director.lua:649",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:67"
       ]
     },
@@ -1447,7 +1447,7 @@
       },
       "consumers": [
         "src/director.lua:642",
-        "src/lang_en.lua:133",
+        "src/lang_en.lua:135",
         "src/tips_en.lua:68"
       ]
     },
@@ -1466,7 +1466,7 @@
       },
       "consumers": [
         "src/director.lua:218",
-        "src/lang_en.lua:134",
+        "src/lang_en.lua:136",
         "src/tips_en.lua:70"
       ]
     },
@@ -1485,7 +1485,7 @@
       },
       "consumers": [
         "src/director.lua:220",
-        "src/lang_en.lua:134",
+        "src/lang_en.lua:136",
         "src/tips_en.lua:71"
       ]
     },
@@ -1504,7 +1504,7 @@
       },
       "consumers": [
         "src/director.lua:221",
-        "src/lang_en.lua:134",
+        "src/lang_en.lua:136",
         "src/tips_en.lua:72"
       ]
     },
@@ -1526,7 +1526,7 @@
         "src/director.lua:526",
         "src/director.lua:545",
         "src/director.lua:633",
-        "src/lang_en.lua:134",
+        "src/lang_en.lua:136",
         "src/tips_en.lua:73"
       ]
     },
@@ -1552,7 +1552,7 @@
         "src/director.lua:822",
         "src/director.lua:845",
         "src/director.lua:860",
-        "src/lang_en.lua:134",
+        "src/lang_en.lua:136",
         "src/tips_en.lua:74",
         "src/traffic.lua:199"
       ]
@@ -1572,7 +1572,7 @@
       },
       "consumers": [
         "src/director.lua:402",
-        "src/lang_en.lua:134",
+        "src/lang_en.lua:136",
         "src/tips_en.lua:75"
       ]
     },
@@ -1592,7 +1592,7 @@
       "consumers": [
         "src/director.lua:117",
         "src/director.lua:130",
-        "src/lang_en.lua:134",
+        "src/lang_en.lua:136",
         "src/tips_en.lua:76"
       ]
     },
@@ -1611,7 +1611,7 @@
       },
       "consumers": [
         "src/director.lua:207",
-        "src/lang_en.lua:134",
+        "src/lang_en.lua:136",
         "src/tips_en.lua:77"
       ]
     },
@@ -1629,7 +1629,7 @@
         "C": 0.2
       },
       "consumers": [
-        "src/lang_en.lua:135",
+        "src/lang_en.lua:137",
         "src/persona.lua:10",
         "src/tips_en.lua:79"
       ]
@@ -1648,7 +1648,7 @@
         "C": 0.6
       },
       "consumers": [
-        "src/lang_en.lua:135",
+        "src/lang_en.lua:137",
         "src/persona.lua:10",
         "src/tips_en.lua:80"
       ]
@@ -1667,7 +1667,7 @@
         "C": 0.4
       },
       "consumers": [
-        "src/lang_en.lua:135",
+        "src/lang_en.lua:137",
         "src/persona.lua:10",
         "src/tips_en.lua:81"
       ]
@@ -1686,7 +1686,7 @@
         "C": 1.2
       },
       "consumers": [
-        "src/lang_en.lua:135",
+        "src/lang_en.lua:137",
         "src/persona.lua:10",
         "src/tips_en.lua:82"
       ]
@@ -1706,7 +1706,7 @@
       },
       "consumers": [
         "src/director.lua:97",
-        "src/lang_en.lua:135",
+        "src/lang_en.lua:137",
         "src/tips_en.lua:83"
       ]
     },
@@ -1725,7 +1725,7 @@
       },
       "consumers": [
         "src/director.lua:638",
-        "src/lang_en.lua:135",
+        "src/lang_en.lua:137",
         "src/tips_en.lua:84"
       ]
     },
@@ -1744,7 +1744,7 @@
       },
       "consumers": [
         "src/director.lua:799",
-        "src/lang_en.lua:135",
+        "src/lang_en.lua:137",
         "src/tips_en.lua:85"
       ]
     },
@@ -1762,7 +1762,7 @@
         "C": 120
       },
       "consumers": [
-        "src/lang_en.lua:136",
+        "src/lang_en.lua:138",
         "src/persona.lua:24",
         "src/persona.lua:42",
         "src/tips_en.lua:86"
@@ -1782,7 +1782,7 @@
         "C": 600
       },
       "consumers": [
-        "src/lang_en.lua:136",
+        "src/lang_en.lua:138",
         "src/persona.lua:24",
         "src/persona.lua:42",
         "src/tips_en.lua:87"
@@ -1802,7 +1802,7 @@
         "C": 1
       },
       "consumers": [
-        "src/lang_en.lua:136",
+        "src/lang_en.lua:138",
         "src/persona.lua:25",
         "src/persona.lua:43",
         "src/tips_en.lua:88"
@@ -1822,7 +1822,7 @@
         "C": 2
       },
       "consumers": [
-        "src/lang_en.lua:136",
+        "src/lang_en.lua:138",
         "src/persona.lua:25",
         "src/persona.lua:43",
         "src/tips_en.lua:89"
@@ -1842,7 +1842,7 @@
         "C": 3
       },
       "consumers": [
-        "src/lang_en.lua:136",
+        "src/lang_en.lua:138",
         "src/persona.lua:26",
         "src/persona.lua:44",
         "src/tips_en.lua:90"
@@ -1862,7 +1862,7 @@
         "C": 7
       },
       "consumers": [
-        "src/lang_en.lua:136",
+        "src/lang_en.lua:138",
         "src/persona.lua:26",
         "src/persona.lua:44",
         "src/tips_en.lua:91"
@@ -1882,7 +1882,7 @@
         "C": false
       },
       "consumers": [
-        "src/lang_en.lua:136",
+        "src/lang_en.lua:138",
         "src/persona.lua:23",
         "src/tips_en.lua:92"
       ]
@@ -1901,7 +1901,7 @@
         "C": 0.25
       },
       "consumers": [
-        "src/lang_en.lua:136",
+        "src/lang_en.lua:138",
         "src/persona.lua:23",
         "src/tips_en.lua:93"
       ]
@@ -1920,7 +1920,7 @@
         "C": true
       },
       "consumers": [
-        "src/lang_en.lua:137",
+        "src/lang_en.lua:139",
         "src/mistakes.lua:44",
         "src/tips_en.lua:94"
       ]
@@ -1939,7 +1939,7 @@
         "C": 0.5
       },
       "consumers": [
-        "src/lang_en.lua:137",
+        "src/lang_en.lua:139",
         "src/mistakes.lua:44",
         "src/mistakes.lua:65",
         "src/tips_en.lua:95"
@@ -1959,14 +1959,14 @@
         "C": 1
       },
       "consumers": [
-        "src/applier.lua:10",
-        "src/applier.lua:232",
-        "src/applier.lua:387",
-        "src/applier.lua:388",
+        "src/applier.lua:11",
+        "src/applier.lua:235",
+        "src/applier.lua:390",
         "src/applier.lua:391",
-        "src/applier.lua:407",
-        "src/applier.lua:489",
-        "src/applier.lua:697",
+        "src/applier.lua:394",
+        "src/applier.lua:410",
+        "src/applier.lua:560",
+        "src/applier.lua:768",
         "src/caps.lua:2",
         "src/director.lua:458",
         "src/director.lua:468",
@@ -1974,12 +1974,12 @@
         "src/director.lua:742",
         "src/director.lua:791",
         "src/director.lua:792",
-        "src/engine.lua:107",
-        "src/engine.lua:340",
-        "src/engine.lua:344",
-        "src/engine.lua:348",
-        "src/engine.lua:360",
-        "src/lang_en.lua:138",
+        "src/engine.lua:110",
+        "src/engine.lua:345",
+        "src/engine.lua:349",
+        "src/engine.lua:353",
+        "src/engine.lua:365",
+        "src/lang_en.lua:140",
         "src/mistakes.lua:47",
         "src/tips_en.lua:97",
         "src/traffic.lua:17",
@@ -2003,8 +2003,8 @@
       },
       "consumers": [
         "src/director.lua:794",
-        "src/engine.lua:39",
-        "src/lang_en.lua:138",
+        "src/engine.lua:40",
+        "src/lang_en.lua:140",
         "src/tips_en.lua:99"
       ]
     },
@@ -2023,8 +2023,8 @@
       },
       "consumers": [
         "src/director.lua:794",
-        "src/engine.lua:39",
-        "src/lang_en.lua:138",
+        "src/engine.lua:40",
+        "src/lang_en.lua:140",
         "src/tips_en.lua:100"
       ]
     },
@@ -2046,8 +2046,8 @@
         "src/director.lua:742",
         "src/director.lua:791",
         "src/director.lua:792",
-        "src/engine.lua:348",
-        "src/lang_en.lua:138",
+        "src/engine.lua:353",
+        "src/lang_en.lua:140",
         "src/mistakes.lua:47",
         "src/tips_en.lua:101"
       ]
@@ -2067,9 +2067,9 @@
       },
       "consumers": [
         "src/director.lua:796",
-        "src/engine.lua:39",
-        "src/engine.lua:348",
-        "src/lang_en.lua:138",
+        "src/engine.lua:40",
+        "src/engine.lua:353",
+        "src/lang_en.lua:140",
         "src/tips_en.lua:98"
       ]
     },
@@ -2088,7 +2088,7 @@
       },
       "consumers": [
         "src/director.lua:486",
-        "src/lang_en.lua:139",
+        "src/lang_en.lua:141",
         "src/tips_en.lua:103"
       ]
     },
@@ -2109,12 +2109,13 @@
         "src/director.lua:490",
         "src/director.lua:491",
         "src/director.lua:530",
-        "src/engine.lua:376",
+        "src/engine.lua:381",
         "src/incidents.lua:110",
         "src/incidents.lua:150",
         "src/incidents.lua:160",
         "src/incidents.lua:193",
-        "src/lang_en.lua:139",
+        "src/lang_en.lua:141",
+        "src/lights.lua:47",
         "src/penalties.lua:39",
         "src/tips_en.lua:104"
       ]
@@ -2135,7 +2136,7 @@
       "consumers": [
         "src/director.lua:490",
         "src/director.lua:507",
-        "src/lang_en.lua:139",
+        "src/lang_en.lua:141",
         "src/tips_en.lua:105"
       ]
     },
@@ -2154,7 +2155,7 @@
       },
       "consumers": [
         "src/director.lua:518",
-        "src/lang_en.lua:139",
+        "src/lang_en.lua:141",
         "src/tips_en.lua:106"
       ]
     },
@@ -2173,7 +2174,7 @@
       },
       "consumers": [
         "src/director.lua:518",
-        "src/lang_en.lua:139",
+        "src/lang_en.lua:141",
         "src/tips_en.lua:107"
       ]
     },
@@ -2193,7 +2194,7 @@
       "consumers": [
         "src/director.lua:526",
         "src/lang_en.lua:47",
-        "src/lang_en.lua:139",
+        "src/lang_en.lua:141",
         "src/tips_en.lua:108"
       ]
     },
@@ -2212,7 +2213,7 @@
       },
       "consumers": [
         "src/director.lua:474",
-        "src/lang_en.lua:140",
+        "src/lang_en.lua:142",
         "src/tips_en.lua:109"
       ]
     },
@@ -2231,7 +2232,7 @@
       },
       "consumers": [
         "src/incidents.lua:191",
-        "src/lang_en.lua:140",
+        "src/lang_en.lua:142",
         "src/tips_en.lua:110"
       ]
     },
@@ -2250,7 +2251,7 @@
       },
       "consumers": [
         "src/incidents.lua:195",
-        "src/lang_en.lua:140",
+        "src/lang_en.lua:142",
         "src/tips_en.lua:111"
       ]
     },
@@ -2269,7 +2270,7 @@
       },
       "consumers": [
         "src/incidents.lua:195",
-        "src/lang_en.lua:140",
+        "src/lang_en.lua:142",
         "src/tips_en.lua:112"
       ]
     },
@@ -2288,7 +2289,7 @@
       },
       "consumers": [
         "src/incidents.lua:98",
-        "src/lang_en.lua:140",
+        "src/lang_en.lua:142",
         "src/tips_en.lua:113"
       ]
     },
@@ -2309,7 +2310,8 @@
         "src/incidents.lua:379",
         "src/incidents.lua:437",
         "src/lang_en.lua:47",
-        "src/lang_en.lua:141",
+        "src/lang_en.lua:143",
+        "src/lights.lua:39",
         "src/tips_en.lua:114"
       ]
     },
@@ -2334,7 +2336,7 @@
         "src/incidents.lua:443",
         "src/incidents.lua:451",
         "src/incidents.lua:452",
-        "src/lang_en.lua:141",
+        "src/lang_en.lua:143",
         "src/tips_en.lua:118"
       ]
     },
@@ -2354,7 +2356,7 @@
       "consumers": [
         "src/incidents.lua:384",
         "src/incidents.lua:442",
-        "src/lang_en.lua:141",
+        "src/lang_en.lua:143",
         "src/tips_en.lua:119"
       ]
     },
@@ -2373,7 +2375,7 @@
       },
       "consumers": [
         "src/incidents.lua:182",
-        "src/lang_en.lua:141",
+        "src/lang_en.lua:143",
         "src/penalties.lua:39",
         "src/tips_en.lua:120"
       ]
@@ -2395,10 +2397,10 @@
         "src/delta.lua:146",
         "src/delta.lua:178",
         "src/director.lua:425",
-        "src/engine.lua:706",
+        "src/engine.lua:727",
         "src/incidents.lua:395",
         "src/incidents.lua:434",
-        "src/lang_en.lua:141",
+        "src/lang_en.lua:143",
         "src/tips_en.lua:121"
       ]
     },
@@ -2418,7 +2420,7 @@
       "consumers": [
         "src/delta.lua:77",
         "src/lang_en.lua:47",
-        "src/lang_en.lua:142",
+        "src/lang_en.lua:144",
         "src/tips_en.lua:116"
       ]
     },
@@ -2437,7 +2439,7 @@
       },
       "consumers": [
         "src/delta.lua:76",
-        "src/lang_en.lua:142",
+        "src/lang_en.lua:144",
         "src/tips_en.lua:117"
       ]
     },
@@ -2457,7 +2459,7 @@
       "consumers": [
         "src/delta.lua:77",
         "src/incidents.lua:433",
-        "src/lang_en.lua:142",
+        "src/lang_en.lua:144",
         "src/tips_en.lua:115"
       ]
     },
@@ -2475,9 +2477,9 @@
         "C": false
       },
       "consumers": [
-        "src/incidents.lua:462",
+        "src/incidents.lua:463",
         "src/lang_en.lua:47",
-        "src/lang_en.lua:143",
+        "src/lang_en.lua:145",
         "src/tips_en.lua:133"
       ]
     },
@@ -2495,8 +2497,8 @@
         "C": true
       },
       "consumers": [
-        "src/lang_en.lua:143",
-        "src/panel.lua:124",
+        "src/lang_en.lua:145",
+        "src/panel.lua:132",
         "src/tips_en.lua:134"
       ]
     },
@@ -2514,9 +2516,9 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:589",
-        "src/engine.lua:592",
-        "src/engine.lua:605",
+        "src/engine.lua:606",
+        "src/engine.lua:611",
+        "src/engine.lua:626",
         "src/incidents.lua:69",
         "src/incidents.lua:234",
         "src/incidents.lua:244",
@@ -2529,7 +2531,7 @@
         "src/incidents.lua:339",
         "src/incidents.lua:349",
         "src/incidents.lua:452",
-        "src/lang_en.lua:143",
+        "src/lang_en.lua:145",
         "src/tips_en.lua:135"
       ]
     },
@@ -2547,8 +2549,8 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:503",
-        "src/lang_en.lua:143",
+        "src/engine.lua:508",
+        "src/lang_en.lua:145",
         "src/tips_en.lua:131"
       ]
     },
@@ -2567,7 +2569,7 @@
       },
       "consumers": [
         "src/lang_en.lua:47",
-        "src/lang_en.lua:144",
+        "src/lang_en.lua:146",
         "src/penalties.lua:77",
         "src/penalties.lua:78",
         "src/tips_en.lua:129"
@@ -2588,7 +2590,7 @@
       },
       "consumers": [
         "src/delta.lua:125",
-        "src/lang_en.lua:144",
+        "src/lang_en.lua:146",
         "src/tips_en.lua:130"
       ]
     },
@@ -2606,8 +2608,8 @@
         "C": 5
       },
       "consumers": [
-        "src/engine.lua:607",
-        "src/lang_en.lua:144",
+        "src/engine.lua:628",
+        "src/lang_en.lua:146",
         "src/penalties.lua:80",
         "src/penalties.lua:81",
         "src/penalties.lua:85",
@@ -2631,10 +2633,11 @@
         "C": 5
       },
       "consumers": [
-        "src/engine.lua:579",
-        "src/engine.lua:591",
-        "src/engine.lua:607",
-        "src/lang_en.lua:144",
+        "src/engine.lua:596",
+        "src/engine.lua:610",
+        "src/engine.lua:614",
+        "src/engine.lua:628",
+        "src/lang_en.lua:146",
         "src/penalties.lua:53",
         "src/penalties.lua:138",
         "src/tips_en.lua:127"
@@ -2654,7 +2657,7 @@
         "C": true
       },
       "consumers": [
-        "src/lang_en.lua:144",
+        "src/lang_en.lua:146",
         "src/penalties.lua:149",
         "src/tips_en.lua:128"
       ]
@@ -2675,7 +2678,7 @@
       "consumers": [
         "src/director.lua:466",
         "src/lang_en.lua:46",
-        "src/lang_en.lua:145",
+        "src/lang_en.lua:147",
         "src/tips_en.lua:137"
       ]
     },
@@ -2698,10 +2701,10 @@
         "C": "local"
       },
       "consumers": [
-        "src/engine.lua:57",
+        "src/engine.lua:58",
         "src/incidents.lua:219",
         "src/incidents.lua:343",
-        "src/lang_en.lua:145",
+        "src/lang_en.lua:147",
         "src/tips_en.lua:138"
       ]
     },
@@ -2719,11 +2722,11 @@
         "C": 15
       },
       "consumers": [
-        "src/engine.lua:56",
         "src/engine.lua:57",
+        "src/engine.lua:58",
         "src/incidents.lua:179",
         "src/incidents.lua:229",
-        "src/lang_en.lua:145",
+        "src/lang_en.lua:147",
         "src/tips_en.lua:139"
       ]
     },
@@ -2746,7 +2749,7 @@
         "src/delta.lua:90",
         "src/incidents.lua:346",
         "src/incidents.lua:410",
-        "src/lang_en.lua:145",
+        "src/lang_en.lua:147",
         "src/tips_en.lua:140"
       ]
     },
@@ -2768,8 +2771,8 @@
         "src/delta.lua:90",
         "src/incidents.lua:244",
         "src/incidents.lua:410",
-        "src/lang_en.lua:145",
-        "src/panel.lua:145",
+        "src/lang_en.lua:147",
+        "src/panel.lua:153",
         "src/tips_en.lua:141"
       ]
     },
@@ -2790,8 +2793,8 @@
         "src/delta.lua:85",
         "src/incidents.lua:244",
         "src/incidents.lua:410",
-        "src/lang_en.lua:145",
-        "src/panel.lua:144",
+        "src/lang_en.lua:147",
+        "src/panel.lua:152",
         "src/tips_en.lua:142"
       ]
     },
@@ -2812,7 +2815,7 @@
         "src/incidents.lua:231",
         "src/incidents.lua:254",
         "src/incidents.lua:346",
-        "src/lang_en.lua:146",
+        "src/lang_en.lua:148",
         "src/tips_en.lua:143"
       ]
     },
@@ -2835,7 +2838,7 @@
         "src/incidents.lua:363",
         "src/incidents.lua:408",
         "src/incidents.lua:411",
-        "src/lang_en.lua:146",
+        "src/lang_en.lua:148",
         "src/tips_en.lua:144"
       ]
     },
@@ -2853,10 +2856,10 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:50",
+        "src/engine.lua:51",
         "src/incidents.lua:227",
         "src/incidents.lua:228",
-        "src/lang_en.lua:146",
+        "src/lang_en.lua:148",
         "src/tips_en.lua:145"
       ]
     },
@@ -2874,10 +2877,10 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:51",
+        "src/engine.lua:52",
         "src/incidents.lua:309",
         "src/lang_en.lua:46",
-        "src/lang_en.lua:147",
+        "src/lang_en.lua:149",
         "src/tips_en.lua:146"
       ]
     },
@@ -2896,7 +2899,7 @@
       },
       "consumers": [
         "src/incidents.lua:310",
-        "src/lang_en.lua:147",
+        "src/lang_en.lua:149",
         "src/tips_en.lua:147"
       ]
     },
@@ -2917,7 +2920,7 @@
         "src/delta.lua:82",
         "src/incidents.lua:312",
         "src/incidents.lua:415",
-        "src/lang_en.lua:147",
+        "src/lang_en.lua:149",
         "src/tips_en.lua:148"
       ]
     },
@@ -2937,7 +2940,7 @@
       "consumers": [
         "src/delta.lua:82",
         "src/incidents.lua:415",
-        "src/lang_en.lua:147",
+        "src/lang_en.lua:149",
         "src/tips_en.lua:149"
       ]
     },
@@ -2957,7 +2960,7 @@
       "consumers": [
         "src/incidents.lua:312",
         "src/incidents.lua:328",
-        "src/lang_en.lua:147",
+        "src/lang_en.lua:149",
         "src/tips_en.lua:150"
       ]
     },
@@ -2975,7 +2978,7 @@
         "C": false
       },
       "consumers": [
-        "src/lang_en.lua:147",
+        "src/lang_en.lua:149",
         "src/pits.lua:94",
         "src/pits.lua:119",
         "src/pits.lua:124",
@@ -2996,13 +2999,13 @@
         "C": 0
       },
       "consumers": [
-        "src/engine.lua:650",
-        "src/engine.lua:653",
+        "src/engine.lua:671",
+        "src/engine.lua:674",
         "src/hudinfo.lua:106",
         "src/hudinfo.lua:107",
         "src/hudinfo.lua:108",
         "src/lang_en.lua:46",
-        "src/lang_en.lua:148",
+        "src/lang_en.lua:150",
         "src/pits.lua:47",
         "src/pits.lua:57",
         "src/pits.lua:62",
@@ -3028,7 +3031,7 @@
         "C": 25
       },
       "consumers": [
-        "src/lang_en.lua:148",
+        "src/lang_en.lua:150",
         "src/pits.lua:53",
         "src/tips_en.lua:153"
       ]
@@ -3047,7 +3050,7 @@
         "C": 75
       },
       "consumers": [
-        "src/lang_en.lua:148",
+        "src/lang_en.lua:150",
         "src/pits.lua:53",
         "src/tips_en.lua:154"
       ]
@@ -3066,7 +3069,7 @@
         "C": true
       },
       "consumers": [
-        "src/lang_en.lua:148",
+        "src/lang_en.lua:150",
         "src/pits.lua:119",
         "src/tips_en.lua:155"
       ]
@@ -3085,9 +3088,9 @@
         "C": true
       },
       "consumers": [
-        "src/applier.lua:349",
-        "src/engine.lua:107",
-        "src/lang_en.lua:148",
+        "src/applier.lua:352",
+        "src/engine.lua:110",
+        "src/lang_en.lua:150",
         "src/pits.lua:99",
         "src/pits.lua:124",
         "src/pits.lua:126",
@@ -3108,7 +3111,7 @@
         "C": false
       },
       "consumers": [
-        "src/lang_en.lua:148",
+        "src/lang_en.lua:150",
         "src/pits.lua:33",
         "src/pits.lua:56",
         "src/tips_en.lua:157"
@@ -3128,7 +3131,7 @@
         "C": 0
       },
       "consumers": [
-        "src/lang_en.lua:149",
+        "src/lang_en.lua:151",
         "src/pits.lua:47",
         "src/pits.lua:118",
         "src/tips_en.lua:158"
@@ -3148,7 +3151,7 @@
         "C": 0
       },
       "consumers": [
-        "src/lang_en.lua:149",
+        "src/lang_en.lua:151",
         "src/pits.lua:47",
         "src/pits.lua:111",
         "src/pits.lua:165",
@@ -3173,7 +3176,7 @@
         "C": "refuel"
       },
       "consumers": [
-        "src/lang_en.lua:149",
+        "src/lang_en.lua:151",
         "src/pits.lua:172",
         "src/tips_en.lua:159"
       ]
@@ -3196,12 +3199,12 @@
         "C": "open"
       },
       "consumers": [
-        "src/engine.lua:646",
+        "src/engine.lua:667",
         "src/incidents.lua:17",
         "src/incidents.lua:28",
         "src/incidents.lua:300",
         "src/incidents.lua:303",
-        "src/lang_en.lua:149",
+        "src/lang_en.lua:151",
         "src/tips_en.lua:161"
       ]
     },
@@ -3219,7 +3222,7 @@
         "C": true
       },
       "consumers": [
-        "src/lang_en.lua:149",
+        "src/lang_en.lua:151",
         "src/pits.lua:59",
         "src/pits.lua:69",
         "src/tips_en.lua:162"
@@ -3241,7 +3244,7 @@
       "consumers": [
         "src/director.lua:841",
         "src/lang_en.lua:46",
-        "src/lang_en.lua:150",
+        "src/lang_en.lua:152",
         "src/tips_en.lua:163"
       ]
     },
@@ -3260,7 +3263,7 @@
       },
       "consumers": [
         "src/director.lua:843",
-        "src/lang_en.lua:150",
+        "src/lang_en.lua:152",
         "src/tips_en.lua:164"
       ]
     },
@@ -3279,7 +3282,7 @@
       },
       "consumers": [
         "src/director.lua:845",
-        "src/lang_en.lua:150",
+        "src/lang_en.lua:152",
         "src/tips_en.lua:165"
       ]
     },
@@ -3297,13 +3300,13 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:365",
-        "src/engine.lua:567",
-        "src/engine.lua:613",
+        "src/engine.lua:370",
+        "src/engine.lua:572",
+        "src/engine.lua:634",
         "src/lang_en.lua:46",
-        "src/lang_en.lua:151",
-        "src/panel.lua:102",
-        "src/panel.lua:130",
+        "src/lang_en.lua:153",
+        "src/panel.lua:106",
+        "src/panel.lua:138",
         "src/tips_en.lua:126"
       ]
     },
@@ -3321,8 +3324,8 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:514",
-        "src/lang_en.lua:151",
+        "src/engine.lua:519",
+        "src/lang_en.lua:153",
         "src/tips_en.lua:123"
       ]
     },
@@ -3340,8 +3343,8 @@
         "C": 1
       },
       "consumers": [
-        "src/engine.lua:538",
-        "src/lang_en.lua:151",
+        "src/engine.lua:543",
+        "src/lang_en.lua:153",
         "src/tips_en.lua:124"
       ]
     },
@@ -3359,8 +3362,8 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:552",
-        "src/lang_en.lua:151",
+        "src/engine.lua:557",
+        "src/lang_en.lua:153",
         "src/tips_en.lua:125"
       ]
     },
@@ -3378,10 +3381,10 @@
         "C": 200
       },
       "consumers": [
-        "src/engine.lua:365",
-        "src/engine.lua:507",
-        "src/engine.lua:613",
-        "src/lang_en.lua:151",
+        "src/engine.lua:370",
+        "src/engine.lua:512",
+        "src/engine.lua:634",
+        "src/lang_en.lua:153",
         "src/tips_en.lua:122"
       ]
     },
@@ -3402,7 +3405,7 @@
         "src/classes.lua:42",
         "src/director.lua:102",
         "src/lang_en.lua:46",
-        "src/lang_en.lua:152",
+        "src/lang_en.lua:154",
         "src/tips_en.lua:166"
       ]
     },
@@ -3421,7 +3424,7 @@
       },
       "consumers": [
         "src/classes.lua:45",
-        "src/lang_en.lua:152",
+        "src/lang_en.lua:154",
         "src/tips_en.lua:167"
       ]
     },
@@ -3439,7 +3442,7 @@
         "C": false
       },
       "consumers": [
-        "src/lang_en.lua:152",
+        "src/lang_en.lua:154",
         "src/persona.lua:31",
         "src/persona.lua:32",
         "src/tips_en.lua:168"
@@ -3461,7 +3464,7 @@
       "consumers": [
         "src/director.lua:546",
         "src/lang_en.lua:46",
-        "src/lang_en.lua:152",
+        "src/lang_en.lua:154",
         "src/tips_en.lua:169"
       ]
     },
@@ -3482,7 +3485,7 @@
         "src/director.lua:103",
         "src/director.lua:399",
         "src/director.lua:800",
-        "src/lang_en.lua:153",
+        "src/lang_en.lua:155",
         "src/persona.lua:6",
         "src/tips_en.lua:171"
       ]
@@ -3504,11 +3507,12 @@
         "src/delta.lua:122",
         "src/director.lua:74",
         "src/director.lua:895",
-        "src/engine.lua:234",
-        "src/engine.lua:419",
-        "src/engine.lua:624",
+        "src/engine.lua:239",
+        "src/engine.lua:424",
+        "src/engine.lua:582",
+        "src/engine.lua:645",
         "src/incidents.lua:376",
-        "src/lang_en.lua:153",
+        "src/lang_en.lua:155",
         "src/tips_en.lua:172"
       ]
     },
@@ -3527,7 +3531,7 @@
       },
       "consumers": [
         "src/classes.lua:31",
-        "src/lang_en.lua:153",
+        "src/lang_en.lua:155",
         "src/tips_en.lua:173"
       ]
     },
@@ -3547,7 +3551,7 @@
       "consumers": [
         "src/director.lua:300",
         "src/director.lua:561",
-        "src/lang_en.lua:153",
+        "src/lang_en.lua:155",
         "src/tips_en.lua:174"
       ]
     },
@@ -3565,7 +3569,7 @@
         "C": 3
       },
       "consumers": [
-        "src/lang_en.lua:153",
+        "src/lang_en.lua:155",
         "src/persona.lua:28",
         "src/tips_en.lua:175"
       ]
@@ -3585,7 +3589,7 @@
       },
       "consumers": [
         "src/director.lua:104",
-        "src/lang_en.lua:153",
+        "src/lang_en.lua:155",
         "src/tips_en.lua:176"
       ]
     },
@@ -3605,7 +3609,7 @@
       "consumers": [
         "src/director.lua:107",
         "src/director.lua:320",
-        "src/lang_en.lua:154",
+        "src/lang_en.lua:156",
         "src/tips_en.lua:178"
       ]
     },
@@ -3623,8 +3627,8 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:632",
-        "src/lang_en.lua:154",
+        "src/engine.lua:653",
+        "src/lang_en.lua:156",
         "src/tips_en.lua:179",
         "src/weather.lua:25"
       ]
@@ -3643,8 +3647,8 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:638",
-        "src/lang_en.lua:154",
+        "src/engine.lua:659",
+        "src/lang_en.lua:156",
         "src/tips_en.lua:180"
       ]
     },
@@ -3662,7 +3666,7 @@
         "C": 15
       },
       "consumers": [
-        "src/lang_en.lua:154",
+        "src/lang_en.lua:156",
         "src/tips_en.lua:181",
         "src/weather.lua:38"
       ]
@@ -3681,7 +3685,7 @@
         "C": 2.5
       },
       "consumers": [
-        "src/lang_en.lua:155",
+        "src/lang_en.lua:157",
         "src/tips_en.lua:183",
         "src/traffic.lua:209"
       ]
@@ -3700,7 +3704,7 @@
         "C": 2.8
       },
       "consumers": [
-        "src/lang_en.lua:155",
+        "src/lang_en.lua:157",
         "src/tips_en.lua:184",
         "src/traffic.lua:209"
       ]
@@ -3719,7 +3723,7 @@
         "C": 45
       },
       "consumers": [
-        "src/lang_en.lua:155",
+        "src/lang_en.lua:157",
         "src/tips_en.lua:185",
         "src/traffic.lua:208"
       ]
@@ -3738,7 +3742,7 @@
         "C": 14
       },
       "consumers": [
-        "src/lang_en.lua:155",
+        "src/lang_en.lua:157",
         "src/tips_en.lua:186",
         "src/traffic.lua:219"
       ]
@@ -3747,78 +3751,73 @@
   "functions": [
     {
       "file": "ACAdvancedIA.lua",
-      "line": 40,
+      "line": 41,
       "name": "announce"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 47,
+      "line": 48,
       "name": "dirty"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 55,
+      "line": 56,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 66,
+      "line": 67,
       "name": "writeJournal"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 85,
+      "line": 86,
       "name": "cancelProbe"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 94,
+      "line": 95,
       "name": "syncRestored"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 104,
+      "line": 105,
       "name": "anyOwned"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 109,
+      "line": 110,
       "name": "step"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 115,
+      "line": 116,
       "name": "stop"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 121,
+      "line": 122,
       "name": "saveRace"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 127,
+      "line": 128,
       "name": "release"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 139,
+      "line": 140,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 157,
+      "line": 158,
       "name": "session"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 162,
+      "line": 163,
       "name": "update"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 182,
-      "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
@@ -3827,148 +3826,153 @@
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 272,
+      "line": 184,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 279,
       "name": "protect"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 281,
+      "line": 288,
       "name": "script.HUMANAI__UPDATE"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 292,
+      "line": 299,
       "name": "script.update"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 293,
+      "line": 300,
       "name": "script.HUMANAI__MENU"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 296,
+      "line": 303,
       "name": "protectUI"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 304,
+      "line": 311,
       "name": "script.HUMANAI__MAIN"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 314,
+      "line": 321,
       "name": "script.HUMANAI__FLAGS"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 316,
+      "line": 323,
       "name": "script.HUMANAI__HUD"
     },
     {
       "file": "src/applier.lua",
-      "line": 13,
+      "line": 14,
       "name": "note"
     },
     {
       "file": "src/applier.lua",
-      "line": 16,
+      "line": 17,
       "name": "callable"
     },
     {
       "file": "src/applier.lua",
-      "line": 24,
+      "line": 25,
       "name": "initClock"
     },
     {
       "file": "src/applier.lua",
-      "line": 32,
+      "line": 33,
       "name": "present"
     },
     {
       "file": "src/applier.lua",
-      "line": 38,
+      "line": 39,
       "name": "setBrake"
     },
     {
       "file": "src/applier.lua",
-      "line": 43,
+      "line": 44,
       "name": "setFlash"
     },
     {
       "file": "src/applier.lua",
-      "line": 44,
+      "line": 45,
       "name": "write"
     },
     {
       "file": "src/applier.lua",
-      "line": 60,
+      "line": 61,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 64,
+      "line": 65,
       "name": "M.new"
     },
     {
       "file": "src/applier.lua",
-      "line": 73,
+      "line": 74,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 83,
+      "line": 84,
       "name": "M.clock"
     },
     {
       "file": "src/applier.lua",
-      "line": 93,
+      "line": 94,
       "name": "M.access"
     },
     {
       "file": "src/applier.lua",
-      "line": 100,
+      "line": 101,
       "name": "M.openStore"
     },
     {
       "file": "src/applier.lua",
-      "line": 127,
+      "line": 128,
       "name": "M.savePreset"
     },
     {
       "file": "src/applier.lua",
-      "line": 133,
+      "line": 134,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 141,
+      "line": 142,
       "name": "M.deletePreset"
     },
     {
       "file": "src/applier.lua",
-      "line": 143,
+      "line": 144,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 148,
+      "line": 149,
       "name": "readRaceFlagsHidden"
     },
     {
       "file": "src/applier.lua",
-      "line": 151,
+      "line": 152,
+      "name": "M.readFlagsHidden"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 156,
       "name": "M.menu"
     },
     {
       "file": "src/applier.lua",
-      "line": 168,
+      "line": 170,
       "name": "M.compactWindow"
-    },
-    {
-      "file": "src/applier.lua",
-      "line": 172,
-      "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
@@ -3977,317 +3981,342 @@
     },
     {
       "file": "src/applier.lua",
-      "line": 179,
+      "line": 176,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 181,
       "name": "M.baselines"
     },
     {
       "file": "src/applier.lua",
-      "line": 185,
+      "line": 187,
       "name": "M.dirty"
     },
     {
       "file": "src/applier.lua",
-      "line": 186,
+      "line": 188,
       "name": "M.rebase"
     },
     {
       "file": "src/applier.lua",
-      "line": 195,
+      "line": 198,
       "name": "M.save"
     },
     {
       "file": "src/applier.lua",
-      "line": 198,
+      "line": 201,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 210,
+      "line": 213,
       "name": "restoreRain"
     },
     {
       "file": "src/applier.lua",
-      "line": 214,
+      "line": 217,
       "name": "restoreSkin"
     },
     {
       "file": "src/applier.lua",
-      "line": 218,
+      "line": 221,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 222,
+      "line": 225,
       "name": "M.restore"
     },
     {
       "file": "src/applier.lua",
-      "line": 272,
+      "line": 275,
       "name": "send"
     },
     {
       "file": "src/applier.lua",
-      "line": 280,
+      "line": 283,
       "name": "field"
     },
     {
       "file": "src/applier.lua",
-      "line": 285,
+      "line": 288,
       "name": "claim"
     },
     {
       "file": "src/applier.lua",
-      "line": 294,
+      "line": 297,
       "name": "weather"
     },
     {
       "file": "src/applier.lua",
-      "line": 321,
+      "line": 324,
       "name": "tyreLabel"
     },
     {
       "file": "src/applier.lua",
-      "line": 327,
+      "line": 330,
       "name": "pitRequest"
     },
     {
       "file": "src/applier.lua",
-      "line": 387,
+      "line": 390,
       "name": "startDelay"
     },
     {
       "file": "src/applier.lua",
-      "line": 397,
+      "line": 400,
       "name": "place"
     },
     {
       "file": "src/applier.lua",
-      "line": 413,
+      "line": 416,
       "name": "hold"
     },
     {
       "file": "src/applier.lua",
-      "line": 424,
-      "name": "M.flag"
+      "line": 431,
+      "name": "flagText"
     },
     {
       "file": "src/applier.lua",
       "line": 432,
-      "name": "flash"
+      "name": "M.flag"
     },
     {
       "file": "src/applier.lua",
-      "line": 444,
-      "name": "safetySkin"
-    },
-    {
-      "file": "src/applier.lua",
-      "line": 448,
-      "name": "(anonymous)"
-    },
-    {
-      "file": "src/applier.lua",
-      "line": 450,
-      "name": "(anonymous)"
+      "line": 456,
+      "name": "folder"
     },
     {
       "file": "src/applier.lua",
       "line": 457,
+      "name": "lightsRead"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 494,
+      "name": "M.trackLights"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 503,
+      "name": "flash"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 515,
+      "name": "safetySkin"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 519,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 521,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 528,
       "name": "safety"
     },
     {
       "file": "src/applier.lua",
-      "line": 465,
+      "line": 536,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 500,
+      "line": 571,
       "name": "recover"
     },
     {
       "file": "src/applier.lua",
-      "line": 510,
+      "line": 581,
       "name": "M.releaseBlackFlag"
     },
     {
       "file": "src/applier.lua",
-      "line": 517,
+      "line": 588,
       "name": "M.penalty"
     },
     {
       "file": "src/applier.lua",
-      "line": 531,
+      "line": 602,
       "name": "disposeBeep"
     },
     {
       "file": "src/applier.lua",
-      "line": 531,
+      "line": 602,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 532,
+      "line": 603,
       "name": "M.beep"
     },
     {
       "file": "src/applier.lua",
-      "line": 540,
+      "line": 611,
       "name": "play"
     },
     {
       "file": "src/applier.lua",
-      "line": 553,
+      "line": 624,
       "name": "M.deltaBeep"
     },
     {
       "file": "src/applier.lua",
-      "line": 560,
+      "line": 631,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 564,
+      "line": 635,
       "name": "play"
     },
     {
       "file": "src/applier.lua",
-      "line": 569,
+      "line": 640,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 574,
+      "line": 645,
       "name": "M.drs"
     },
     {
       "file": "src/applier.lua",
-      "line": 598,
+      "line": 669,
       "name": "releaseDrs"
     },
     {
       "file": "src/applier.lua",
-      "line": 605,
+      "line": 676,
       "name": "M.sessionBox"
     },
     {
       "file": "src/applier.lua",
-      "line": 606,
+      "line": 677,
       "name": "M.screen"
     },
     {
       "file": "src/applier.lua",
-      "line": 612,
+      "line": 683,
       "name": "M.listenMessages"
     },
     {
       "file": "src/applier.lua",
-      "line": 616,
+      "line": 687,
       "name": "M.blockMessages"
     },
     {
       "file": "src/applier.lua",
-      "line": 620,
+      "line": 691,
       "name": "M.dispose"
     },
     {
       "file": "src/applier.lua",
-      "line": 623,
+      "line": 694,
       "name": "M.journalOpen"
     },
     {
       "file": "src/applier.lua",
-      "line": 625,
+      "line": 696,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 641,
+      "line": 712,
       "name": "M.clockText"
     },
     {
       "file": "src/applier.lua",
-      "line": 646,
+      "line": 717,
       "name": "M.journalWrite"
     },
     {
       "file": "src/applier.lua",
-      "line": 650,
+      "line": 721,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 655,
+      "line": 726,
       "name": "M.storeText"
     },
     {
       "file": "src/applier.lua",
-      "line": 656,
+      "line": 727,
       "name": "M.loadText"
     },
     {
       "file": "src/applier.lua",
-      "line": 657,
+      "line": 728,
       "name": "M.message"
     },
     {
       "file": "src/applier.lua",
-      "line": 659,
+      "line": 730,
       "name": "M.probeMessage"
     },
     {
       "file": "src/applier.lua",
-      "line": 662,
+      "line": 733,
       "name": "floodPath"
     },
     {
       "file": "src/applier.lua",
-      "line": 667,
+      "line": 738,
       "name": "M.floodRead"
     },
     {
       "file": "src/applier.lua",
-      "line": 676,
+      "line": 747,
       "name": "M.floodWrite"
     },
     {
       "file": "src/applier.lua",
-      "line": 682,
+      "line": 753,
       "name": "M.apply"
     },
     {
       "file": "src/applier.lua",
-      "line": 745,
+      "line": 816,
       "name": "M.register"
     },
     {
       "file": "src/applier.lua",
-      "line": 749,
+      "line": 820,
       "name": "M.unregister"
     },
     {
       "file": "src/applier.lua",
-      "line": 751,
+      "line": 822,
       "name": "(anonymous)"
     },
     {
       "file": "src/applier.lua",
-      "line": 756,
+      "line": 827,
       "name": "M.nextSession"
     },
     {
       "file": "src/applier.lua",
-      "line": 777,
+      "line": 848,
       "name": "M.clipboard"
     },
     {
       "file": "src/applier.lua",
-      "line": 778,
+      "line": 849,
       "name": "M.checkpoint"
     },
     {
       "file": "src/applier.lua",
-      "line": 789,
+      "line": 860,
       "name": "M.recover"
     },
     {
@@ -4767,92 +4796,92 @@
     },
     {
       "file": "src/engine.lua",
-      "line": 21,
+      "line": 22,
       "name": "startReport"
     },
     {
       "file": "src/engine.lua",
-      "line": 47,
+      "line": 48,
       "name": "decisionTime"
     },
     {
       "file": "src/engine.lua",
-      "line": 63,
+      "line": 64,
       "name": "contacts"
     },
     {
       "file": "src/engine.lua",
-      "line": 87,
+      "line": 88,
       "name": "M.new"
     },
     {
       "file": "src/engine.lua",
-      "line": 95,
+      "line": 96,
       "name": "(anonymous)"
     },
     {
       "file": "src/engine.lua",
-      "line": 97,
+      "line": 98,
       "name": "(anonymous)"
     },
     {
       "file": "src/engine.lua",
-      "line": 111,
+      "line": 114,
       "name": "M.changed"
     },
     {
       "file": "src/engine.lua",
-      "line": 112,
+      "line": 115,
       "name": "M.select"
     },
     {
       "file": "src/engine.lua",
-      "line": 115,
+      "line": 118,
       "name": "M.reset"
     },
     {
       "file": "src/engine.lua",
-      "line": 119,
+      "line": 122,
       "name": "M.rebase"
     },
     {
       "file": "src/engine.lua",
-      "line": 146,
+      "line": 151,
       "name": "M.configure"
     },
     {
       "file": "src/engine.lua",
-      "line": 163,
+      "line": 168,
       "name": "drsBeep"
     },
     {
       "file": "src/engine.lua",
-      "line": 169,
+      "line": 174,
       "name": "drive"
     },
     {
       "file": "src/engine.lua",
-      "line": 183,
+      "line": 188,
       "name": "M.message"
     },
     {
       "file": "src/engine.lua",
-      "line": 192,
+      "line": 197,
       "name": "M.floodInit"
     },
     {
       "file": "src/engine.lua",
-      "line": 201,
+      "line": 206,
       "name": "flood"
     },
     {
       "file": "src/engine.lua",
-      "line": 233,
+      "line": 238,
       "name": "slowCars"
     },
     {
       "file": "src/engine.lua",
-      "line": 266,
+      "line": 271,
       "name": "M.step"
     },
     {
@@ -5116,6 +5145,61 @@
       "name": "c"
     },
     {
+      "file": "src/lights.lua",
+      "line": 19,
+      "name": "M.new"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 24,
+      "name": "M.reset"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 29,
+      "name": "M.rebase"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 37,
+      "name": "slow"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 61,
+      "name": "damage"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 77,
+      "name": "M.decide"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 94,
+      "name": "M.update"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 105,
+      "name": "M.output"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 115,
+      "name": "M.scan"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 119,
+      "name": "close"
+    },
+    {
+      "file": "src/lights.lua",
+      "line": 152,
+      "name": "M.equipped"
+    },
+    {
       "file": "src/locale.lua",
       "line": 12,
       "name": "copy"
@@ -5177,42 +5261,47 @@
     },
     {
       "file": "src/panel.lua",
-      "line": 16,
+      "line": 17,
       "name": "blue"
     },
     {
       "file": "src/panel.lua",
-      "line": 36,
+      "line": 38,
       "name": "native"
     },
     {
       "file": "src/panel.lua",
-      "line": 58,
+      "line": 62,
       "name": "show"
     },
     {
       "file": "src/panel.lua",
-      "line": 94,
+      "line": 98,
       "name": "M.native"
     },
     {
       "file": "src/panel.lua",
-      "line": 109,
+      "line": 113,
       "name": "M.visible"
     },
     {
       "file": "src/panel.lua",
-      "line": 115,
+      "line": 119,
       "name": "M.infractions"
     },
     {
       "file": "src/panel.lua",
-      "line": 122,
+      "line": 127,
+      "name": "M.warn"
+    },
+    {
+      "file": "src/panel.lua",
+      "line": 129,
       "name": "M.notice"
     },
     {
       "file": "src/panel.lua",
-      "line": 123,
+      "line": 131,
       "name": "M.update"
     },
     {
@@ -5477,112 +5566,117 @@
     },
     {
       "file": "src/snapshot.lua",
-      "line": 16,
-      "name": "M.new"
+      "line": 18,
+      "name": "playerDamage"
     },
     {
       "file": "src/snapshot.lua",
       "line": 27,
+      "name": "M.new"
+    },
+    {
+      "file": "src/snapshot.lua",
+      "line": 39,
       "name": "vector"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 30,
+      "line": 42,
       "name": "laneProbe"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 31,
+      "line": 43,
       "name": "(anonymous)"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 34,
+      "line": 46,
       "name": "readCar"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 113,
+      "line": 125,
       "name": "simRead"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 131,
+      "line": 143,
       "name": "raceRead"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 139,
+      "line": 151,
       "name": "conflictingApp"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 146,
+      "line": 158,
       "name": "tyres"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 170,
+      "line": 182,
       "name": "M.read"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 189,
+      "line": 205,
       "name": "(anonymous)"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 201,
+      "line": 217,
       "name": "(anonymous)"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 237,
+      "line": 253,
       "name": "M.zones"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 252,
+      "line": 268,
       "name": "utf8Char"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 257,
+      "line": 273,
       "name": "jsonName"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 277,
+      "line": 293,
       "name": "carName"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 286,
+      "line": 302,
       "name": "M.carDatabase"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 288,
+      "line": 304,
       "name": "(anonymous)"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 292,
+      "line": 308,
       "name": "(anonymous)"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 302,
+      "line": 318,
       "name": "(anonymous)"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 305,
+      "line": 321,
       "name": "menuVisible"
     },
     {
       "file": "src/snapshot.lua",
-      "line": 306,
+      "line": 322,
       "name": "M.menu"
     },
     {
@@ -5772,212 +5866,217 @@
     },
     {
       "file": "src/ui.lua",
-      "line": 429,
+      "line": 439,
       "name": "resetSection"
     },
     {
       "file": "src/ui.lua",
-      "line": 442,
+      "line": 452,
       "name": "sectionContent"
     },
     {
       "file": "src/ui.lua",
-      "line": 448,
+      "line": 458,
       "name": "flush"
     },
     {
       "file": "src/ui.lua",
-      "line": 487,
+      "line": 497,
       "name": "language"
     },
     {
       "file": "src/ui.lua",
-      "line": 494,
+      "line": 504,
       "name": "headerBar"
     },
     {
       "file": "src/ui.lua",
-      "line": 524,
+      "line": 534,
       "name": "profileButtons"
     },
     {
       "file": "src/ui.lua",
-      "line": 535,
+      "line": 545,
       "name": "homeTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 643,
+      "line": 653,
       "name": "sectionPane"
     },
     {
       "file": "src/ui.lua",
-      "line": 657,
+      "line": 667,
       "name": "settingsTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 690,
+      "line": 700,
       "name": "ruleRow"
     },
     {
       "file": "src/ui.lua",
-      "line": 705,
+      "line": 715,
       "name": "rulesTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 756,
+      "line": 766,
       "name": "diagnosticTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 866,
+      "line": 878,
       "name": "M.compactSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 867,
+      "line": 879,
       "name": "M.main"
     },
     {
       "file": "src/ui.lua",
-      "line": 900,
+      "line": 912,
       "name": "faded"
     },
     {
       "file": "src/ui.lua",
-      "line": 901,
+      "line": 913,
       "name": "panelPalette"
     },
     {
       "file": "src/ui.lua",
-      "line": 925,
+      "line": 938,
       "name": "write"
     },
     {
       "file": "src/ui.lua",
-      "line": 930,
+      "line": 943,
       "name": "textWidth"
     },
     {
       "file": "src/ui.lua",
-      "line": 935,
+      "line": 948,
       "name": "fitSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 942,
+      "line": 955,
       "name": "M.flagLayout"
     },
     {
       "file": "src/ui.lua",
-      "line": 975,
+      "line": 988,
       "name": "drsBadge"
     },
     {
       "file": "src/ui.lua",
-      "line": 982,
+      "line": 995,
       "name": "checker"
     },
     {
       "file": "src/ui.lua",
-      "line": 986,
+      "line": 999,
       "name": "diagonal"
     },
     {
       "file": "src/ui.lua",
-      "line": 992,
+      "line": 1005,
+      "name": "meatball"
+    },
+    {
+      "file": "src/ui.lua",
+      "line": 1011,
       "name": "stripes"
     },
     {
       "file": "src/ui.lua",
-      "line": 997,
+      "line": 1016,
       "name": "deltaText"
     },
     {
       "file": "src/ui.lua",
-      "line": 1007,
+      "line": 1026,
       "name": "deltaBox"
     },
     {
       "file": "src/ui.lua",
-      "line": 1020,
+      "line": 1039,
       "name": "pillsWidth"
     },
     {
       "file": "src/ui.lua",
-      "line": 1022,
+      "line": 1041,
       "name": "pillRow"
     },
     {
       "file": "src/ui.lua",
-      "line": 1039,
+      "line": 1058,
       "name": "pill"
     },
     {
       "file": "src/ui.lua",
-      "line": 1046,
+      "line": 1065,
       "name": "giveBackText"
     },
     {
       "file": "src/ui.lua",
-      "line": 1050,
+      "line": 1069,
       "name": "blueText"
     },
     {
       "file": "src/ui.lua",
-      "line": 1059,
+      "line": 1078,
       "name": "M.overlayParts"
     },
     {
       "file": "src/ui.lua",
-      "line": 1078,
+      "line": 1097,
       "name": "M.overlayHeight"
     },
     {
       "file": "src/ui.lua",
-      "line": 1087,
+      "line": 1106,
       "name": "strong"
     },
     {
       "file": "src/ui.lua",
-      "line": 1093,
+      "line": 1112,
       "name": "sessionStrip"
     },
     {
       "file": "src/ui.lua",
-      "line": 1116,
+      "line": 1135,
       "name": "M.flags"
     },
     {
       "file": "src/ui.lua",
-      "line": 1211,
+      "line": 1231,
       "name": "nativeBox"
     },
     {
       "file": "src/ui.lua",
-      "line": 1215,
+      "line": 1235,
       "name": "M.restoreNative"
     },
     {
       "file": "src/ui.lua",
-      "line": 1216,
+      "line": 1236,
       "name": "screenSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 1219,
+      "line": 1239,
       "name": "hudContent"
     },
     {
       "file": "src/ui.lua",
-      "line": 1254,
+      "line": 1274,
       "name": "M.hud"
     },
     {
       "file": "src/ui.lua",
-      "line": 1269,
+      "line": 1289,
       "name": "(anonymous)"
     },
     {
@@ -6237,35 +6336,36 @@
     }
   ],
   "sources": {
-    "ACAdvancedIA.lua": "0848e6fd449d332fd2719d606d7e91a861eea6a5d6d33c698f3265ee4bdb2f75",
-    "src/applier.lua": "ea8a87ad20551ef84af8c9af71e20dbfed62180a071dddfdff4995d6ce8a8cf2",
+    "ACAdvancedIA.lua": "bb32d16c2d7a8e5f6a2afb0bf0e1b504edf4f3fa488a03cffb8ac73ccf49ef61",
+    "src/applier.lua": "ef91898a646b37d027c5df87784c960e092a7093ae0dc01324f9c45f54a64576",
     "src/calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
     "src/caps.lua": "85f54153fb4952b79661962c900c806ab18edd1fef015a4452fa064ddb854d61",
     "src/classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-    "src/config.lua": "c8596f55cdb9278809969630966acae11374b23a09d11de6ee238b4766ec31f5",
+    "src/config.lua": "9987a6e6e22195396e75e4034fdeea5dc759f33835779b23ab2d67bd93ebfdb0",
     "src/delta.lua": "cebd950b028cb380e2d410bade1ddfcde57cbe0e3317aa569918b9a8110096f8",
     "src/director.lua": "49d10564abc63882b2e90fe66df16401fecd987b88c0b979f640fcb2be420ac2",
-    "src/engine.lua": "8e071c68c6d3e11c52e58b86e692bb9acc6205d8d876ca1b45c15f63ca27ab63",
+    "src/engine.lua": "fb355f70747aa8b63c290ec0e4504f3bca65dabb48748ae9da1d0c57b529b751",
     "src/flash.lua": "a52a5aa06d6649ba2f967400eea288e266b8956a954ec43c5a5cd929a376b0af",
     "src/flood.lua": "0527562daed5d283c2474666b3d5d584fb36bc57964990a7807db3188c49f31d",
     "src/hudinfo.lua": "370714b976b9a0ea94f38d582e6ac8954701660a33e6b2e8c649924ebfa9dbe4",
-    "src/incidents.lua": "ad76b3459f7a8d6f722a99417e07bcd04bdc9af73d74d16c9a7af33cc3294219",
+    "src/incidents.lua": "d7def0df0b352aa5b0877e49bd74866ace25f0a37030193290a2c9d72f071825",
     "src/journal.lua": "2d6ef004a113659554dfbfa17efd4f9cf08fc596a51d06c9b5bd6b2ce5ee2b4f",
-    "src/lang.lua": "4af010b84354d376d1b905e4ee93b0f712fbc0ca819c5c317e685b0e61e5cc5c",
-    "src/lang_en.lua": "291aaabfd8ea7451d5e1d2cc93acd116057638a7c3b2375118982188bdb33c3e",
+    "src/lang.lua": "7b9b6f087771465a9f3bf39b7c1a32608a144305e119b4f4ea77cdc9f189f498",
+    "src/lang_en.lua": "9a3da5df5a98f265e23821114f2b0fd56b41897c252a078d2454355bf7f01cec",
+    "src/lights.lua": "0aff783d35c6ab4792671ebb28092f5a7ab3c62a123e0bdc0ca664d5cd0708fe",
     "src/locale.lua": "02b406dc86cc1a5548877d8e897fd5d28764ae71d2296fe78547649c947e9bbd",
     "src/mistakes.lua": "654f42f62b5da427996680a30a6ad12246bcf4cc6e8b7f77c7f71b7a91f0fe9a",
-    "src/panel.lua": "fc97eff511b13da3780cdcebba6655bdfe890a4c299d8f7b39932bc9817aa4ff",
+    "src/panel.lua": "098993ee5fdefa6be0210f5e192535dccb9c22fefa94b91dbd5b45294eee5727",
     "src/penalties.lua": "277295124bc828d4347b6ceff4fcf761d4b66077a9e474e8e0183b395c3b78a3",
     "src/perception.lua": "e41cfac98907532015aeee30276925e369eb2b6634c971a38590997847e563f4",
     "src/persona.lua": "fc995df594e4e17ef0dc0a30bda8d3f14bd217fae46a9adc9ee3d87618c392c2",
     "src/pits.lua": "aaabf723c4a6412f4bb7f10e490bd1c9302fd44143cdf089ecc6fb8a675519d7",
     "src/presets.lua": "d1b4786e0c544a8c8b66a18ee9cad7d85e6bf71c7bcef698a3142714237e91b2",
-    "src/snapshot.lua": "3b1e82c90320c4b38cd2c86f2b402c8670229dc0f5d67d39e7abba7a48ce1deb",
-    "src/tips.lua": "bc6b05b23f5bb4ac2baad524358de59f35a07e29041cf7b51904995334888e97",
-    "src/tips_en.lua": "43d9f8598ea7ce323ada20a98534a44d9527fc51cf802fc04e5812ea3b5bcb28",
+    "src/snapshot.lua": "59270cadf880879b90c82e12174c32d4a688832eab8281232d292f28f15ff2c1",
+    "src/tips.lua": "970c0f6fa515a37a3194bbf96cfbdc3a1eed988e42e9cc51f4ef770649abefad",
+    "src/tips_en.lua": "fc80cc23d3011b0f192a83a56fd41a617ceb51f892e774c8d0ea7b153b6cd1ca",
     "src/traffic.lua": "af75adf73ab13cf0c19552fdf83d00044efdd542b06ccdbdc4667728e8c47ed4",
-    "src/ui.lua": "a076a54c22ea85ac0b0c86970b916e51adb5f891a3ace05dfef092a22cae3afe",
+    "src/ui.lua": "92ffaac4fec05a8422a6f2e6b28b89560deaf00e0d68e581caa0a77baa20f74d",
     "src/util.lua": "533d16b986fc80b7d27d6754e4e36c8e984ae16b1dbbab925341a56ca0bc624d",
     "src/weather.lua": "574e6c04dd73cded2d96dcdd8386c35991827c5c3ac59ed4ac7d1d17f48f13f5",
     "src/widgets.lua": "4d7ed220ab6c67c8847d5cb5a4d2474a7975fe8a93f720ac3c7d6139663f43f4",

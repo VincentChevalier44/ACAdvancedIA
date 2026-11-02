@@ -2,6 +2,7 @@ local ffi=require('ffi')
 local U=require('src/util')
 local C=require('src/config')
 local Caps=require('src/caps')
+local Lights=require('src/lights')
 local Perception=require('src/perception')
 local Presets=require('src/presets')
 local K=C.K
@@ -64,7 +65,7 @@ end
 function M.new()
  local a={cars={},allowed=false,errors=0,rejected=0,stores={},dirtyAt=0,dirty=false,lastSave=-math.huge,recoveryDirty=false,storageErrors=0,
   port={present=present,write=write},releaseToken=nil,sessionToken=nil,safety={left=false,right=false,nearest=0},offsetSign=0,aiFunctions={},presets={},presetStores={},menuVisible=false,menuLast=nil,
-  flagOverride=false}
+  flagOverride=false,flagValue=0,flagAt=-math.huge,trackLights=nil,trackLightsSource='',trackLightsFor=nil}
  for i=1,K.maxCars do a.cars[i]={owned=false,reset=false,level=nil,aggression=nil,caution=nil,offset=0,brake=0,grip=nil,
   originalLevel=1,originalAggression=0.5,lastWrite=-math.huge,id='',readAt=0,speed=nil,offsetReset=true,rainHint=nil,originalRain=false,pitRequest=false,weatherAt=-math.huge,tyreAt=-math.huge,
   levelAt=-math.huge,recovered=false,drsBlocked=false,drsAt=-math.huge,stop=false,stopAt=-math.huge,flashEvent=0,flashPulses=0,flashAt=-math.huge,pitAt=-math.huge,tyreVisit=-1,repairVisit=-1,teleportAt=-math.huge,startDelayFor='',placeFor='',placeAt=-math.huge,launchPending=false,launchAt=-math.huge,fuelRequested=-1,fuelSetFor='',fuelBoxed=false,fuelBefore=-1,parked=false,parkAt=-math.huge,teleported=false,redTeleported=false} end
@@ -148,15 +149,16 @@ end
 local function readRaceFlagsHidden()
  return ac.INIConfig.cspModule(ac.CSPModuleID.GUI):get('HIDE','HIDE_RACE_FLAGS',false)
 end
+function M.readFlagsHidden(a)
+ local ok,value=pcall(readRaceFlagsHidden)
+ if ok and type(value)=='boolean' then a.raceFlagsHidden=value elseif ok and type(value)=='number' then a.raceFlagsHidden=value~=0 else a.raceFlagsHidden=nil end
+end
 function M.menu(a,visible)
  a.menuVisible=visible
  if visible~=a.menuLast then
   a.menuLast=visible
   -- Relue à chaque ouverture du menu (réglage CSP modifiable en cours de partie).
-  if visible then
-   local ok,value=pcall(readRaceFlagsHidden)
-   if ok and type(value)=='boolean' then a.raceFlagsHidden=value elseif ok and type(value)=='number' then a.raceFlagsHidden=value~=0 else a.raceFlagsHidden=nil end
-  end
+  if visible then M.readFlagsHidden(a) end
   if callable(ac.setWindowOpen) then pcall(ac.setWindowOpen,'main',visible) end
  end
  if not visible and callable(ac.isWindowOpen) and callable(ac.setWindowOpen) then
@@ -187,6 +189,7 @@ function M.rebase(a,amount)
  if a.dirty then a.dirtyAt=a.dirtyAt-amount end
  a.lastSave=a.lastSave-amount
  a.caps.probeAt=a.caps.probeAt-amount
+ if a.flagAt>-math.huge then a.flagAt=a.flagAt-amount end
  for i=1,K.maxCars do
   local s=a.cars[i]; s.lastWrite=s.lastWrite-amount; s.readAt=s.readAt-amount; s.weatherAt=s.weatherAt-amount; s.tyreAt=s.tyreAt-amount; s.levelAt=s.levelAt-amount
   s.pitAt=s.pitAt-amount; s.stopAt=s.stopAt-amount; s.parkAt=s.parkAt-amount; s.teleportAt=s.teleportAt-amount; s.flashAt=s.flashAt-amount; s.drsAt=s.drsAt-amount
@@ -221,7 +224,7 @@ end
 -- keepParked : fin de session, les voitures garées restent garées (rendues à la session suivante ou au déchargement).
 function M.restore(a,frame,pendingOnly,now,final,keepParked)
  if not a.allowed or frame.online or not final and (frame.replay or frame.paused) then for i=1,K.maxCars do if a.cars[i].owned then a.cars[i].reset=true end end; return end
- if not pendingOnly and a.flagOverride and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then a.flagOverride=false; a.recoveryDirty=true end
+ if not pendingOnly and a.flagOverride and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then a.flagOverride=false; a.flagValue=K.flagNone; a.recoveryDirty=true end
  if final then M.releaseBlackFlag(a) end
  if not pendingOnly then M.releaseDrs(a,frame) end
  for i=1,frame.count do
@@ -421,12 +424,80 @@ local function hold(a,s,car,cmd,now)
   end
  elseif s.stop and Caps.restoreCall(a.caps,'stop',car.index,0) then s.stop=false; s.stopAt=-math.huge; a.recoveryDirty=true end
 end
-function M.flag(a,frame,wanted)
+-- Drapeau du joueur imposé (ac.FlagType) : wanted vrai ou faux (jaune natif du HUD, préférence d'origine), ou une
+-- valeur des panneaux lumineux du circuit (Beta 1.32 ; reason : sa raison au journal ; now : tenue minimale).
+-- Changement écrit aussitôt vers plus important, vers moins important ou rendu à AC après K.lightsHold s (les
+-- configurations des circuits ignorent un état trop bref) ; sans now, aussitôt.
+local function flagText(value,reason) return string.format('panneaux lumineux du circuit: %s (%s)',Lights.names[value] or tostring(value),reason~='' and reason or 'drapeau du HUD') end
+function M.flag(a,frame,wanted,reason,now)
  if not a.allowed or frame.online or frame.replay or frame.paused then return end
- -- Jamais par-dessus un drapeau natif (bleu, blanc, damier, noir) : seulement sans drapeau ou sur le nôtre.
- if wanted and not a.flagOverride and a.caps.flag.available and (frame.flag==K.flagNone or frame.flag==K.flagCaution) then
-  if Caps.call(a.caps,'flag',-1,K.flagCaution) then a.flagOverride=true; a.recoveryDirty=true; note(a,'INFO','drapeau HUD du joueur: jaune',-1) end
- elseif not wanted and a.flagOverride and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then a.flagOverride=false; a.recoveryDirty=true; note(a,'INFO','drapeau HUD du joueur: rendu a AC',-1) end
+ local value=wanted==true and K.flagCaution or type(wanted)=='number' and wanted or K.flagNone
+ local lights=reason~=nil and reason~=''
+ local held=now==nil or now-a.flagAt>=K.lightsHold
+ -- Jamais par-dessus un drapeau natif (bleu, blanc, damier, noir) : seulement sans drapeau ou sur le nôtre ; sur le
+ -- jaune natif, seulement le jaune ou le rouge.
+ if value~=K.flagNone and not a.flagOverride and a.caps.flag.available and (frame.flag==K.flagNone or frame.flag==K.flagCaution) then
+  if (frame.flag==K.flagNone or value==K.flagCaution or value==K.flagStop) and Caps.call(a.caps,'flag',-1,value) then
+   a.flagOverride=true; a.flagValue=value; a.flagAt=now or -math.huge; a.recoveryDirty=true
+   note(a,'INFO',lights and flagText(value,reason) or 'drapeau HUD du joueur: jaune',-1)
+  end
+ elseif value~=K.flagNone and a.flagOverride and value~=a.flagValue then
+  if (held or (Lights.rank[value] or 0)>(Lights.rank[a.flagValue] or 0)) and Caps.call(a.caps,'flag',-1,value) then
+   a.flagValue=value; a.flagAt=now or -math.huge; note(a,'INFO',flagText(value,reason or ''),-1)
+  end
+ elseif value==K.flagNone and a.flagOverride and held and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then
+  a.flagOverride=false; a.flagValue=K.flagNone; a.flagAt=now or -math.huge; a.recoveryDirty=true
+  note(a,'INFO',now and 'panneaux lumineux du circuit: rendus a AC' or 'drapeau HUD du joueur: rendu a AC',-1)
+ end
+end
+-- Panneaux lumineux du circuit (Beta 1.32) : configuration du circuit (ext_config.ini du circuit et de sa variante,
+-- fichiers inclus voisins) et celles de CSP (config/tracks/<circuit>.ini, loaded/<circuit>.ini), une fois par
+-- circuit. Détecté : une section active s'allume sur une condition lue sur FLAG_TYPE. Rien d'écrit.
+local function folder(id) if not ac.FolderID or not ac.FolderID[id] then return nil end local ok,root=pcall(ac.getFolder,ac.FolderID[id]); return ok and type(root)=='string' and root~='' and root or nil end
+local function lightsRead(track)
+ if type(track)~='string' or track=='' or not track:match('^[%w_%-%.]+$') or track:find('..',1,true) or not io or type(io.load)~='function' then return nil,'' end
+ local tracks,config=folder('ContentTracks'),folder('ExtCfgSys')
+ local okLayout,layout=pcall(ac.getTrackLayout); if not okLayout or type(layout)~='string' or not layout:match('^[%w_%-%.]*$') or layout:find('..',1,true) then layout='' end
+ local list={}
+ if tracks then
+  list[#list+1]=tracks..'\\'..track..'\\extension\\ext_config.ini'
+  if layout~='' then list[#list+1]=tracks..'\\'..track..'\\'..layout..'\\extension\\ext_config.ini' end
+ end
+ if config then list[#list+1]=config..'\\tracks\\'..track..'.ini'; list[#list+1]=config..'\\tracks\\loaded\\'..track..'.ini' end
+ -- Conditions communes de CSP (RACING_FLAG) : définitions seulement, jamais une section allumée à elles seules.
+ local out={defs={},uses={},includes={}}; local found,seen,count='',{},0
+ if config then local ok,text=pcall(io.load,config..'\\tracks\\common\\conditions.ini'); if ok and type(text)=='string' and #text<=K.lightsBytes then Lights.scan(text,{defs=out.defs,uses={},includes={}}) end end
+ local k=1
+ while k<=#list and count<K.lightsFiles do
+  local path=list[k]; k=k+1
+  if not seen[path:lower()] then
+   seen[path:lower()]=true
+   local ok,text=pcall(io.load,path)
+   if ok and type(text)=='string' and text~='' and #text<=K.lightsBytes then
+    count=count+1
+    local before=#out.includes
+    Lights.scan(text,out)
+    if found=='' and Lights.equipped(out) then found=path:match('[^\\]+\\[^\\]+$') or path end
+    -- Fichiers inclus : voisins (même dossier), ou communs de CSP (common/..., dans sa configuration des circuits).
+    local dir=path:match('^(.*)\\[^\\]+$') or ''
+    for n=before+1,#out.includes do
+     local name=out.includes[n]:gsub('/','\\')
+     if not name:find('%.%.') and not name:find(':') then
+      if name:lower():find('^common\\') and config then list[#list+1]=config..'\\tracks\\'..name else list[#list+1]=dir..'\\'..name end
+     end
+    end
+   end
+  end
+ end
+ return Lights.equipped(out),found
+end
+function M.trackLights(a,track)
+ if a.trackLightsFor==track then return a.trackLights end
+ a.trackLightsFor=track
+ local ok,detected,source=pcall(lightsRead,track)
+ if ok then a.trackLights=detected; a.trackLightsSource=source or '' else a.trackLights=nil; a.trackLightsSource='' end
+ M.readFlagsHidden(a)
+ return a.trackLights
 end
 -- Double appel de phares visible, jamais aux stands ; rien à restituer (impulsions d'une image).
 local function flash(a,s,car,cmd,now)

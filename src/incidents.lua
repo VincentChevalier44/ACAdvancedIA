@@ -13,7 +13,7 @@ function M.new()
  local t={cars={},zones={},zoneCount=0,activeCount=0,holdCount=0,neutral=false,neutralMode='local',neutralSince=0,neutralUntil=0,
   safety=0,safetyPhase='none',safetySince=0,safetyStill=0,safetyFailed=false,safetyLeft=false,started=0,held=0,onTrack=0,red=false,redSince=0,redCancelled=false,reds=0,redTotal=0,redInPits=0,
   greenUntil=-math.huge,playerZone=false,playerInside=false,playerToZone=0,playerLead=0,playerNoPass=false,playerZoneSlot=0,suppressed={queue=0,spawn=0,crawl=0},playerDistance=0,freshOnTrack=0,redEnd=-math.huge,redMax=0,neutralEnd=-math.huge,frameId=0,messagePriority=0,messageFrame=-1,
-  playerFlag=false,playerZoneDouble=false,slipperyUntil=-math.huge,messageId=0,messageKind='',messageValue=0,messageExtra=0,messageText='',
+  playerFlag=false,playerYellow=false,playerZoneDouble=false,slipperyUntil=-math.huge,messageId=0,messageKind='',messageValue=0,messageExtra=0,messageText='',
   relaunch=false,escalated=false,ending=false,endingUntil=0,restart=false,restartSince=0,playerRestart=false,pitsClosed=false,releaseAt={}}
  for i=1,K.maxCars do
   t.releaseAt[i]=-math.huge
@@ -24,7 +24,7 @@ function M.new()
 end
 function M.reset(t)
  for i=1,K.maxCars do clearCar(t.cars[i]) end
- t.zoneCount=0; t.activeCount=0; t.holdCount=0; t.neutral=false; t.neutralUntil=0; t.playerFlag=false; t.safetyPhase='none'; t.red=false; t.onTrack=0; t.playerZone=false; t.playerInside=false; t.slipperyUntil=-math.huge
+ t.zoneCount=0; t.activeCount=0; t.holdCount=0; t.neutral=false; t.neutralUntil=0; t.playerFlag=false; t.playerYellow=false; t.safetyPhase='none'; t.red=false; t.onTrack=0; t.playerZone=false; t.playerInside=false; t.slipperyUntil=-math.huge
  t.safetyStill=0; t.safetyFailed=false; t.safetyLeft=false; t.escalated=false; t.relaunch=false; t.ending=false; t.restart=false; t.playerRestart=false; t.pitsClosed=false
  for i=1,K.maxCars do t.releaseAt[i]=-math.huge end
 end
@@ -420,7 +420,7 @@ end
 -- Drapeau jaune affiché au joueur dans une zone, à son approche ou sous neutralisation ; annonce unique par incident.
 function M.player(t,frame,p,now)
  local i=frame.player
- if i==0 then t.playerFlag=false; t.playerZone=false; t.playerInside=false; t.playerRestart=false; return false end
+ if i==0 then t.playerFlag=false; t.playerYellow=false; t.playerZone=false; t.playerInside=false; t.playerRestart=false; return false end
  t.playerRestart=t.restart and t.cars[i].restart
  local a=frame.cars[i]; local flag=t.neutral or t.red
  -- Zone jaune devant le joueur (panneau) : distance à l'incident le plus proche ; vert bref à la sortie de zone.
@@ -459,7 +459,8 @@ function M.player(t,frame,p,now)
  t.playerZone=inZone; t.playerInside=inside; t.playerDistance=inZone and distance or 0; t.playerToZone=inZone and toZone or 0
  t.playerLead=inZone and lead or 0; t.playerNoPass=noPass
  t.playerZoneDouble=inZone and (inside and insideDouble or not inside and nearDouble)
- t.playerFlag=flag and p.yellowHud
+ -- Beta 1.32 : drapeau jaune du joueur pour les panneaux lumineux du circuit ; le HUD natif seulement sur demande.
+ t.playerYellow=flag; t.playerFlag=flag and p.yellowHud
  return t.playerFlag
 end
 return M

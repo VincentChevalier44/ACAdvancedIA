@@ -199,6 +199,7 @@ return {
   overlayClickThrough='Locked, the overlay lets mouse clicks through (as in SuperHUD). Unticked: right-click the overlay to unlock it.',
   overlayHideReplay='Hides the overlay during replays.',
   overlayHidePits='Hides the overlay while your car is in the pit lane.',
+  trackLights='Lights the track light panels with the app flags: red, yellow and neutralisations (Safety Car, VSC, FCY), slow vehicle (white), slippery track, blue flag, green at the end of a neutralisation. Only at a track whose CSP configuration lights its panels from the player flag; elsewhere nothing changes. Red is only written if the AC flags are hidden in CSP (yellow otherwise). If the AC flags are shown, they show these colours too. Offline only.',
   levelMode='How a level above 100% is applied: automatic (native if CSP accepts it, otherwise a grip bonus if allowed, otherwise the cap), native if confirmed, grip bonus allowed, or capped at 100%.',
   useGripBoost='Allows the grip bonus to emulate a level above 100% when CSP does not accept it natively. Changes the grip of the AI cars: only switch it on knowingly.',
   useBrakeAssist='Front radar, on by default: an AI about to hit the car ahead (player or AI) first lifts off, then, with contact imminent, adds light, progressive braking, like a driver anticipating. Never a stab of the brakes nor a sideways move; the brake only adds to the AI’s own, and the throttle and steering stay its own. Active from the starting grid, never in the pits.',

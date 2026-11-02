@@ -91,6 +91,9 @@
     "Beta 1.25 : overlay en jeu, position, verrou, taille, case de session et messages d AC",
     "Beta 1.26 : journée circuit, IA réparties sur tout le circuit",
     "Beta 1.26 : masquage des messages d AC levé si l overlay ne les reçoit plus",
-    "Beta 1.25 : section Overlay des réglages"
+    "Beta 1.25 : section Overlay des réglages",
+    "Beta 1.32 : panneaux lumineux du circuit allumés en jaune sur un circuit équipé, rendus à AC",
+    "Beta 1.32 : circuit non équipé, drapeau d AC jamais modifié",
+    "Beta 1.32 : réglage des panneaux lumineux, nouveaux drapeaux dessinés"
   ]
 }

@@ -1,6 +1,6 @@
 -- Panneau de drapeaux du joueur : décisions pures, aucun dessin. Priorité : rouge, noir et pénalités d'AC, voiture de
--- sécurité, FCY ou VSC (et sa fin), jaune, reprise jusqu'à la ligne, damier, piste glissante, bleu, DRS, dernier tour,
--- vert, départ, arrêt obligatoire. Textes reconstruits seulement quand le drapeau ou sa
+-- sécurité, FCY ou VSC (et sa fin), jaune, reprise jusqu'à la ligne, damier, véhicule lent, avertissement, piste
+-- glissante, bleu, voiture endommagée, DRS, dernier tour, vert, départ, arrêt obligatoire. Textes reconstruits seulement quand le drapeau ou sa
 -- valeur arrondie change. Le temps delta lui-même est lu à chaque image par l'interface (module delta).
 local U=require('src/util')
 local C=require('src/config')
@@ -10,10 +10,11 @@ local Classes=require('src/classes')
 local K=C.K
 local M={}
 function M.new() return {kind='none',key='',title='',detail='',raw='',noPass=false,passed=false,drsBlocked=false,drsUsed=false,short='',passOk='',passBad='',infractions=-1,infractionMax=-1,notice='',noticeUntil=-math.huge,at=-math.huge,
- changedAt=-math.huge,double=false,explain='',finish=false,lapCode='',info=nil,drsText='',drsLaps=-1,drsLapsText='',redPit=false,blueGap=nil,rel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false}} end
+ changedAt=-math.huge,double=false,explain='',finish=false,lapCode='',info=nil,drsText='',drsLaps=-1,drsLapsText='',redPit=false,blueGap=nil,giveBackDue=false,warnPending=false,warnUntil=-math.huge,rel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false}} end
 -- Drapeau bleu du joueur, en course : une voiture plus rapide qui lui prend au moins un tour arrive derrière. Renvoie
--- son écart en secondes (distance à sa vitesse), sinon nil.
-local function blue(panel,frame,p,profile)
+-- son écart en secondes (distance à sa vitesse), sinon nil. rel : table de travail ; held : bleu déjà montré
+-- (hystérésis). Partagé avec les panneaux lumineux du circuit (Beta 1.32).
+local function blue(rel,frame,p,profile,held)
  if profile~='C' or not p.blueFlagEnabled or frame.player==0 or frame.length<=0 then return nil end
  local a=frame.cars[frame.player]
  if not a.valid or a.pit or not a.splineValid then return nil end
@@ -21,9 +22,9 @@ local function blue(panel,frame,p,profile)
  for j=1,frame.count do
   local b=frame.cars[j]
   if j~=frame.player and b.valid and not b.pit and b.splineValid then
-   local r=P.relative(a,b,frame.length,panel.rel)
+   local r=P.relative(a,b,frame.length,rel)
    -- Hystérésis : un drapeau bleu affiché reste tant que la voiture qui double ne s'éloigne pas, même collée derrière.
-   if r.same and r.long<0 and r.gap>=0 and r.gap<=p.blueFlagRange and (r.sa>=K.lapSpeed or panel.kind=='blue' and r.sa>-K.lapSpeed) and Classes.laps(a,b,r,frame.length)>0 then
+   if r.same and r.long<0 and r.gap>=0 and r.gap<=p.blueFlagRange and (r.sa>=K.lapSpeed or held and r.sa>-K.lapSpeed) and Classes.laps(a,b,r,frame.length)>0 then
     local gap=r.gap/math.max(1,b.speed)
     if not best or gap<best then best=gap end
    end
@@ -31,10 +32,13 @@ local function blue(panel,frame,p,profile)
  end
  return best
 end
+M.blue=blue
 -- Drapeaux et pénalités natifs d'AC (Beta 1.11) : repris par le panneau, leur affichage d'origine étant masqué dans
 -- CSP. Renvoie le genre et sa valeur (tours ou secondes), ou nil ; le jaune que l'app impose au joueur n'est pas repris.
 local function native(panel,frame,now)
- local f=frame.flag
+ -- Drapeau imposé par l'app (jaune, rouge, bleu, vert... des panneaux lumineux) : aucun drapeau natif lisible ;
+ -- seules les pénalités d'AC, propres à la voiture, restent lues.
+ local f=frame.flagOwned and K.flagNone or frame.flag
  -- Départ : levé toute la session en hotlap ; repris quelques secondes à son apparition seulement.
  if f~=K.flagStart then panel.startSeen=nil elseif not panel.startSeen then panel.startSeen=now end
  local a=frame.player>0 and frame.cars[frame.player] or nil
@@ -45,14 +49,14 @@ local function native(panel,frame,now)
  if penalty==K.penaltySlowDown and n>0 then return 'penaltySlow',n end
  if penalty>0 or f==K.flagReturnToPits then return 'penalty',0 end
  if f==K.flagFinished then return panel.info and panel.info.finished and 'finish' or 'checkered',0 end
- if f==K.flagCaution and not frame.flagOwned then return 'native',0 end
+ if f==K.flagCaution then return 'native',0 end
  if f==K.flagFasterCar then return 'nativeBlue',0 end
  if f==K.flagOneLapLeft then return 'white',0 end
  if f==K.flagStart and now-panel.startSeen<K.greenShow then return 'start',0 end
  return nil,0
 end
 -- Genre affiché (couleur, sigle, titre) de chaque genre décidé.
-local shownKinds={scCall='sc',penaltyDrive='penalty',penaltyTeleport='penalty',penaltySlow='penalty',nativeBlue='blue',start='green',finish='checkered'}
+local shownKinds={scCall='sc',penaltyDrive='penalty',penaltyTeleport='penalty',penaltySlow='penalty',nativeBlue='blue',start='green',finish='checkered',giveBack='warning'}
 -- Drapeau retenu : genre affiché, horodatage du changement, textes refaits seulement quand le genre ou la valeur change.
 -- profile : essais et qualifications parlent de séance, pas de course (drapeau rouge, reprise).
 local function show(panel,kind,value,double,gap,now,profile)
@@ -101,7 +105,7 @@ function M.native(panel,frame,now,p)
  if not kind and panel.info and now<panel.info.lapUntil then kind='lap' end
  if not kind and (not p or p.drsAssist~=false) and a and a.valid and a.drsPresent and a.drsAvailable and not a.drsActive and not panel.drsUsed then kind='drs'; value=1 end
  show(panel,kind or 'none',value,false,nil,now)
- panel.noPass=false; panel.drsBlocked=false
+ panel.noPass=false; panel.drsBlocked=false; panel.warnPending=false
 end
 -- Informations non urgentes : effacées après la durée réglée (0 : tant qu'elles durent) ; les drapeaux restent.
 local infoKinds={green=true,drs=true,white=true,checkered=true,slippery=true,lap=true}
@@ -118,9 +122,13 @@ function M.infractions(panel,count,max)
  local suffix=count>0 and string.format(L.infractionCount,count,max) or ''
  panel.passOk=L.noPassing..suffix; panel.passBad=L.passMade..suffix
 end
+-- Dernière infraction tolérée (la suivante disqualifie, Beta 1.32) : drapeau noir et blanc dès qu'aucun drapeau de
+-- régime n'est montré, K.warningShow s.
+function M.warn(panel) panel.warnPending=true end
 -- Pénalité du joueur : ligne rouge sous la consigne pendant quelques secondes.
 function M.notice(panel,reason,seconds,now) panel.notice=string.format(L.penaltyNotice[reason],seconds); panel.noticeUntil=now+K.noticeTime end
-function M.update(panel,t,frame,p,profile,now)
+-- lights : état des panneaux lumineux (véhicule lent devant, dégâts du joueur), facultatif.
+function M.update(panel,t,frame,p,profile,now,lights)
  if not p.flagPanel then return M.native(panel,frame,now,p) end
  if now<panel.at then return end
  panel.at=now+K.panelPeriod
@@ -155,11 +163,20 @@ function M.update(panel,t,frame,p,profile,now)
  -- Course terminée (Beta 1.25) : damier et récapitulatif du joueur, jusqu'à la fin de la session.
  elseif panel.info and panel.info.finished and profile=='C' then kind='finish'
  elseif nk=='checkered' or nk=='finish' then kind='checkered'
+ -- Beta 1.32 : véhicule lent devant (drapeau blanc, distance arrondie à 10 m), dépassement permis.
+ elseif lights and lights.slowSlot>0 then kind='slow'; value=math.floor(lights.slowGap/10+0.5)*10
+ -- Avertissement (drapeau noir et blanc) : place à rendre après un dépassement sous drapeau, une fois le drapeau levé ;
+ -- dernière infraction tolérée avant la disqualification.
+ elseif panel.giveBackDue then kind='giveBack'
+ elseif panel.warnPending or now<panel.warnUntil then
+  kind='warning'; if panel.warnPending then panel.warnPending=false; panel.warnUntil=now+K.warningShow end
  elseif now<(t.slipperyUntil or -math.huge) then kind='slippery'
  else
-  gap=blue(panel,frame,p,profile)
+  gap=blue(panel.rel,frame,p,profile,panel.kind=='blue')
   if gap then kind='blue'
   elseif nk=='nativeBlue' then kind='nativeBlue'
+  -- Voiture endommagée (drapeau noir à disque orange) : à l'apparition du dégât, quelques secondes.
+  elseif lights and now<lights.meatballUntil then kind='meatball'
   -- Passage de la ligne (Beta 1.25) : tour suivant et temps, quelques secondes.
   elseif panel.info and now<panel.info.lapUntil then kind='lap'
   elseif drs then kind='drs'; value=1
@@ -172,6 +189,7 @@ function M.update(panel,t,frame,p,profile,now)
  show(panel,kind,value,double,gap,now,profile)
  -- Drapeau et zone DRS en même temps : le drapeau reste affiché, avec une ligne « DRS interdit sous drapeau ».
  local calm=kind=='none' or kind=='green' or kind=='blue' or kind=='pit' or kind=='slippery' or kind=='nativeBlue' or kind=='white' or kind=='start' or kind=='checkered' or kind=='finish' or kind=='lap'
+  or kind=='slow' or kind=='giveBack' or kind=='warning' or kind=='meatball'
  -- Règles de course : pluie et premiers tours affichés avec tout drapeau ; sinon « DRS interdit sous drapeau ».
  panel.drsBlocked=kind~='none' and kind~='drs' and (reason~='' and present and (reason~='flag' or not calm) or reason=='' and drs and not calm)
  if reason=='wet' then panel.drsText=L.drsWet

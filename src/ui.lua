@@ -372,7 +372,7 @@ end
 local overlayContentKeys={'overlaySession','overlayExplain','overlayRecap'}
 local overlayNativeKeys={'overlayNativeBox','overlayMessages','overlayBlockMessages','overlayClickThrough','overlayHideReplay','overlayHidePits'}
 local overlayResetKeys={'overlayX','overlayY','overlayScale','overlayLocked','overlayBackground','overlayContent','panelOpacity','panelShow','panelInfoTime',
- 'overlaySession','overlayExplain','overlayRecap','overlayNativeBox','overlayMessages','overlayBlockMessages','overlayClickThrough','overlayHideReplay','overlayHidePits'}
+ 'overlaySession','overlayExplain','overlayRecap','overlayNativeBox','overlayMessages','overlayBlockMessages','overlayClickThrough','overlayHideReplay','overlayHidePits','trackLights'}
 local backgroundOrder={solid='ghost',ghost='transparent',transparent='solid'}
 local function switches(v,g,keys,x,y)
  local tips=v.globalTips
@@ -420,7 +420,17 @@ local function overlayBlock(v,e,x,y)
  y=y+8; heading(L.overlayContents,x,y); W.line(x,y+17,x+670,y+17,c.line); y=y+24
  y=switches(v,g,overlayContentKeys,x,y)
  y=y+8; heading(L.overlayNative,x,y); W.line(x,y+17,x+670,y+17,c.line); y=y+24
- return switches(v,g,overlayNativeKeys,x,y)
+ y=switches(v,g,overlayNativeKeys,x,y)
+ -- Panneaux lumineux du circuit (Beta 1.32) : option, circuit équipé ou non, état, rouge et drapeaux d'AC, couleurs.
+ local host=v.host
+ y=y+8; heading(L.trackLightsHeading,x,y); W.line(x,y+17,x+670,y+17,c.line); y=y+24
+ if W.visible(y,30) and W.toggle('overlay_trackLights',L.overlaySwitches.trackLights,x,y,330,g.trackLights,tips.trackLights) then g.trackLights=not g.trackLights; v.dirty() end
+ y=y+36
+ local status=host.trackLights==true and string.format(L.trackLightsOn,host.trackLightsSource) or host.trackLights==false and L.trackLightsOff or L.trackLightsUnknown
+ y=y+W.paragraph(status,x,y,670,12,host.trackLights==true and c.light or c.grey)+4
+ if g.trackLights and host.trackLights==true then y=y+W.paragraph(string.format(L.trackLightsState,L.lightNames[host.flagOverride and host.flagValue or 0] or ''),x,y,670,12,c.blue)+4 end
+ if host.raceFlagsHidden~=true then y=y+W.paragraph(L.trackLightsRed,x,y,670,11,c.warn)+4 end
+ return y+W.paragraph(L.trackLightsLegend,x,y,670,11,c.grey)+4
 end
 -- Réinitialisation d'une section (Beta 1.24) : valeurs par défaut du profil affiché, comme le clic droit sur un réglage ;
 -- préférences du pilote, motifs de classes et réglages fixés par le jeu de règles gardés. Options globales : seulement
@@ -763,6 +773,8 @@ local function diagnosticTab(v,e,host)
  W.clip(16,top,460,height)
  local y=top-offset
  if frame then y=y+W.paragraph(L.patch..frame.patch..' · '..L.track..frame.track..' · '..string.format(L.trackLength,frame.length),x,y,440,11,c.grey)+8 end
+ -- Beta 1.32 : panneaux lumineux du circuit (détection, valeur imposée).
+ y=y+W.paragraph(L.diagLights..(host.trackLights==true and L.diagLightsOn or host.trackLights==false and L.diagLightsOff or L.diagLightsUnknown)..' · '..(L.lightNames[host.flagOverride and host.flagValue or 0] or ''),x,y,440,11,c.grey)+8
  heading(L.signs,x,y); y=y+20
  y=y+W.paragraph(L.calibration[v.calibration.phase]..' — '..L.signValue..e.g.offsetSign..' / '..e.g.sideSign,x,y,440,12,c.light)+6
  if W.visible(y,28) and W.button('calibrate',L.calibrate,x,y,440,28,false,v.tips.ui.calibrate) then e.recalibrateRequested=true end
@@ -916,7 +928,8 @@ local function panelPalette(alpha)
  end
  return panelColors
 end
-local flagColors={lap='pit',red='red',sc='yellow',scIn='yellow',fcy='yellow',vsc='yellow',vscEnd='yellow',restart='green',yellow='yellow',zone='yellow',zone1='yellow',native='yellow',blue='blue',green='green',pit='pit',slippery='yellow',black='ink',penalty='ink',checkered='ink',white='pit'}
+local flagColors={lap='pit',red='red',sc='yellow',scIn='yellow',fcy='yellow',vsc='yellow',vscEnd='yellow',restart='green',yellow='yellow',zone='yellow',zone1='yellow',native='yellow',blue='blue',green='green',pit='pit',slippery='yellow',black='ink',penalty='ink',checkered='ink',white='pit',
+ slow='pit',warning='ink',meatball='ink'}
 -- Sigle inscrit dans le drapeau (rouge, bleu et vert parlent d'eux-mêmes) ; double jaune : « !! ».
 local flagCodes={sc='SC',scIn='SC',fcy='FCY',vsc='VSC',vscEnd='VSC',yellow='!',zone='!!',zone1='!',native='!',pit='P'}
 -- Alignements DWrite (ui.Alignment) : début, centre, fin.
@@ -987,6 +1000,12 @@ local function diagonal(colors,f)
  ui.drawRectFilled(vec2(f[1],f[2]),vec2(f[3],f[4]),colors.ink,5)
  if callable(ui.drawTriangleFilled) then ui.drawTriangleFilled(vec2(f[3],f[2]),vec2(f[3],f[4]),vec2(f[1],f[4]),colors.text)
  else ui.drawRectFilled(vec2((f[1]+f[3])*0.5,(f[2]+f[4])*0.5),vec2(f[3],f[4]),colors.text,0) end
+end
+-- Voiture endommagée (Beta 1.32) : drapeau noir à disque orange.
+local function meatball(colors,f)
+ ui.drawRectFilled(vec2(f[1],f[2]),vec2(f[3],f[4]),colors.ink,5)
+ local r=math.min(f[3]-f[1],f[4]-f[2])*0.32
+ if r>0 and callable(ui.drawCircleFilled) then ui.drawCircleFilled(vec2((f[1]+f[3])*0.5,(f[2]+f[4])*0.5),r,colors.amber,24) end
 end
 -- Drapeau à bandes jaunes et rouges verticales (piste glissante).
 local function stripes(colors,f)
@@ -1146,7 +1165,7 @@ function M.flags(v,force)
  local flashing=not idle and (kind=='red' or kind=='blue' or now-panel.changedAt<K.flagBlinkTime)
  local flagColor=kind=='drs' and colors.text or kind=='clear' and colors.dim or colors[flagColors[kind] or 'yellow']
  local shown=flashing and not blink and back or flagColor
- local dark=kind=='black' or kind=='penalty' or kind=='checkered'
+ local dark=kind=='black' or kind=='penalty' or kind=='checkered' or kind=='warning' or kind=='meatball'
  local accent=dark and (flashing and not blink and back or colors.text) or shown
  if not v.panelVersion then v.panelVersion=string.format(L.panelVersion,C.release) end
  write(v.panelVersion,9*u,l.version,colors.dim,FINISH)
@@ -1155,7 +1174,8 @@ function M.flags(v,force)
  elseif kind=='drs' then drsBadge(colors,f)
  elseif kind=='slippery' then stripes(colors,f)
  elseif kind=='checkered' then checker(colors,f)
- elseif kind=='penalty' then diagonal(colors,f)
+ elseif kind=='penalty' or kind=='warning' then diagonal(colors,f)
+ elseif kind=='meatball' then meatball(colors,f)
  elseif kind=='black' then
   ui.drawRectFilled(vec2(f[1],f[2]),vec2(f[3],f[4]),colors.ink,5*u)
   if callable(ui.drawRect) then ui.drawRect(vec2(f[1],f[2]),vec2(f[3],f[4]),accent,5*u,nil,2) end

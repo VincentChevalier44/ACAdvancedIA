@@ -14,6 +14,7 @@ local Delta=require('src/delta')
 local Mistakes=require('src/mistakes')
 local HudInfo=require('src/hudinfo')
 local Flood=require('src/flood')
+local Lights=require('src/lights')
 local K=C.K
 local M={}
 -- Journal du départ (Beta 1.24) : maintien de ligne (IA mesurées, décalées de la trajectoire) et pneus de chaque IA,
@@ -99,6 +100,8 @@ function M.new(g,profiles)
  e.stats={}
  -- Informations de l'overlay (Beta 1.25), lues par le panneau.
  e.hud=HudInfo.new(); e.panel.info=e.hud
+ -- Panneaux lumineux du circuit et signaux FIA du joueur (Beta 1.32) ; dernier véhicule lent annoncé au journal.
+ e.lights=Lights.new(); e.slowLogged=0
  -- Contacts déjà notés (Beta 1.24) : prochaine ligne permise par paire de voitures.
  e.contacts={}; e.contactRel={}; e.contactSecond=-1; e.contactCount=0
  e.incidents.note=e.note; e.pits.note=e.note
@@ -119,6 +122,8 @@ end
 function M.rebase(e,amount)
  e.time=e.time-amount; e.startedAt=e.startedAt-amount; e.panel.at=e.panel.at-amount; Penalties.rebase(e.penalties,amount); Delta.rebase(e.delta,amount); Mistakes.rebase(e.mistakes,amount); e.deltaBeep.nextAt=e.deltaBeep.nextAt-amount
  if e.panel.noticeUntil>-math.huge then e.panel.noticeUntil=e.panel.noticeUntil-amount end
+ if e.panel.warnUntil>-math.huge then e.panel.warnUntil=e.panel.warnUntil-amount end
+ Lights.rebase(e.lights,amount)
  if e.panel.changedAt>-math.huge then e.panel.changedAt=e.panel.changedAt-amount end
  e.classes.nextAt=e.classes.nextAt-amount; e.classes.bopAt=e.classes.bopAt-amount
  e.traffic.nextAt=e.traffic.nextAt-amount
@@ -284,7 +289,7 @@ function M.step(e,frame,dt)
   e.session=frame.session; e.sessionType=frame.type
   M.reset(e,now,true); e.wasStarted=frame.started; e.startedAt=frame.started and now-frame.time or now
   e.classes.nextAt=0; e.flash=Flash.new()
-  e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
+  e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); Lights.reset(e.lights); e.slowLogged=0; e.panel.warnPending=false; e.panel.warnUntil=-math.huge; e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
   e.configuredRevision=-1
   for i=1,K.maxCars do
    local s=e.states[i]; s.stint=0; s.stintStart=now; s.class=2; s.classified=false; s.classCandidate=0; s.classCycles=0
@@ -359,7 +364,7 @@ function M.step(e,frame,dt)
  if reason~='ready' then
   for i=1,K.maxCars do local cmd=e.commands[i]; cmd.active=false; cmd.stopHold=false; cmd.rulePit=false; cmd.pitHold=false; cmd.pitCompound=-1; cmd.fuelTarget=-1; cmd.fuelSet=-1; cmd.scPark=false; cmd.scSpeed=K.unlimitedSpeed; cmd.recover=false; cmd.drsBlock=false; cmd.startDelay=-1 end
   -- App à l'arrêt : le panneau reprend encore les drapeaux d'AC (leur affichage d'origine est masqué dans CSP).
-  e.incidents.playerFlag=false; Panel.native(e.panel,frame,now,e.p)
+  e.incidents.playerFlag=false; e.incidents.playerYellow=false; e.lights.value=K.flagNone; e.lights.reason=''; Panel.native(e.panel,frame,now,e.p)
   -- Aucun onglet coché (hotlap, journée circuit sans commande) : le bip du DRS du joueur reste actif ; app coupée,
   -- panique, pause : aucun bip.
   if reason=='nosections' then drsBeep(e,frame,frame.flag==K.flagCaution and not frame.flagOwned,e.p.drsAssist~=false,e.p.drsBeepVolume or 100) else e.drs.was=false end
@@ -571,7 +576,19 @@ function M.step(e,frame,dt)
   local t=e.incidents
   if not kind or t.messageKind==kind and t.messageFrame==t.frameId then dr.announced=drsReason end
  end
- Panel.update(e.panel,e.incidents,frame,e.run,e.profile,now)
+ -- Beta 1.32 : véhicule lent devant le joueur (drapeau blanc), dégâts du joueur (drapeau noir à disque orange), valeur
+ -- des panneaux lumineux du circuit ; place à rendre (avertissement).
+ local l=e.lights
+ if Lights.update(l,e.incidents,frame,e.run,e.profile,e.delta,e.states,e.run.multiClass==true,now) then
+  U.log(e.log,now,'INFO',string.format('voiture du joueur endommagee: suspension %.2f, moteur %.0f, boite %.2f, carrosserie %.0f km/h, pneu eclate %s',
+   frame.playerSuspension,frame.playerEngine,frame.playerGearbox,frame.playerBody,frame.playerBlown and 'oui' or 'non'),frame.player)
+ end
+ if l.slowSlot>0 and l.slowSlot~=e.slowLogged then
+  U.log(e.log,now,'INFO',string.format('vehicule lent devant le joueur: %s a %.0f km/h, %.0f m devant',frame.cars[l.slowSlot].name,l.slowKmh,l.slowGap),l.slowSlot)
+ end
+ e.slowLogged=l.slowSlot
+ e.panel.giveBackDue=e.penalties.giveBack>0 and not e.penalties.disqualified
+ Panel.update(e.panel,e.incidents,frame,e.run,e.profile,now,l)
  -- Pénalités du joueur sous drapeau jaune : journal, message à l'écran et ligne du panneau ; écriture par l'applicateur.
  Penalties.resume(e.penalties,frame)
  local penalty=Penalties.update(e.penalties,frame,e.run,e.profile,e.incidents,now,dt,e.delta)
@@ -587,10 +604,14 @@ function M.step(e,frame,dt)
   if t.kind=='dq' then
    U.log(e.log,now,'WARN',string.format('disqualification du joueur: drapeau noir apres %d infractions, derniere : %s',t.count,detail),frame.player)
    if e.run.yellowMessage then Incidents.message(e.incidents,'penaltyDq',t.count) end; Panel.notice(e.panel,'dq',t.count,now)
+   -- Beta 1.32 : disqualifié, l'avertissement n'a plus lieu d'être.
+   e.panel.warnPending=false; e.panel.warnUntil=-math.huge
   else
    U.log(e.log,now,'WARN',string.format('penalite du joueur: %s, coupure des gaz %.0f s (infraction %d / %d)',detail,seconds,t.count,e.run.penaltyDisqualify),frame.player)
    if e.run.yellowMessage then Incidents.message(e.incidents,penaltyMessages[penalty],seconds) end
    Panel.notice(e.panel,penalty,seconds,now)
+   -- Beta 1.32 : dernière infraction tolérée, la suivante disqualifie : avertissement (drapeau noir et blanc).
+   if t.count>=e.run.penaltyDisqualify then Panel.warn(e.panel); U.log(e.log,now,'INFO','avertissement du joueur: prochaine infraction, disqualification',frame.player) end
   end
  end
  -- Sanctions des IA sous drapeau jaune : journal, message à l'écran pour une disqualification.

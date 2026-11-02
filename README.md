@@ -6,7 +6,7 @@
 
 ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP). Its HumanAI engine sits on top of the game's own AI and makes the AI cars drive more like people. On a track day they move aside for faster cars and spread out around the lap. In a race they respect blue flags, overtake and defend with intent, and flash their headlights at slower cars. They make the odd mistake, slow down for yellow flags, and follow Full Course Yellows, Virtual Safety Cars, a Safety Car and red flags. They make their mandatory pit stops, refuel and repair, and fit wet tyres when it rains. The app enforces the racing rules for you as well (delta time, penalties, DRS rules), and its in-game overlay tells you what is happening. It works in **offline sessions only**.
 
-- **Current version:** Beta 1.31. See [CHANGELOG.md](CHANGELOG.md).
+- **Current version:** Beta 1.32. See [CHANGELOG.md](CHANGELOG.md).
 - **Interface:** English by default, French available (**FR** | **EN** buttons in the settings window).
 - **Author:** VincentChevalier44. MIT License.
 
@@ -44,6 +44,7 @@ ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP
   - [AI distribution at session start and CSP AI flood](#ai-distribution-at-session-start-and-csp-ai-flood)
   - [Front radar and the other global options](#front-radar-and-the-other-global-options)
   - [In-game overlay](#in-game-overlay)
+  - [Track light panels](#track-light-panels)
   - [Beeps](#beeps)
   - [Custom presets](#custom-presets)
   - [Track zones and class patterns](#track-zones-and-class-patterns)
@@ -443,6 +444,7 @@ Section **Accidents** (sidebar **RACE & SAFETY**).
   - Where no pace is known yet (first lap), a fallback speed applies (50 km/h).
 - **For you.**
   - The overlay and the on-screen messages warn you. Assetto Corsa's small native yellow flag on the HUD is optional (**AC native yellow flag on the HUD**, off by default), and it never covers a blue, white, black or chequered flag.
+  - On an equipped track, the trackside light panels turn yellow too (see [Track light panels](#track-light-panels)).
   - **Your car is never speed-limited**: the delta time judges your pace.
 
 **Recovering stopped cars** (Beta 1.24, consistent with the racing rules):
@@ -793,6 +795,7 @@ Assetto Corsa displays (**ASSETTO CORSA DISPLAYS**):
   - **P** for a mandatory stop;
   - yellow and red stripes for a slippery surface;
   - chequered, black, and the black-and-white penalty flag;
+  - since Beta 1.32: white for a slow vehicle ahead, the black-and-white flag for a warning, black with an orange disc for a damaged car;
   - or the **DRS** badge.
 - **Middle.** The title in bold, then a short one-line instruction, for example *Ref. +30% · stay in the green*, *Yellow in 200 m · slow down* or *Drive-through · 2 lap(s) to serve it*.
 - **Right side.** The **delta time**, large: green when positive, flashing red when negative. The app version sits in a corner.
@@ -800,6 +803,41 @@ Assetto Corsa displays (**ASSETTO CORSA DISPLAYS**):
 - **Flashing is kept for what is urgent**: red and blue flags, a negative delta, an overtake committed under flags, a penalty, a place to give back, a call to the pits. A new flag also flashes for a few seconds.
 
 **The game's own flags and penalties** (black flag, drive-through with the laps left, return to the pits, throttle cut, chequered flag, last lap, blue, yellow) are always shown on the overlay, even with the panel off or the app stopped. AC still applies its own penalties.
+
+**FIA signals added in Beta 1.32** (none of them forbids overtaking):
+- **SLOW VEHICLE** (white flag): a car on the track ahead of you, within 300 m, has been going below half its usual pace at that spot for 3 s (below the obstacle speed while its pace is not known yet). Not a car already in an incident (that is a yellow flag), in the pit lane or just out of it, nor the grid. Overtaking it is allowed. Only with the app's yellow flags on. Logged (`vehicule lent devant le joueur: …`).
+- **WARNING** (black-and-white flag):
+  - you overtook under a flag and the place is still to give back once the flag has ended (under the flag itself, the flag stays shown with the *GIVE THE POSITION BACK* pill);
+  - your last tolerated infringement: the next one disqualifies you. Shown for 10 s as soon as no flag is up, dropped if you are disqualified. Logged (`avertissement du joueur: …`).
+- **CAR DAMAGED** (black flag with an orange disc): for 20 s when your car gets notable mechanical damage: suspension (0.2 of 1), engine (life down to 600 of 1000), gearbox (0.4 of 1), heavy bodywork damage (impacts adding up to 100 km/h) or a blown tyre. Read once a second, never with mechanical damage off, never in the pit lane; a repair re-arms it. Logged (`voiture du joueur endommagee: …`).
+
+### Track light panels
+
+Since Beta 1.32, on a track whose CSP configuration lights its trackside light panels (marshal posts, LED boards) from the player's flag, the app lights them with its own flags. Set it in **SETTINGS › ADVANCED › Overlay › TRACK LIGHT PANELS**: **Track light panels**, on by default, shared by every session, offline only.
+
+- **How it works.** CSP track configurations light their panels from the player's race flag (`INPUT=FLAG_TYPE`). The app sets that flag (`physics.overrideRacingFlag`), so all the panels of the track show the same colour at once. It hands the flag back to AC as soon as there is nothing to show, and on every exit (stop, panic, session change, unload, reload).
+- **Equipped tracks.** On the first frame at a track, the app reads its configuration, and never writes it:
+  - the track's own `extension/ext_config.ini`, its layout's, and the files they include from the same folder;
+  - CSP's own `extension/config/tracks/<track>.ini` and `loaded/<track>.ini`.
+  - A track counts as equipped when an active section lights up on a condition read from `FLAG_TYPE` (defined there, in an included file, or in CSP's shared `common/conditions.ini`). CSP's choice between the track's file and its own is not known to the app: the window says *found in its configuration*.
+  - On the author's installation, 18 of 41 tracks are equipped (59 of 132 layouts), for example Spa, Monaco, Le Mans, Bahrain, COTA, Suzuka, Zandvoort, and Imola and the Nordschleife through CSP's own configurations. It depends on each track's version and configuration.
+  - Elsewhere, this option never changes the AC flag.
+- **Colours**, by priority (each track's configuration sets the exact colours):
+
+| Panels | When |
+| --- | --- |
+| Red | Red flag, only when AC's own flags are hidden in CSP (**Hide race flags**): the red value is AC's black flag in its own display. Otherwise yellow. |
+| Yellow | A yellow zone ahead of you, Safety Car, VSC, FCY, the relaunch lap after a red flag |
+| White | A slow vehicle ahead of you |
+| Orange | Slippery track (rain starting, 30 s) |
+| Blue | A car lapping you is behind you (race) |
+| Green | 5 s at the end of a neutralisation or of a yellow zone |
+| AC's own | Nothing to report, your last lap in a lap race (AC's white flag), the finish (AC's chequered flag) |
+
+- **AC's own flags are never covered** when they are up: blue, white, black or chequered; over AC's yellow, only yellow or red. While the app shows a colour, AC's own flags come back when it ends.
+- **Changes.** A more important colour is shown at once; a less important one, or handing back to AC, after 1.5 s (track configurations ignore shorter states). The track check and every change are logged (`panneaux lumineux du circuit: …`).
+- **AC's own display.** If AC's flags are shown (not hidden in CSP), its flag icon also shows the yellow, blue and green of the panels; the window says so. The **AC native yellow flag on the HUD** preference still applies on a track that is not equipped, or with the option off.
+- **Not confirmed in game yet.** The SDK marks the slippery (3) and slow vehicle (6) values as *does not work yet* for AC's own display; whether the panels show them, and red (5), is to be checked in game.
 
 ### Beeps
 
@@ -842,6 +880,7 @@ return { zones = {
 
 **DIAGNOSTICS**, left column:
 - CSP version, track and spline length.
+- **Track light panels**: equipped track or not, and the colour shown.
 - **Sign calibration**: its state, *Offset / side sign*, and **Rerun sign calibration**.
 - **Headlight flashes**: the learned signal, and **Learn headlight flashes (6 s)**.
 - **Track zones**: **Mark start**, **Mark end (no manoeuvres)**, **COPY**, and the zone count.
@@ -1242,6 +1281,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Click-through when locked** | on / off | on |
 | **Hide in replays** | on / off | on |
 | **Hide in the pits** | on / off | off |
+| **Track light panels** | on / off | on |
 
 ## Session log
 
@@ -1272,6 +1312,10 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | `repartition des IA` | AI distribution at session start: plan, cars placed (`posees en piste sur … prevues`), check after 3 s (`roulent normalement` / `en difficulte`); since Beta 1.28 each car in trouble is named with its model and the reason (`aux stands` in the pits, `hors piste` off track, `lente` slow, `glissade` sliding) |
 | `depassement` / `depassement fini` | Since Beta 1.31: each overtaking attempt the app starts (`depassement: A -> B (trigger, gap, speed difference)`; trigger `rapprochement` closing, `retenue` held up, `invitation`, `cession` the car ahead yields) and how it ended (`reussi`, `cible plus rapide`, `cote ferme`, `sans rapprochement`, `suiveur rapide`, `cible perdue`, `drapeau jaune`…), after how long and the minimum gap |
 | `tete-a-queue, contexte` | Since Beta 1.31: what the app was commanding an AI just before it spun: state and for how long, time since its last manoeuvre, lateral offset, caution and aggressiveness against their usual values, level, slipstream, app braking |
+| `panneaux lumineux du circuit:` | Since Beta 1.32: light panels found in the track configuration or not (`detectes (extension\ext_config.ini)`, `non detectes`), then each colour the app shows on them and why (`jaune (drapeau jaune)`, `bleu (drapeau bleu)`, `rendus a AC`) |
+| `vehicule lent devant le joueur` | Since Beta 1.32: white flag; the slow car, its speed and how far ahead of you |
+| `avertissement du joueur` | Since Beta 1.32: your last tolerated infringement (black-and-white flag) |
+| `voiture du joueur endommagee` | Since Beta 1.32: black flag with an orange disc, with the damage read |
 | `invitation du joueur non suivie` | Since Beta 1.30: you moved aside right in front of an AI (at least 2 m, within 40 m) and it has not started to pass after 3 s. The line gives the distance, the lateral gap, the speed difference, both yaw rates and the reason (yellow flag, braking, corner, rest after a manoeuvre, anti-zigzag cap, car alongside, too slow…) |
 | `appel de phares du joueur` | Since Beta 1.29: each of your headlight flashes, with the AI targeted within the flash range, the nearest one (distance, your speed advantage), how many saw it and how many understood it; `cede sur appel de phares du joueur` is logged when an AI yields to it |
 | `IA anormalement lente` | Since Beta 1.28: an AI on track running below 60% of its class's learned pace at that spot for 20 s with a car stuck behind it (within 60 m). The line gives the driver, the car model, the speed, the class pace, the cars queued behind, the AI state, whether the app commands it, any speed limit the app imposes, and the damage (body, suspension, engine, gearbox); a second line (`roule de nouveau normalement`) closes the episode. Diagnostic only: nothing is commanded |
@@ -1415,6 +1459,7 @@ src/                    the HumanAI engine and its interface
   caps.lua                CSP capability detection and failure handling
   zones.lua               no-manoeuvre zone data grammar
   hudinfo.lua, panel.lua  overlay decisions (session line, lap line, recap, flags), no drawing
+  lights.lua              track light panels, slow vehicle ahead, player damage, track configuration parsing (files read by applier.lua)
   ui.lua, widgets.lua     settings window and overlay drawing
   config.lua              every setting: range, per-profile defaults, rule sets, presets, migrations
   presets.lua             custom presets

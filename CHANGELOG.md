@@ -1,5 +1,24 @@
 # Changelog
 
+## Beta 1.32 — 2 November 2026
+
+The track's light panels now show the app's flags, and the overlay gains the FIA signals it was missing, at your request.
+
+- **Track light panels.** On a track whose CSP configuration lights its trackside light panels from the player's flag, the app lights them with its own flags. **SETTINGS › ADVANCED › Overlay › Track light panels**, on by default.
+  - Red under a red flag, only with AC's flags hidden in CSP (the same value is AC's black flag in its own display; yellow otherwise). Yellow for a yellow zone ahead of you, the Safety Car, VSC, FCY and the relaunch lap. White for a slow vehicle ahead, orange for a slippery track, blue when a car laps you, green for 5 s when a neutralisation or a yellow ends.
+  - Nothing to show, your last lap or the finish: the flag goes back to AC. AC's own flags are never covered (blue, white, black, chequered; over AC's yellow, only yellow or red). A less important colour waits 1.5 s, so the panels never flicker.
+  - The track configuration is read once per track, never written. On your installation, 18 of your 41 tracks are equipped (59 of 132 layouts), among them Spa, Monaco, Le Mans, Bahrain, COTA, Suzuka and Zandvoort, and **Imola and the Nordschleife** through CSP's own configurations. Elsewhere, nothing changes.
+  - Logged: the track check and each colour with its reason (`panneaux lumineux du circuit: …`).
+  - With AC's flags shown, AC's own flag icon also shows the yellow, blue and green: the window says so.
+- **New overlay flags** (FIA), none of which forbids overtaking:
+  - **SLOW VEHICLE** (white flag): a car ahead of you, within 300 m, has been below half its usual pace there for 3 s. A car in an incident still gets the yellow flag.
+  - **WARNING** (black-and-white flag): a place to give back once the flag has ended (until now the reminder disappeared with the flag), and your last tolerated infringement before disqualification.
+  - **CAR DAMAGED** (black flag with an orange disc): for 20 s when your car gets notable mechanical damage (suspension, engine, gearbox, heavy bodywork damage, blown tyre).
+- **The app's own flag is never read back as one of AC's**: with the panels lit red, AC's black flag (same value) is not shown on the overlay.
+- Not confirmed in game yet: red, slippery and slow vehicle on the panels (the SDK marks the last two *does not work yet* for AC's own display). Rolling and standing restarts (RS / SS) come next.
+
+**Verification**: 396 checks; 94 integration cases; 816 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.31 except the new final-warning log line (identical once that line is removed); 8-hour soak without errors (memory between 8.9 and 10.1 MB); benchmark 30 AI 0.23 ms (Beta 1.31: 0.21), 60 AI 0.62 ms (Beta 1.31: 0.57). The real detection code was run on the 132 layouts of the 41 installed tracks. The memory and benchmark gaps with Beta 1.31 are within run-to-run variation: memory varies with the JIT compiler's traces (without the JIT, 3.20 MB against 3.18 MB, flat over the run), and alternating runs on the same machine give 30 AI 0.233 / 0.226 ms and 60 AI 0.611 / 0.604 ms, the same with the light panel work switched off (0.239 and 0.592 ms).
+
 ## Beta 1.31 — 2 November 2026
 
 Overtakes between AI and the repeated spins at the same corners (your Imola sessions: Acque Minerali around 2,850–2,940 m and Rivazza around 4,130 m, in Beta 1.28 to 1.30 alike). Your test confirmed the Beta 1.30 fix: an AI behind you passed normally once you moved aside.

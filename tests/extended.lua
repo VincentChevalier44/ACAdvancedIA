@@ -5051,4 +5051,200 @@ tests.SPIN_CONTEXT_131=function()
  for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find('tete-a-queue, contexte: Driver_2 | etat ',1,true) and r.message:find('prudence ',1,true) then found=true end end
  assert(found,'spin context logged')
 end
+-- Beta 1.32 : panneaux lumineux du circuit. Configuration lue : une section active s'allume sur une condition lue sur
+-- FLAG_TYPE (définie dans le fichier, un fichier inclus ou les conditions communes de CSP).
+tests.LIGHTS_SCAN_132=function()
+ local Lights=require('src/lights')
+ local own='[CONDITION_...]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\nLUT=(|1=0,1,0|2=1,1,0|)\n\n[MATERIAL_ADJUSTMENT_...]\nACTIVE = 1\nCONDITION = RACING_FLAG\n;INPUT=FLAG_TYPE\n'
+ assert(Lights.equipped(Lights.scan(own)),'own condition and a lit section (Spa)')
+ local shared='[CONDITION_85]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\nLUT=flag_colors.lut\n'
+ assert(not Lights.equipped(Lights.scan(shared)),'shared definition alone: nothing lit (Sepang, Monaco)')
+ local out=Lights.scan(shared); Lights.scan('[MATERIAL_ADJUSTMENT_3]\nCONDITION = RACING_FLAG\n',out)
+ assert(Lights.equipped(out),'shared definition, section of the track (Vallelunga)')
+ assert(not Lights.equipped(Lights.scan('[CONDITION_1]\nNAME=X\n;INPUT=FLAG_TYPE\nINPUT=TIME\n[LIGHT_SERIES_0]\nCONDITION=X\n')),'commented input ignored')
+ assert(not Lights.equipped(Lights.scan((own:gsub('ACTIVE = 1','ACTIVE = 0')))),'inactive section ignored')
+ assert(not Lights.equipped(Lights.scan('[CONDITION_2]\nNAME=OTHER\nINPUT=FLAG_TYPE\n[LIGHT_SERIES_0]\nCONDITION=RACING_FLAG\n')),'another condition')
+ assert(Lights.equipped(Lights.scan('[CONDITION_0]\r\nname = myflag\r\ninput = flag_type ; flags\r\n[MATERIAL_ADJUSTMENT_0]\r\ncondition = MYFLAG\r\n')),'case, CRLF and comments')
+ local inc=Lights.scan('[INCLUDE]\nINCLUDE = common/conditions.ini, ext_config-flags.ini\n[INCLUDE: extra.ini]\n')
+ assert(inc.includes[1]=='common/conditions.ini' and inc.includes[2]=='ext_config-flags.ini' and inc.includes[3]=='extra.ini','included files')
+ assert(not Lights.equipped(Lights.scan(nil)) and not Lights.equipped(Lights.scan('')),'empty configuration')
+end
+-- Fichiers lus : configuration du circuit, sa variante, fichiers inclus voisins, configurations de CSP ; une fois par
+-- circuit ; rien d'écrit.
+tests.LIGHTS_TRACK_FILES_132=function()
+ local host=require('tests/host').create(true); local a=A.new(); assert(A.access(a))
+ local sep=string.char(92)
+ local function path(...) return table.concat({...},sep) end
+ host.files[path('cfgsys','tracks','common','conditions.ini')]='[CONDITION_85]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\n'
+ host.files[path('tracks','alpha','extension','ext_config.ini')]='[INCLUDE]\nINCLUDE = common/conditions.ini, ext_config-flags.ini\n'
+ assert(A.trackLights(a,'alpha')==false and a.trackLightsFor=='alpha','shared conditions only: not equipped')
+ host.files[path('tracks','alpha','extension','ext_config-flags.ini')]='[MATERIAL_ADJUSTMENT_0]\nACTIVE=1\nCONDITION=RACING_FLAG\n'
+ assert(A.trackLights(a,'alpha')==false,'read once per track')
+ a.trackLightsFor=nil; assert(A.trackLights(a,'alpha')==true and a.trackLightsSource:find('ext_config-flags.ini',1,true),'neighbour include lights the panels: '..a.trackLightsSource)
+ -- Configuration de CSP (loaded) d'un circuit sans la sienne (Imola, Nordschleife).
+ host.files[path('cfgsys','tracks','loaded','beta.ini')]='[CONDITION_1]\nNAME=MYRACING_FLAG\nINPUT=FLAG_TYPE\n[MATERIAL_ADJUSTMENT_14]\nCONDITION=MYRACING_FLAG\n'
+ assert(A.trackLights(a,'beta')==true and a.trackLightsSource:find('beta.ini',1,true),'CSP configuration')
+ -- Variante du circuit.
+ host.trackLayout='gp'; host.files[path('tracks','gamma','gp','extension','ext_config.ini')]=host.files[path('cfgsys','tracks','loaded','beta.ini')]
+ assert(A.trackLights(a,'gamma')==true,'layout configuration')
+ host.trackLayout=nil
+ -- Identifiant suspect : rien lu.
+ assert(A.trackLights(a,'..'..sep..'x')==nil and A.trackLights(a,'')==nil,'odd track id: unknown')
+ -- Lecture qui échoue : inconnu, jamais une erreur.
+ local load=io.load; io.load=function() error('read') end
+ assert(A.trackLights(a,'delta')==false,'unreadable files: nothing found'); io.load=load
+end
+-- Valeur des panneaux : rouge, jaune (zone, neutralisation), véhicule lent, piste glissante, bleu, vert, sinon rendu à AC ;
+-- rouge seulement drapeaux d'AC masqués ; dernier tour et arrivée : drapeaux d'AC.
+tests.LIGHTS_DECIDE_132=function()
+ local Lights=require('src/lights'); local K=C.K
+ local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); E.changed(e)
+ local p=e.run; local l=Lights.new(); local now=100
+ local t={red=false,neutral=false,neutralMode='sc',playerYellow=false,playerFlag=false,slipperyUntil=-math.huge,greenUntil=-math.huge}
+ local function at(state) for k,v in pairs(state or {}) do t[k]=v end; local v,r=Lights.decide(l,t,f,p,'C',now); l.value=v; l.reason=r; return v,r end
+ assert(at()==K.flagNone,'nothing to show: handed back to AC')
+ assert(at({greenUntil=now+5})==K.flagStart,'green after an end')
+ assert(at({slipperyUntil=now+5})==K.flagSlippery,'slippery above green')
+ l.slowSlot=2; assert(at()==K.flagSlowVehicle,'slow vehicle above slippery')
+ local v,r=at({playerYellow=true,neutral=true}); assert(v==K.flagCaution and r=='voiture de securite','safety car: yellow')
+ v,r=at({neutral=false}); assert(v==K.flagCaution and r=='drapeau jaune','yellow zone')
+ assert(at({red=true})==K.flagStop,'red above everything')
+ assert(Lights.output(l,t,true,true)==K.flagStop and Lights.output(l,t,true,false)==K.flagCaution and Lights.output(l,t,true,nil)==K.flagCaution,'red only with the AC flags hidden')
+ t.playerFlag=false; assert(Lights.output(l,t,false,true)==K.flagNone,'option off: nothing'); t.playerFlag=true; assert(Lights.output(l,t,false,true)==K.flagCaution,'option off: HUD preference kept')
+ at({red=false,playerYellow=false,slipperyUntil=-math.huge,greenUntil=-math.huge}); l.slowSlot=0
+ f.sessionLaps=5; f.timedRace=false; f.cars[1].lap=4; l.slowSlot=2
+ assert(at()==K.flagNone,'last lap of a lap race: AC white flag')
+ f.cars[1].lap=4; assert(at({red=true})==K.flagStop,'red still shown on the last lap')
+ f.cars[1].finished=true; assert(at()==K.flagNone,'finished: chequered flag of AC')
+ f.cars[1].finished=false; f.sessionLaps=0; l.slowSlot=0; t.red=false
+ local player=F.place(f,1,10000+500,100); player.lap=2; player.lapValid=true; player.spline=(player.z/f.length)%1
+ local fast=F.place(f,2,10000+420,150); fast.lap=3; fast.lapValid=true; fast.spline=(fast.z/f.length)%1
+ F.place(f,3,10000+4000,100)
+ assert(at()==K.flagFasterCar,'blue flag on the panels')
+ fast.lap=2; assert(at()==K.flagNone,'same lap: no blue')
+end
+-- Écritures : valeur changée aussitôt vers plus important, après une tenue vers moins important ou pour rendre ; sur le
+-- jaune natif, seulement le jaune ou le rouge ; jamais sur un autre drapeau d'AC ; rendue à la restitution.
+tests.LIGHTS_FLAG_WRITES_132=function()
+ local host=require('tests/host').create(true); local e,f=F.scene('C'); local a=A.new(); assert(A.access(a)); local K=C.K
+ f.flag=K.flagNone; A.flag(a,f,K.flagFasterCar,'drapeau bleu',10); assert(a.flagOverride and host.flag==K.flagFasterCar and a.flagValue==K.flagFasterCar,'blue taken')
+ f.flag=K.flagFasterCar
+ A.flag(a,f,K.flagCaution,'drapeau jaune',10.2); assert(host.flag==K.flagCaution,'more important: at once')
+ A.flag(a,f,K.flagStart,'drapeau vert',10.5); assert(host.flag==K.flagCaution,'less important: not before the hold')
+ A.flag(a,f,K.flagStart,'drapeau vert',10.2+K.lightsHold); assert(host.flag==K.flagStart,'after the hold')
+ A.flag(a,f,K.flagNone,'',10.5+K.lightsHold); assert(a.flagOverride and host.flag==K.flagStart,'handing back waits for the hold too')
+ A.flag(a,f,K.flagNone,'',10.2+2*K.lightsHold+0.01); assert(not a.flagOverride and host.flag==0 and a.flagValue==K.flagNone,'handed back to AC')
+ f.flag=K.flagCaution; A.flag(a,f,K.flagFasterCar,'drapeau bleu',30); assert(not a.flagOverride,'never blue over the native yellow')
+ A.flag(a,f,K.flagStop,'drapeau rouge',30); assert(a.flagOverride and host.flag==K.flagStop,'red over the native yellow')
+ A.restore(a,f,false,31); assert(not a.flagOverride and host.flag==0 and a.flagValue==K.flagNone,'handed back on restore')
+ for _,native in ipairs({K.flagFinished,K.flagOneLapLeft,K.flagFasterCar,K.flagStop,K.flagStart}) do
+  f.flag=native; A.flag(a,f,K.flagCaution,'drapeau jaune',40); assert(not a.flagOverride,'never over the native flag '..native)
+ end
+ -- Préférence d'origine (jaune du HUD, booléen) : aussitôt, sans tenue.
+ f.flag=K.flagNone; A.flag(a,f,true); assert(host.flag==K.flagCaution); A.flag(a,f,false); assert(host.flag==0 and not a.flagOverride,'boolean preference unchanged')
+end
+-- Drapeau imposé par l'app (panneaux lumineux) : jamais lu comme un drapeau d'AC (noir, départ, bleu, jaune) ; les
+-- pénalités d'AC, propres à la voiture, restent lues.
+tests.NATIVE_FLAG_OWNED_132=function()
+ local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); E.changed(e); local K=C.K
+ f.flagOwned=true
+ for _,v in ipairs({K.flagStop,K.flagStart,K.flagFasterCar,K.flagCaution,K.flagSlippery,K.flagSlowVehicle}) do
+  f.flag=v; F.tick(e,f,0.5)
+  local k=e.panel.kind; assert(k~='black' and k~='green' and k~='blue' and k~='yellow','own flag '..v..' read as native: '..k)
+ end
+ f.cars[1].penaltyType=K.penaltyBlackFlag; F.tick(e,f,0.5); assert(e.panel.kind=='black','AC penalty still read')
+ f.cars[1].penaltyType=0; f.flagOwned=false; f.flag=K.flagStop; F.tick(e,f,0.5); assert(e.panel.kind=='black','AC black flag when it is not ours')
+end
+-- Véhicule lent devant le joueur (drapeau blanc) : quelques secondes sous la moitié de son allure (au pas sans allure
+-- connue), dans la portée, dépassement permis ; ni derrière, ni aux stands, ni en incident (drapeau jaune).
+tests.LIGHTS_SLOW_VEHICLE_132=function()
+ local K=C.K; local L=require('src/lang')
+ local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); E.changed(e)
+ F.place(f,1,1000,150); F.place(f,2,1200,20); F.place(f,3,6000,150)
+ F.tick(e,f,1,true); assert(e.panel.kind~='slow' and e.lights.slowSlot==0,'not before a few seconds')
+ F.tick(e,f,K.slowVehicleTime,true)
+ assert(e.lights.slowSlot==2 and e.panel.kind=='slow' and e.panel.title==L.flagTitles.slow and not e.panel.noPass,'slow vehicle ahead: white flag, overtaking allowed')
+ assert(e.lights.value==K.flagSlowVehicle,'white on the panels')
+ local found=false; for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find('vehicule lent devant le joueur',1,true) then found=true end end
+ assert(found,'logged once')
+ -- Dépassé : derrière le joueur, plus de drapeau.
+ F.place(f,2,f.cars[1].z-50,20); F.tick(e,f,0.5); assert(e.lights.slowSlot==0 and e.panel.kind~='slow','behind the player: no flag')
+ -- Aux stands : jamais.
+ F.place(f,2,f.cars[1].z+150,20); f.cars[2].pit=true; F.tick(e,f,K.slowVehicleTime+0.5); assert(e.lights.slowSlot==0,'pit lane: no flag')
+ f.cars[2].pit=false
+ -- Allure apprise : sous la moitié, véhicule lent ; au-dessus, non.
+ local e2,f2=F.scene('C',3); C.preset('Course','C',e2.profiles.C); E.changed(e2)
+ -- Allure de la flotte (médiane des IA de la classe) : 200 km/h partout ; celle de la voiture lente, apprise, baisse.
+ for i=2,3 do local s=e2.states[i]; s.paceCount=K.paceMinBins; for b=1,K.paceBins do s.pace[b]=200/3.6 end end
+ F.place(f2,1,1000,150); F.place(f2,2,1200,120); F.place(f2,3,6000,150)
+ F.tick(e2,f2,K.slowVehicleTime+0.5); assert(e2.lights.slowSlot==0,'above half its pace: not slow')
+ F.place(f2,2,1200,80); F.tick(e2,f2,K.slowVehicleTime+0.5); assert(e2.lights.slowSlot==2,'below half its pace: slow vehicle')
+ -- Arrêtée : incident, drapeau jaune (pas blanc).
+ F.place(f2,2,1200,0); f2.cars[2].stopped=1; F.tick(e2,f2,4)
+ assert(e2.incidents.cars[2].incident and e2.lights.slowSlot==0 and e2.lights.value==K.flagCaution,'stopped car: yellow, not white')
+ -- Drapeaux jaunes de l'app coupés : rien.
+ local e3,f3=F.scene('C',3); C.preset('Course','C',e3.profiles.C); e3.profiles.C.yellowEnabled=false; E.changed(e3)
+ F.place(f3,1,1000,150); F.place(f3,2,1200,20); F.tick(e3,f3,K.slowVehicleTime+1); assert(e3.lights.slowSlot==0,'app flags off: no white flag')
+end
+-- Avertissement (drapeau noir et blanc) : place à rendre une fois le drapeau levé ; dernière infraction tolérée, différée
+-- sous drapeau ; voiture endommagée (drapeau noir à disque orange) ; dépassement permis ; textes dans les deux langues.
+tests.PANEL_WARNINGS_132=function()
+ local Panel=require('src/panel'); local L=require('src/lang'); local en=require('src/lang_en'); local K=C.K
+ local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); E.changed(e)
+ local p=e.run; local panel=Panel.new(); local now=100; local l=require('src/lights').new()
+ local t={red=false,neutral=false,neutralMode='fcy',safetyPhase='none',playerZone=false,playerDistance=0,greenUntil=-math.huge}
+ local function at(state) for k,v in pairs(state or {}) do t[k]=v end; now=now+1; Panel.update(panel,t,f,p,'C',now,l); return panel.kind end
+ panel.giveBackDue=true
+ assert(at({playerZone=true,playerToZone=100,playerInside=false})=='yellow','the flag itself first')
+ assert(at({playerZone=false})=='warning' and panel.title==L.flagTitles.warning and panel.raw==L.flagDetails.giveBack and not panel.noPass,'give the place back')
+ panel.giveBackDue=false
+ Panel.warn(panel); assert(at({playerZone=true})=='yellow','final warning deferred under a flag')
+ assert(at({playerZone=false})=='warning' and panel.raw==L.flagDetails.warning,'final warning shown')
+ assert(at()=='warning','for a few seconds')
+ now=now+K.warningShow; assert(at()=='none','then cleared')
+ l.meatballUntil=now+5; assert(at()=='meatball' and panel.title==L.flagTitles.meatball and not panel.noPass,'car damaged')
+ l.slowSlot=2; l.slowGap=123; assert(at()=='slow' and panel.raw==string.format(L.flagDetails.slow,120),'slow vehicle above the damage notice')
+ l.slowSlot=0; l.meatballUntil=-math.huge; assert(at()=='none')
+ Panel.warn(panel); p.flagPanel=false; at(); p.flagPanel=true; assert(at()=='none','pending warning dropped with the panel off')
+ for _,k in ipairs({'slow','warning','meatball'}) do assert(L.flagTitles[k] and en.flagTitles[k],k) end
+ for _,k in ipairs({'slow','giveBack','warning','meatball'}) do assert(L.flagDetails[k] and en.flagDetails[k] and L.flagShort[k] and en.flagShort[k] and L.flagExplain[k] and en.flagExplain[k],k) end
+end
+-- Dégâts du joueur : lus une fois par seconde (à part de ceux des IA) ; annoncés à leur apparition ; jamais sans dégâts
+-- mécaniques ; une réparation réarme l'annonce.
+tests.PLAYER_DAMAGE_132=function()
+ local host=require('tests/host').create(true); local K=C.K
+ local Snapshot=require('src/snapshot'); local s=Snapshot.new()
+ host.cars[0].damage={[0]=60,[1]=50,[2]=0,[3]=0,[4]=0}; host.cars[0].suspensionDamage={[0]=0.3,[1]=0,[2]=0,[3]=0}; host.cars[0].engineLifeLeft=900; host.cars[0].gearboxDamage=0
+ Snapshot.read(s,1/60,10)
+ assert(s.player==1 and s.playerDamageSlot==1 and s.playerBody==110 and math.abs(s.playerSuspension-0.3)<1e-9 and s.playerEngine==900,'player damage read')
+ assert(s.cars[1].damageBody==0,'AI damage fields untouched for the player')
+ assert(s.playerDamageAt==10+K.playerDamagePeriod,'next read in a second')
+ host.cars[0].engineLifeLeft=500; Snapshot.read(s,1/60,10.5); assert(s.playerEngine==900,'not read again before a second')
+ Snapshot.read(s,1/60,11.1); assert(s.playerEngine==500 and s.playerDamageAt==11.1+K.playerDamagePeriod,'read again after a second')
+ local Lights=require('src/lights'); local l=Lights.new()
+ local e,f=F.scene('C',3)
+ f.playerDamageSlot=1; f.damageRate=1; f.playerSuspension=0.3; f.playerBody=0; f.playerEngine=1000; f.playerGearbox=0; f.playerBlown=false
+ assert(Lights.update(l,e.incidents,f,e.run,'C',e.delta,e.states,false,20) and l.meatballUntil==20+K.meatballShow,'new damage announced')
+ assert(not Lights.update(l,e.incidents,f,e.run,'C',e.delta,e.states,false,21),'announced once')
+ f.playerEngine=500; assert(Lights.update(l,e.incidents,f,e.run,'C',e.delta,e.states,false,22),'another part damaged: announced again')
+ f.playerSuspension=0; f.playerEngine=1000; Lights.update(l,e.incidents,f,e.run,'C',e.delta,e.states,false,23); assert(not l.damaged,'repaired')
+ f.playerBlown=true; assert(Lights.update(l,e.incidents,f,e.run,'C',e.delta,e.states,false,24),'blown tyre')
+ f.playerBlown=false; Lights.update(l,e.incidents,f,e.run,'C',e.delta,e.states,false,25)
+ f.damageRate=0; f.playerSuspension=0.9; assert(not Lights.update(l,e.incidents,f,e.run,'C',e.delta,e.states,false,26),'damage disabled: never')
+ f.damageRate=1; f.cars[1].pit=true; assert(not Lights.update(l,e.incidents,f,e.run,'C',e.delta,e.states,false,27),'pit lane: not announced')
+end
+-- Beta 1.32 : avertissement (drapeau noir et blanc) après la dernière infraction tolérée seulement ; levé à la
+-- disqualification.
+tests.PLAYER_FINAL_WARNING_132=function()
+ local e,f=F.scene('C',3); e.profiles.C.penaltyDisqualify=2; e.profiles.C.neutralization='fcy'; e.profiles.C.yellowEnabled=false; E.changed(e)
+ F.place(f,3,6000,0); local z=0; local warned,early=false,false
+ for _=1,60*90 do
+  z=z+150/3.6/60; F.place(f,1,z,150); F.tick(e,f,1/60)
+  local pending=e.panel.warnPending or e.panel.warnUntil>-math.huge
+  if pending and e.penalties.count<2 then early=true end
+  if pending and e.penalties.count==2 then warned=true end
+ end
+ assert(warned and not early,'final warning after the last tolerated infraction only')
+ assert(e.penalties.disqualified and not e.panel.warnPending and e.panel.warnUntil==-math.huge,'dropped once disqualified')
+end
 return tests

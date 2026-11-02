@@ -1565,5 +1565,52 @@ return function(source)
   assert(g.overlayLocked and g.overlayBackground=='solid' and g.overlayExplain and g.overlayContent==100 and g.panelOpacity==C.globalDefaults.panelOpacity and g.offsetSign==-1,'overlay reset, nothing else')
   pause(false); HUMANAI.release()
  end)
+ -- Beta 1.32 : panneaux lumineux du circuit, seulement sur un circuit équipé ; option coupée : rendu aussitôt.
+ check('Beta 1.32 : panneaux lumineux du circuit allumés en jaune sur un circuit équipé, rendus à AC',function()
+  HUMANAI.release(); HOST=H.create(true)
+  local sep=string.char(92); local function path(...) return table.concat({...},sep) end
+  HOST.files[path('tracks','test','extension','ext_config.ini')]='[INCLUDE]\nINCLUDE = common/conditions.ini, ext_config-flags.ini\n'
+  HOST.files[path('tracks','test','extension','ext_config-flags.ini')]='[MATERIAL_ADJUSTMENT_0]\nACTIVE=1\nCONDITION=RACING_FLAG\n'
+  HOST.files[path('cfgsys','tracks','common','conditions.ini')]='[CONDITION_85]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\n'
+  assert(loadstring(source))()
+  local e=HUMANAI.engine; C.preset('Nordschleife','J',e.profiles.J); E.changed(e)
+  HOST.cars[0].splinePosition=0.995; HOST.cars[3].speedKmh=0; HOST.cars[3].velocity={x=0,z=0}
+  H.tick(HOST,8)
+  assert(HUMANAI.host.trackLights==true and HUMANAI.host.trackLightsSource~='','equipped track detected')
+  assert(e.incidents.playerYellow and not e.profiles.J.yellowHud and HOST.flag==C.K.flagCaution,'yellow on the panels without the HUD preference')
+  assert(e.panel.title==L.flagTitles.yellow2 or e.panel.title==L.flagTitles.zone,'own flag not read back as an AC yellow')
+  local logged=false; for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find('panneaux lumineux du circuit: jaune',1,true) then logged=true end end
+  assert(logged,'write logged with its reason')
+  e.g.trackLights=false; H.tick(HOST,0.5); assert(HOST.flag==0 and not HUMANAI.host.flagOverride,'handed back at once when the option is off')
+  e.g.trackLights=true; H.tick(HOST,0.5); assert(HOST.flag==C.K.flagCaution,'back on')
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+  assert(HOST.flag==0,'handed back on unload')
+ end)
+ check('Beta 1.32 : circuit non équipé, drapeau d AC jamais modifié',function()
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))()
+  local e=HUMANAI.engine; C.preset('Nordschleife','J',e.profiles.J); E.changed(e)
+  HOST.cars[0].splinePosition=0.995; HOST.cars[3].speedKmh=0; HOST.cars[3].velocity={x=0,z=0}
+  H.tick(HOST,8)
+  assert(HUMANAI.host.trackLights==false and e.incidents.playerYellow and HOST.flag==0 and HOST.flagOverrides==0,'not equipped: AC flag untouched')
+  HUMANAI.release()
+ end)
+ check('Beta 1.32 : réglage des panneaux lumineux, nouveaux drapeaux dessinés',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); H.tick(HOST,1); pause(true)
+  local g=HUMANAI.engine.g; section('overlay'); redraw(); assert(g.trackLights==true,'on by default')
+  g.trackLights=false; redraw(); press('reset_overlay'); assert(g.trackLights==true,'overlay reset')
+  -- En bas de la section : atteint à la molette.
+  local r=HOST.hits['##aai_overlay_lock']; HOST.mouse={x=r.x+5,y=r.y+5}
+  for _=1,10 do HOST.wheel=-1; main() end
+  redraw(); assert(drawn('overlay_trackLights'),'option shown'); HOST.mouse={x=-1e6,y=-1e6}
+  press('overlay_trackLights'); assert(g.trackLights==false,'turned off'); press('overlay_trackLights'); assert(g.trackLights==true,'turned on')
+  pause(false)
+  local e=HUMANAI.engine
+  e.lights.meatballUntil=e.time+10; H.tick(HOST,0.5)
+  HOST.panelTexts={}; HOST.circles=0; script.HUMANAI__FLAGS()
+  assert(e.panel.kind=='meatball' and has(HOST.panelTexts,L.flagTitles.meatball) and HOST.circles>0,'damaged car: black flag with an orange disc')
+  e.lights.meatballUntil=-math.huge; e.panel.giveBackDue=false; require('src/panel').warn(e.panel); H.tick(HOST,0.5)
+  HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(e.panel.kind=='warning' and has(HOST.panelTexts,L.flagTitles.warning),'final warning drawn')
+  HUMANAI.release()
+ end)
  return results
 end

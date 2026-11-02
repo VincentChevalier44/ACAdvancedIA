@@ -13,6 +13,7 @@ local Pits=require('src/pits')
 local Penalties=require('src/penalties')
 local Journal=require('src/journal')
 local Locale=require('src/locale')
+local Lights=require('src/lights')
 local K=Config.K
 -- Cache des traces du compilateur JIT agrandi (machine virtuelle de l'app) : avec les 1 000 traces et 512 Ko de code
 -- machine par défaut, le moteur vide et recompile tout son code toutes les une à deux minutes (pics d'image). Sans
@@ -188,7 +189,7 @@ local function update(dt)
  writeJournal(false)
  if engine.rebaseDelta>0 then
   Applier.rebase(host,engine.rebaseDelta); calibration.startAt=calibration.startAt-engine.rebaseDelta
-  frame.metaAt=frame.metaAt-engine.rebaseDelta
+  frame.metaAt=frame.metaAt-engine.rebaseDelta; frame.playerDamageAt=frame.playerDamageAt-engine.rebaseDelta
   lastCheckpoint=lastCheckpoint-engine.rebaseDelta; lastRaceSave=lastRaceSave-engine.rebaseDelta
   journal.flushAt=journal.flushAt-engine.rebaseDelta; journal.summaryAt=journal.summaryAt-engine.rebaseDelta
  end
@@ -222,6 +223,9 @@ local function update(dt)
  end
  if loadedTrack~=frame.track then
   loadedTrack=frame.track; engine.zones={}; engine.zoneStart=-1; local data=Snapshot.zones(frame.track)
+  -- Beta 1.32 : panneaux lumineux du circuit cherchés dans sa configuration (et drapeaux d'AC masqués relus).
+  local lights=Applier.trackLights(host,frame.track)
+  U.log(engine.log,engine.time,'INFO',lights==true and 'panneaux lumineux du circuit: detectes ('..host.trackLightsSource..')' or lights==false and 'panneaux lumineux du circuit: non detectes' or 'panneaux lumineux du circuit: configuration illisible',-1)
   if data then
    local zones,err=Zones.parse(data)
    if zones then engine.zones=zones; U.log(engine.log,engine.time,'INFO','zones_loaded',-1)
@@ -258,7 +262,10 @@ local function update(dt)
  Config.effectiveGlobals(globals,engine.p,engine.runtimeG)
  host.calibrationIndex=calibration.index
  Applier.apply(host,frame,engine.commands,engine.runtimeG,engine.time)
- Applier.flag(host,frame,engine.incidents.playerFlag)
+ -- Drapeau du joueur : panneaux lumineux du circuit (option, circuit équipé) ; sinon jaune natif du HUD sur demande.
+ local lightsOn=globals.trackLights==true and host.trackLights==true
+ local flagValue,flagReason=Lights.output(engine.lights,engine.incidents,lightsOn,host.raceFlagsHidden)
+ Applier.flag(host,frame,flagValue,flagReason,lightsOn and engine.time or nil)
  Applier.penalty(host,frame,engine.penalties)
  Applier.beep(host,frame,engine.drs)
  Applier.deltaBeep(host,frame,engine.deltaBeep)

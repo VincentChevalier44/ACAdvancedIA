@@ -3,7 +3,7 @@ track 30 IA 20000 images, erreurs 0
   empreintes 5000:ffffffff9535b31d 10000:51807180 15000:ffffffffa30a1ad0 20000:ffffffff8a4ecba6
 rules 30 IA 40000 images, erreurs 0
   stats abort_slow=33,abort_yellow=1,alongside=71,attacker=24,chain=15,clear=96,defense_end=24,direction_limit=4,drsAsk=191,flash=5,guard=21,limit=4,obstacle=20,obstacle_clear=20,pass=136,pass_end=131,pass_position=54,passed=172,passedPlayer=19,pull_out=113,ready=81,realPass=420,realPassApp=94,target_lost=3,yellow=8,yield=181,yield_end=177,yield_position=175
-  empreintes 10000:ffffffffad6f1812 20000:ffffffffa042b0a6 30000:4e3625c2 40000:7db25514
+  empreintes 10000:ffffffffad6f1812 20000:ffffffffa042b0a6 30000:4e3625c2 40000:fffffffffd14fb94
 rules 60 IA 12000 images, erreurs 0
   stats abort_slow=34,abort_yellow=19,alongside=128,attacker=31,chain=42,clear=128,defense_end=31,direction_limit=15,drsAsk=105,flash=2,guard=9,limit=15,obstacle=19,obstacle_clear=19,pass=197,pass_end=167,pass_position=78,passed=53,passedPlayer=9,pull_out=170,ready=129,realPass=499,realPassApp=156,target_lost=1,yield=56,yield_end=48,yield_position=55
   empreintes 3000:ffffffffb2838ec8 6000:ffffffffc20dc5aa 9000:ffffffff8fe55b10 12000:ffffffffee69d5b2
