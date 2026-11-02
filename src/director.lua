@@ -27,7 +27,7 @@ function M.newState()
   alongside=false,passAlongside=false,aborts=0,previousIdentity='',fatigue=1,yellow=false,aiFlashAt=-math.huge,overtakeArmed=false,overtakeSpline=-1,yieldClass=false,bop=0,
   hazardRel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},
   scanRel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},avoidClear=0,invited=0,avoidSide=0,passStall=0,holdStall=0,holdLong=math.huge,
-  lane=0,laneActive=false,laneLatched=false,laneSeen=-math.huge,laneMeters=0,laneAt=0,laneLogged=false,passedByPlayerAt=-math.huge,playerBehind=false}
+  lane=0,laneActive=false,laneLatched=false,laneSeen=-math.huge,laneMeters=0,laneAt=0,laneLogged=false,passedByPlayerAt=-math.huge,playerBehind=false,inviteWait=0,inviteLogged=false,appBrake=0}
  for j=1,K.paceBins do s.pace[j]=0 end
  for j=1,K.directionLimit do s.directions[j]=-math.huge; s.directionStates[j]=''; s.directionSides[j]=0 end
  for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0 end
@@ -446,7 +446,13 @@ function M.step(e,i,dt,now)
  cmd.active=true; cmd.brake=0
  local startPhase=profile=='C' and elapsed<p.startDelay+p.startRelax
  -- Règle sportive : aucun changement de trajectoire ne commence au freinage.
- local braking=p.noMoveBraking and a.brake>K.ruleBrake
+ -- Beta 1.30 (essais du pilote : une IA arrivée vite derrière lui, qu'il laissait passer en s'écartant, a ralenti
+ -- jusqu'à l'arrêt) : le léger freinage ajouté par l'app (radar avant) n'est pas un freinage du pilote. Compté comme tel,
+ -- il interdisait de déboîter (règle du freinage) et de dépasser : l'IA restait derrière, freinée, jusqu'à son allure.
+ -- La pédale lue est le maximum du freinage natif et du freinage imposé (API CSP) : au-dessus de celui-ci seulement,
+ -- c'est le pilote qui freine.
+ local ownBrake=a.brake>s.appBrake+K.brakeEcho and a.brake or 0
+ local braking=p.noMoveBraking and ownBrake>K.ruleBrake
  if s.spinHold and a.kmh>=K.calmExitSpeed then s.spinHold=false end
  if profile=='C' and (not frame.started or elapsed<p.startDelay) or now<s.pitExitUntil or s.spinHold then
   transition(e,s,'IDLE','start',now); s.confirm=0; s.pendingAt=0
@@ -601,7 +607,7 @@ function M.step(e,i,dt,now)
       if s.state=='OVT_ARM' then
        desired=s.base
        -- Déboîtement en ligne droite seulement (PDR §10.2.4).
-       if target.gap<=U.clamp(p.pullOutGapBase+p.pullOutGapPerMps*a.speed,p.pullOutGapBase,K.pullOutMax) and a.corner>=K.passCornerC and not s.alongside and a.brake<K.passBrakeMax and not braking
+       if target.gap<=U.clamp(p.pullOutGapBase+p.pullOutGapPerMps*a.speed,p.pullOutGapBase,K.pullOutMax) and a.corner>=K.passCornerC and not s.alongside and ownBrake<K.passBrakeMax and not braking
         and -target.lat*s.targetSide<K.pullOutTargetLat then transition(e,s,'OVT_IN','pull_out',now) end
       end
       if target.long<-(a.length+frame.cars[target.index].length)*0.5-p.overtakeClearMargin then s.clear=s.clear+dt else s.clear=0 end
@@ -642,7 +648,22 @@ function M.step(e,i,dt,now)
        and (not front or invitee.gap<front.gap) then front=invitee end
      end
      local canPass=not s.returning and not startPhase and not s.yellow and not braking and s.lapseUntil<=now and p.overtakeEnabled and front and front.gap>=0 and now>=s.restUntil and directionBudget(s,now,p) and not s.zone.noOvertake and not s.alongside
-      and a.kmh>=K.speedMinPass and a.corner>=(profile=='C' and K.passCornerC or p.cornerMin) and a.brake<K.passBrakeMax
+      and a.kmh>=K.speedMinPass and a.corner>=(profile=='C' and K.passCornerC or p.cornerMin) and ownBrake<K.passBrakeMax
+     -- Beta 1.30 : joueur écarté juste devant (invitation) sans dépassement engagé au bout de K.inviteReport s : la raison
+     -- au journal, une fois par épisode.
+     local inviting=front and front.index==frame.player and front.long>0 and front.gap<=K.inviteGap and abs(front.lat)>=K.inviteLat and abs(front.lat)<=K.inviteLatMax
+     if inviting and not passStates[s.state] and not defend then
+      s.inviteWait=s.inviteWait+dt
+      if s.inviteWait>=K.inviteReport and not s.inviteLogged then
+       s.inviteLogged=true
+       local why=s.yellow and 'drapeau jaune' or startPhase and 'depart' or s.returning and 'retour a la ligne' or (braking or ownBrake>=K.passBrakeMax) and 'freinage'
+        or a.corner<(profile=='C' and K.passCornerC or p.cornerMin) and 'virage' or now<s.restUntil and 'repos apres manoeuvre' or not directionBudget(s,now,p) and 'plafond anti-zigzag'
+        or s.alongside and 'voiture a cote' or a.kmh<K.speedMinPass and 'trop lent' or not p.overtakeEnabled and 'depassements coupes' or s.zone.noOvertake and 'zone sans depassement'
+        or s.lapseUntil>now and 'inattention' or 'conditions de passage'
+       U.log(e.log,now,'INFO',string.format('invitation du joueur non suivie: %s derriere a %.0f m (ecart lateral %.1f m, %+.0f km/h, lacet IA %.3f, joueur %.3f rad/s) : %s',
+        a.name,front.gap,abs(front.lat),front.sa,abs(a.yawRate),abs(frame.cars[front.index].yawRate),why),i)
+      end
+     else s.inviteWait=0; s.inviteLogged=false end
      if canPass and not defend then
       local other=frame.cars[front.index]; local margin=p.overtakeAheadMargin*U.lerp(K.assertMin,K.assertMax,s.persona.assertiveness)*U.lerp(K.gapMarginMin,1,front.gap/K.passMarginRange)
       if faster(p,s,e.states[front.index]) then margin=margin*K.classMargin end
@@ -739,6 +760,8 @@ function M.step(e,i,dt,now)
  end
  s.radarBrake=U.approach(s.radarBrake,radarTarget,(radarTarget>s.radarBrake and K.radarApply or K.radarRelease)*dt)
  if s.radarBrake>0 then cmd.brake=max(cmd.brake,s.radarBrake) end
+ -- Freinage imposé par l'app à cette image : relu dans la pédale à l'image suivante.
+ s.appBrake=cmd.brake
  -- Départ (course) : prudence et agressivité de départ dès la grille, pleines jusqu'à la fin de l'attente (premier virage
  -- compris), puis ramenées à la normale pendant la détente ; aucun déplacement commandé d'ici là.
  if profile=='C' and (not frame.started or elapsed<p.startDelay+p.startRelax) then

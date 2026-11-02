@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta 1.30 — 2 November 2026
+
+Fix from your Imola practice session: an AI arriving fast behind you slowed down until it stopped, although you had moved aside to let it by.
+
+- **Braking added by the app no longer blocks overtaking.** You were still partly in the AI's lane, so the front radar added light braking (the log shows it 6 m behind you, 18 km/h faster). The app counted that braking as the driver's: the rule “no change of line under braking” then stopped the AI from pulling out, the pass could not start, and the AI dropped to your speed behind you. The braking read on the pedal is the higher of the AI's own and the app's (CSP API); only braking above what the app adds now counts as the driver's. The AI's real braking still forbids any change of line.
+- **Invitation not taken explained in the log** (`invitation du joueur non suivie`). If you move aside right in front of an AI (at least 2 m, within 40 m) and it has not started to pass after 3 s, the log says why. Your session recorded no invitation at all; the next log will show the reason if it happens again.
+
+**Verification**: 383 checks; 91 integration cases; 761 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.29; 8-hour soak without errors (memory between 7.4 and 8.4 MB); benchmark 30 AI 0.23 ms (Beta 1.29: 0.23), 60 AI 0.59 ms (Beta 1.29: 0.64).
+
 ## Beta 1.29 — 2 November 2026
 
 Presets now set the whole profile, and your headlight flashes are understood earlier, at your request. Your Imola practice session and a review of all of the day's logs brought three driving fixes.

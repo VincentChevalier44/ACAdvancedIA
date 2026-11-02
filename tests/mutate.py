@@ -99,7 +99,7 @@ MUTATIONS = [
     ('cible d évitement écrasée', 'src/director.lua', 'local r=P.relative(a,frame.cars[j],frame.length,s.scanRel)', 'local r=P.relative(a,frame.cars[j],frame.length,s.hazardRel)', 'AVOID_TARGET_NOT_ALIASED'),
     ('cession bloquée gardée', 'src/director.lua', " if s.state~='DRIVE' then s.blockedYield=0 end\n", '', 'BLOCKED_YIELD_RESET'),
     ('retour inatteignable', 'src/director.lua', 'if s.returning and abs(s.offset-M.reachable(s,a,p,g,s.base))<K.centerEpsilon', 'if s.returning and abs(s.offset-s.base)<K.centerEpsilon', 'RETURNING_CLEARS_WHEN_UNREACHABLE'),
-    ('déboîtement en virage', 'src/director.lua', 'and a.corner>=K.passCornerC and not s.alongside and a.brake<K.passBrakeMax', 'and not s.alongside and a.brake<K.passBrakeMax', 'OVT_ARM_WAITS'),
+    ('déboîtement en virage', 'src/director.lua', 'and a.corner>=K.passCornerC and not s.alongside and ownBrake<K.passBrakeMax', 'and not s.alongside and ownBrake<K.passBrakeMax', 'OVT_ARM_WAITS'),
     ('aspiration qui remonte la prudence', 'src/director.lua', 'caution=min(caution,max(K.slipCautionMin,caution*K.slipCaution))', 'caution=max(K.slipCautionMin,caution*K.slipCaution)', 'SLIPSTREAM_NEVER_RAISES_CAUTION'),
     ('voiture qui rejoint invisible', 'src/perception.lua', '  if i~=j and b.valid and not b.pit then\n   local dx,dz=b.x-a.x,b.z-a.z\n   local long', '  if i~=j and b.valid and not b.pit and not b.offtrack then\n   local dx,dz=b.x-a.x,b.z-a.z\n   local long', 'OFFTRACK_CAR_OCCUPIES_SIDE'),
     ('défense pendant le repos', 'src/director.lua', ' and directionBudget(s,now,p) and not s.defendUsed', ' and not s.defendUsed', 'NO_DEFENSE_DURING_REST'),
@@ -163,7 +163,7 @@ MUTATIONS = [
     ('bip sous drapeau', 'src/engine.lua', " drsBeep(e,frame,flagged or (e.incidents.drsReason or '')~='',", " drsBeep(e,frame,(e.incidents.drsReason or '')~='',", 'FLAG_OVER_DRS'),
     ('DRS interdit non signalé', 'src/panel.lua', " panel.drsBlocked=kind~='none' and kind~='drs' and (", " panel.drsBlocked=false and kind~='drs' and (", 'FLAG_OVER_DRS'),
     ('côte à côte pendant l attente', 'src/director.lua', "      local alongside=target.alongside and s.state~='OVT_ARM'\n", '      local alongside=target.alongside\n', 'OVT_ARM_PULL_OUT_RULES'),
-    ('déboîtement au freinage', 'src/director.lua', 'and not s.alongside and a.brake<K.passBrakeMax and not braking\n', 'and not s.alongside\n', 'OVT_ARM_PULL_OUT_RULES'),
+    ('déboîtement au freinage', 'src/director.lua', 'and not s.alongside and ownBrake<K.passBrakeMax and not braking\n', 'and not s.alongside\n', 'OVT_ARM_PULL_OUT_RULES'),
     ('déboîtement vers la cible', 'src/director.lua', 'and -target.lat*s.targetSide<K.pullOutTargetLat then', 'then', 'OVT_ARM_PULL_OUT_RULES'),
     ('dépassement sans fin', 'src/director.lua', 'or s.passStall>K.passStallTime or fastBack or s.holdStall>K.passHoldMax then', 'or fastBack or s.holdStall>K.passHoldMax then', 'PASS_STALL_ABORT'),
     ('évitement vers l obstacle', 'src/director.lua', 'if s.avoidSide==0 and not sideFree(row,side) and abs(target.lat)<K.nearLine then side=-side end', 'if not sideFree(row,side) then side=-side end', 'AVOID_NEVER_TOWARDS_OBSTACLE'),
@@ -776,6 +776,10 @@ MUTATIONS = [
     ('129 courtoisie aussi en course', 'src/director.lua', " local courtesy=profile~='C' and player~=nil", ' local courtesy=player~=nil', 'COURTESY_PRACTICE_129'),
     ('129 doublé par le joueur jamais noté', 'src/director.lua', ' if player and player.long>0 and s.playerBehind and player.gap<=K.courtesyRange then s.passedByPlayerAt=now end\n', '', 'COURTESY_PRACTICE_129'),
     ('129 zigzag compté sur la borne', 'src/director.lua', 'not directionAllowed(s,emergency and desired or intended,now,p,', 'not directionAllowed(s,desired,now,p,', 'DIRECTION_CLAMP_129'),
+    ('129 freinage du radar compté comme celui du pilote', 'src/director.lua', ' local ownBrake=a.brake>s.appBrake+K.brakeEcho and a.brake or 0\n', ' local ownBrake=a.brake\n', 'RADAR_BRAKE_PASS_129'),
+    ('129 freinage imposé jamais relu', 'src/director.lua', ' s.appBrake=cmd.brake\n', '', 'RADAR_BRAKE_PASS_129'),
+    ('129 invitation non suivie jamais expliquée', 'src/director.lua', '      if s.inviteWait>=K.inviteReport and not s.inviteLogged then\n', '      if false then\n', 'RADAR_BRAKE_PASS_129'),
+    ('129 invitation non suivie notée à chaque image', 'src/director.lua', '      if s.inviteWait>=K.inviteReport and not s.inviteLogged then\n', '      if s.inviteWait>=K.inviteReport then\n', 'RADAR_BRAKE_PASS_129'),
 ]
 
 

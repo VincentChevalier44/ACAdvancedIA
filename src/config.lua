@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.29',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
+local M={version=3,release='Beta 1.30',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -292,7 +292,7 @@ M.K={maxCars=61,paceBins=400,logLines=200,logRate=20,logDedup=5,maxZones=64,maxZ
  lapTolerance=0.02,lapRangeMult=1.5,lapSpeed=3,lapConfirm=0.3,lapReaction=0.8,lapCorner=0.7,lapCornerLevel=0.92,
  fightTime=2,fightSpeed=4,flashBurst=1.5,flashHoldMin=0.8,flashHoldMax=4,
  flashDebounce=0.15,flashDedup=0.4,flashLearnTime=6,flashPropagation=0.5,
- flashLat=6,flashSpeed=30,flashCloseGap=60,flashCatchMargin=5,courtesyRange=30,courtesyTime=20,courtesyAggression=0.35,courtesyPassSa=25,stuckRadius=15,flashSecondTime=4,flashReact=0.6,flashConfirm=0.1,
+ flashLat=6,flashSpeed=30,flashCloseGap=60,flashCatchMargin=5,courtesyRange=30,courtesyTime=20,courtesyAggression=0.35,courtesyPassSa=25,stuckRadius=15,inviteReport=3,brakeEcho=0.03,flashSecondTime=4,flashReact=0.6,flashConfirm=0.1,
  flashMargin=0.5,flashHorizon=1.5,flashUrgentCount=3,flashReactionMin=0.15,flashReactionMax=1.45,
  personaPatienceMin=0.7,personaPatienceMax=1.4,personaBrakeMin=0.9,personaBrakeMax=1.15,
  writePeriod=0.2,readbackPeriod=2,offsetEpsilon=0.002,levelEpsilon=0.005,aggrEpsilon=0.01,cautionEpsilon=0.02,gripEpsilon=0.001,

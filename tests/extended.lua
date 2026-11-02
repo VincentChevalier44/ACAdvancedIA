@@ -4943,4 +4943,34 @@ tests.DIRECTION_CLAMP_129=function()
  for k=1,K.directionLimit+3 do now=now+e.p.lateralCooldown+0.5; D.lateral(s,k%2==0 and -0.7 or 0.7,row,a,e.p,e.g,1/60,now); limited=limited or s.newDirectionLimit end
  assert(limited,'a real zigzag is still capped')
 end
+-- Beta 1.29 (essais du pilote) : IA arrivée vite derrière le joueur qui s'écarte pour la laisser passer : le radar avant
+-- freine un peu (le joueur déborde encore sur sa file), mais ce freinage n'empêche plus de déboîter ni de dépasser ; un
+-- vrai freinage du pilote, lui, l'empêche toujours, et l'invitation non suivie est expliquée au journal.
+tests.RADAR_BRAKE_PASS_129=function()
+ local passStates={OVT_ARM=true,OVT_IN=true,OVT_HOLD=true,OVT_OUT=true}
+ local function count(e,text) local n=0; for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find(text,1,true) then n=n+1 end end; return n end
+ local function run(nativeBrake,seconds)
+  local e,f=F.scene('P',3); C.preset('Essais','P',e.profiles.P); E.changed(e); F.tick(e,f,1/60)
+  e.p.personalLineJitter=0
+  -- Le joueur s'écarte alors que l'IA, 18 km/h plus vite, n'est plus qu'à 5,6 m : le radar freine aussitôt.
+  F.place(f,1,10,100,2.0); F.place(f,2,0,118); F.place(f,3,5000,100)
+  e.states[2].nextPerception=0
+  local passed=false
+  for _=1,(seconds or 4)*60 do
+   F.tick(e,f,1/60,true)
+   -- En jeu, la pédale lue est le maximum du freinage natif et du freinage ajouté par l'app.
+   local car=f.cars[2]; car.brake=math.max(nativeBrake or 0,e.commands[2].brake)
+   -- La voiture ralentit quand elle freine (au plus jusqu'à l'allure du joueur).
+   car.kmh=math.max(100,car.kmh-car.brake*40/60); car.speed=car.kmh/3.6
+   passed=passed or passStates[e.states[2].state] or false
+  end
+  return passed,e
+ end
+ local passed,e=run(0)
+ assert(e.states[2].radarBrake>0 or count(e,'radar avant: Driver_2')>0,'radar braking behind the player who moved aside')
+ assert(passed,'radar braking alone does not stop the pass')
+ local blocked,e2=run(0.6,12)
+ assert(not blocked,'real braking: no change of line')
+ assert(count(e2,'invitation du joueur non suivie: Driver_2 derriere a')==1 and count(e2,': freinage')==1,'refused invitation explained once')
+end
 return tests
