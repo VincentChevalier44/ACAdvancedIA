@@ -1,5 +1,20 @@
 # Changelog
 
+## Beta 1.31 — 2 November 2026
+
+Overtakes between AI and the repeated spins at the same corners (your Imola sessions: Acque Minerali around 2,850–2,940 m and Rivazza around 4,130 m, in Beta 1.28 to 1.30 alike). Your test confirmed the Beta 1.30 fix: an AI behind you passed normally once you moved aside.
+
+- **Caution kept in braking zones and corners.** Slipstream, overtaking and following lower an AI's caution on the straights (down to 0.6 to 0.7 of its usual value), and overtaking raises its aggressiveness. That lowered caution, smoothed over 0.4 s, was carried into the next braking zone, which at Imola are downhill ones. Now, as soon as the AI brakes itself or is in a corner, its caution is never below its usual level and its aggressiveness never above it; caution comes back within a fraction of a second.
+- **Overtakes started on real closing only.** In your sessions, 12 of 14 attempts (and most of the day's 822) were given up because the car ahead pulled away: they started on a passing speed difference (corner exit, earlier braking). An attempt triggered only by closing now waits until the AI has really gained 4 m on the car ahead (tracked continuously, corners included); being held up, an invitation and a car that yields still start it at once.
+- **Diagnostics in the log**, to check both fixes on your next sessions:
+  - each attempt and how it ended (`depassement`, `depassement fini`);
+  - what the app was commanding an AI just before a spin (`tete-a-queue, contexte`);
+  - in the minute summary, real passes between AI (two cars within 20 m swapping places), how many followed an app manoeuvre, and AI passing you.
+- Not confirmed in game yet. Your own spin at 2,858 m shows that Acque Minerali is tricky in itself; the context line will tell whether the app plays a part.
+- **Official icon**: a racing helmet with cyan light lines, as the app icon in the game (`icon.png`, 64×64) and in 512×512 for GitHub and Overtake (`docs/icon-512.png`).
+
+**Verification**: 387 checks; 91 integration cases; 774 mutations, all detected; clean lint, parameter audit; 8-hour soak without errors (memory between 7.5 and 8.4 MB); benchmark 30 AI 0.24 ms (Beta 1.30: 0.25), 60 AI 0.63 ms (Beta 1.30: 0.77).
+
 ## Beta 1.30 — 2 November 2026
 
 Fix from your Imola practice session: an AI arriving fast behind you slowed down until it stopped, although you had moved aside to let it by.

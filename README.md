@@ -1,10 +1,12 @@
+<p align="center"><img src="docs/icon-512.png" width="180" alt="ACAdvancedIA icon: a racing helmet with cyan light lines"></p>
+
 # ACAdvancedIA
 
 **Human-like AI drivers for Assetto Corsa, powered by Custom Shaders Patch.**
 
 ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP). Its HumanAI engine sits on top of the game's own AI and makes the AI cars drive more like people. On a track day they move aside for faster cars and spread out around the lap. In a race they respect blue flags, overtake and defend with intent, and flash their headlights at slower cars. They make the odd mistake, slow down for yellow flags, and follow Full Course Yellows, Virtual Safety Cars, a Safety Car and red flags. They make their mandatory pit stops, refuel and repair, and fit wet tyres when it rains. The app enforces the racing rules for you as well (delta time, penalties, DRS rules), and its in-game overlay tells you what is happening. It works in **offline sessions only**.
 
-- **Current version:** Beta 1.30. See [CHANGELOG.md](CHANGELOG.md).
+- **Current version:** Beta 1.31. See [CHANGELOG.md](CHANGELOG.md).
 - **Interface:** English by default, French available (**FR** | **EN** buttons in the settings window).
 - **Author:** VincentChevalier44. MIT License.
 
@@ -372,6 +374,7 @@ Section **Lines** (sidebar **DRIVING**).
   - Manoeuvres only start where the track is straight enough (**Straight threshold**, with **Yaw rate reference (rad/s)**).
 - **Side occupancy always comes first.** If a car occupies the side an AI was moving towards, the AI returns to its line at **Release factor** times the normal speed (2×). Returns to the centre are checked for occupancy too.
 - **Anti-zigzag cap**: a manoeuvre changes side (left, line, right) at most 6 times a minute, then the AI drives straight for 20 s. Since Beta 1.29 the side counted is the one the manoeuvre aims for, not the target narrowed by the track width in a corner (up to Beta 1.28, about nine triggers out of ten came from that narrowing and cut yields and overtakes).
+- **Caution kept in braking zones and corners** (since Beta 1.31): slipstream, overtaking and following lower an AI's caution on the straights. As soon as the AI brakes itself, or in a corner, its caution is never below its usual level and its aggressiveness never above it; caution comes back within a fraction of a second instead of being carried into the braking zone.
 - **Braking added by the app** (front radar) is not the driver's braking: since Beta 1.30 it no longer stops an AI from pulling out to overtake. The AI's own braking still does.
 - **No change of direction under braking** (common racing rule): no lateral manoeuvre starts or continues with the brake pedal beyond 20%, except avoidance and recovery.
 - **Anti-weaving.**
@@ -1267,6 +1270,8 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | `onglets:` … `; regles:` | Sections ticked in this profile, and the rule set recognised (`base`, `F1`, `F1_2026`, `GT`, `Endurance`, `personnalisees` = custom, `decochees` = off) |
 | `sens lateral:` | Lateral direction. `-1 / -1` is expected; `0 / 0 (en attente de mesure, aucun deplacement lateral)` means no lateral move is written yet |
 | `repartition des IA` | AI distribution at session start: plan, cars placed (`posees en piste sur … prevues`), check after 3 s (`roulent normalement` / `en difficulte`); since Beta 1.28 each car in trouble is named with its model and the reason (`aux stands` in the pits, `hors piste` off track, `lente` slow, `glissade` sliding) |
+| `depassement` / `depassement fini` | Since Beta 1.31: each overtaking attempt the app starts (`depassement: A -> B (trigger, gap, speed difference)`; trigger `rapprochement` closing, `retenue` held up, `invitation`, `cession` the car ahead yields) and how it ended (`reussi`, `cible plus rapide`, `cote ferme`, `sans rapprochement`, `suiveur rapide`, `cible perdue`, `drapeau jaune`…), after how long and the minimum gap |
+| `tete-a-queue, contexte` | Since Beta 1.31: what the app was commanding an AI just before it spun: state and for how long, time since its last manoeuvre, lateral offset, caution and aggressiveness against their usual values, level, slipstream, app braking |
 | `invitation du joueur non suivie` | Since Beta 1.30: you moved aside right in front of an AI (at least 2 m, within 40 m) and it has not started to pass after 3 s. The line gives the distance, the lateral gap, the speed difference, both yaw rates and the reason (yellow flag, braking, corner, rest after a manoeuvre, anti-zigzag cap, car alongside, too slow…) |
 | `appel de phares du joueur` | Since Beta 1.29: each of your headlight flashes, with the AI targeted within the flash range, the nearest one (distance, your speed advantage), how many saw it and how many understood it; `cede sur appel de phares du joueur` is logged when an AI yields to it |
 | `IA anormalement lente` | Since Beta 1.28: an AI on track running below 60% of its class's learned pace at that spot for 20 s with a car stuck behind it (within 60 m). The line gives the driver, the car model, the speed, the class pace, the cars queued behind, the AI state, whether the app commands it, any speed limit the app imposes, and the damage (body, suspension, engine, gearbox); a second line (`roule de nouveau normalement`) closes the episode. Diagnostic only: nothing is commanded |
@@ -1388,7 +1393,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 ```
 ACAdvancedIA.lua        entry point: per-frame update, settings window, IN_GAME overlay callback, restore on unload
 manifest.ini            CSP app manifest (name, version, settings window, overlay callback)
-icon.png                app icon
+icon.png                app icon (64×64; the 512×512 original is docs/icon-512.png)
 src/                    the HumanAI engine and its interface
   snapshot.lua            reads the game state (the only module reading ac/physics, with applier)
   applier.lua             writes the commands to CSP, storage, session log, restore (the only writer)
@@ -1419,7 +1424,7 @@ src/                    the HumanAI engine and its interface
 sounds/                 delta-beep.wav, drs-available-beep.wav
 tracks/                 optional per-track zone files (<trackId>.lua); none shipped
 tests/                  offline test bench (Python + LuaJIT through lupa); never loaded by the game
-docs/                   audits, CSP API notes, measurements, validation status
+docs/                   audits, CSP API notes, measurements, validation status, official icon (icon-512.png)
 HumanAI_PDR_v1.0.md     product design requirements; the test bench checks its 78 catalogued cases
 CHANGELOG.md            changes, newest first
 COMPATIBILITY.md, AUDIT.md   compatibility notes and the original adversarial review

@@ -3148,19 +3148,24 @@ tests.START_MODULATORS_FROM_GRID=function()
  local preset=C.defaults('C'); C.preset('Course','C',preset)
  local delay,relax=preset.startDelay,preset.startRelax
  -- Beta 1.25 : à fond en ligne droite ; la prudence et l'agressivité de départ ne viennent qu'au freinage (premier virage).
- local function run(mult,section,seconds,straight)
+ local function run(mult,section,seconds,straight,grid)
   local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); local p=e.profiles.C
+  if grid then f.started=false end
   if not mult then p.startCautionMult=1; p.startAggrMult=1 end
   p.section_start=section; E.changed(e); e.startedAt=e.time
   if not straight then f.cars[2].brake=1 end
   F.tick(e,f,seconds)
   return e.commands[2].caution,e.commands[2].aggression
  end
- local function ratios(section,seconds,straight)
-  local c1,a1=run(true,section,seconds,straight); local c0,a0=run(false,section,seconds,straight)
+ local function ratios(section,seconds,straight,grid)
+  local c1,a1=run(true,section,seconds,straight,grid); local c0,a0=run(false,section,seconds,straight,grid)
   assert(c1==c1 and a1==a1,'finite commands'); return c1/c0,a1/a0
  end
- local c,a=ratios(true,3,true)
+ -- Sur la grille, avant le feu vert : prudence et agressivité de départ déjà en place (attente d'une seconde depuis la
+ -- Beta 1.27 : la grille est le seul moment qui les distingue d'une application après l'attente).
+ local c,a=ratios(true,3,true,true)
+ assert(math.abs(c-preset.startCautionMult)<0.02 and math.abs(a-preset.startAggrMult)<0.02,'grid: start caution and aggression ('..c..', '..a..')')
+ c,a=ratios(true,3,true)
  assert(math.abs(c-1)<0.01 and math.abs(a-1)<0.01,'launch straight: flat out, no start caution ('..c..', '..a..')')
  c,a=ratios(true,3)
  assert(math.abs(c-preset.startCautionMult)<0.02 and math.abs(a-preset.startAggrMult)<0.02,'first corner: start caution and aggression ('..c..', '..a..')')
@@ -4972,5 +4977,78 @@ tests.RADAR_BRAKE_PASS_129=function()
  local blocked,e2=run(0.6,12)
  assert(not blocked,'real braking: no change of line')
  assert(count(e2,'invitation du joueur non suivie: Driver_2 derriere a')==1 and count(e2,': freinage')==1,'refused invitation explained once')
+end
+-- Beta 1.31 (têtes-à-queue répétés aux mêmes freinages en descente) : en dépassement, la prudence est abaissée en ligne
+-- droite ; dès que l'IA freine elle-même, ou en virage, prudence au moins à sa base, agressivité au plus à sa base.
+tests.CAUTION_BRAKING_131=function()
+ local function scene()
+  local e,f=F.scene('P',3); e.p.personalLineJitter=0; e.p.flashObliviousPct=0
+  F.place(f,2,0,150); F.place(f,3,60,140); F.place(f,1,-3000,100); F.tick(e,f,0.5)
+  local s=e.states[2]
+  s.state='OVT_IN'; s.target=3; s.targetSide=1; s.passAlongside=false; s.passStartAt=e.time; s.passMinGap=60
+  F.tick(e,f,1)
+  assert(s.state=='OVT_IN' and e.commands[2].caution<s.baseCaution*0.9 and e.commands[2].aggression>s.baseAggression*1.05,'straight: caution lowered and aggression raised to pass')
+  return e,f,s
+ end
+ local e,f,s=scene()
+ f.cars[2].brake=0.6; F.tick(e,f,0.5)
+ assert(e.commands[2].caution>=s.baseCaution*0.97,'own braking: caution back to its base')
+ assert(e.commands[2].aggression<=s.baseAggression*1.03,'own braking: aggression back to its base')
+ local e2,f2,s2=scene()
+ -- Virage serré (le facteur de ligne droite suit le lacet).
+ f2.cars[2].yawRate=1; F.tick(e2,f2,0.5)
+ assert(e2.commands[2].caution>=s2.baseCaution*0.97,'corner: caution back to its base')
+end
+-- Beta 1.31 (12 tentatives sur 14 abandonnées, la cible repartant plus vite) : un écart de vitesse passager n'engage plus
+-- de dépassement ; un rapprochement soutenu, oui, une fois K.passCloseMin m gagnés. Chaque tentative et sa fin au journal.
+tests.PASS_SUSTAINED_131=function()
+ local K=C.K
+ local passStates={OVT_ARM=true,OVT_IN=true,OVT_HOLD=true,OVT_OUT=true}
+ local function count(e,text) local n=0; for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find(text,1,true) then n=n+1 end end; return n end
+ local function scene()
+  local e,f=F.scene('P',3); e.p.personalLineJitter=0; e.p.flashObliviousPct=0; e.p.pressureEnabled=false; e.p.yieldEnabled=false
+  F.place(f,1,-3000,100); F.place(f,3,30,100); F.place(f,2,0,116); e.states[2].nextPerception=0
+  return e,f,e.states[2]
+ end
+ -- Avance passagère (0,5 s), puis la cible repart plus vite : aucune tentative.
+ local e,f,s=scene()
+ for _=1,30 do F.tick(e,f,1/60); assert(not passStates[s.state],'no attempt on a short burst of speed') end
+ F.place(f,3,30,125); s.nextPerception=0
+ for _=1,120 do F.tick(e,f,1/60); assert(not passStates[s.state],'target pulls away: still no attempt') end
+ -- Avance soutenue : engagé une fois le terrain gagné, noté au journal.
+ local e2,f2,s2=scene()
+ local started
+ for n=1,180 do F.tick(e2,f2,1/60); if not started and passStates[s2.state] then started=n/60 end end
+ assert(started and started>=K.passCloseMin/(16/3.6)*0.9,'sustained closing: attempt once '..K.passCloseMin..' m are gained ('..tostring(started)..')')
+ assert(count(e2,'depassement: Driver_2 -> Driver_3 (rapprochement, ')==1,'attempt logged with its trigger')
+ -- La cible accélère : abandon, noté avec sa raison.
+ F.place(f2,3,f2.cars[3].z,130); s2.nextPerception=0; F.tick(e2,f2,5)
+ assert(count(e2,'depassement fini: Driver_2 -> Driver_3 : cible plus rapide apres')==1,'end of the attempt logged with its reason')
+end
+-- Beta 1.31 : vrais dépassements (deux voitures à moins de 20 m qui échangent leur place), dont ceux menés par une
+-- manœuvre de l'app, et IA passées devant le joueur, comptés pour le résumé de la minute.
+tests.REAL_PASS_131=function()
+ -- Voiture 2 derrière la voiture devant (3, ou le joueur) à 15 m, puis devant elle à 10 m.
+ local function pass(ahead,app)
+  local e,f=F.scene('P',3); e.p.personalLineJitter=0; e.p.yieldEnabled=false
+  local other=ahead==1 and 3 or 1
+  F.place(f,other,-3000,100); F.place(f,ahead,15,100); F.place(f,2,0,100); e.states[2].nextPerception=0; F.tick(e,f,0.5)
+  assert(e.states[2].frontWas==ahead,'car ahead noted')
+  if app then e.states[2].lastPassTarget=ahead; e.states[2].lastPassAt=e.time end
+  F.place(f,2,25,100); e.states[2].nextPerception=0; F.tick(e,f,0.5)
+  return e.stats.realPass or 0,e.stats.realPassApp or 0,e.stats.passedPlayer or 0
+ end
+ local real,app,player=pass(3,false); assert(real==1 and app==0 and player==0,'native pass counted')
+ real,app,player=pass(3,true); assert(real==1 and app==1,'pass led by an app manoeuvre counted apart')
+ real,app,player=pass(1,false); assert(player==1 and real==0,'AI passing the player counted apart')
+end
+-- Beta 1.31 : tête-à-queue d'une IA : ce que l'app lui commandait juste avant, au journal.
+tests.SPIN_CONTEXT_131=function()
+ local e,f=F.scene('P',3)
+ F.place(f,1,-3000,100); F.place(f,2,0,120); F.place(f,3,3000,100); F.tick(e,f,0.5)
+ f.cars[2].slip=50; F.tick(e,f,1.5)
+ local found=false
+ for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find('tete-a-queue, contexte: Driver_2 | etat ',1,true) and r.message:find('prudence ',1,true) then found=true end end
+ assert(found,'spin context logged')
 end
 return tests

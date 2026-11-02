@@ -780,6 +780,19 @@ MUTATIONS = [
     ('129 freinage imposé jamais relu', 'src/director.lua', ' s.appBrake=cmd.brake\n', '', 'RADAR_BRAKE_PASS_129'),
     ('129 invitation non suivie jamais expliquée', 'src/director.lua', '      if s.inviteWait>=K.inviteReport and not s.inviteLogged then\n', '      if false then\n', 'RADAR_BRAKE_PASS_129'),
     ('129 invitation non suivie notée à chaque image', 'src/director.lua', '      if s.inviteWait>=K.inviteReport and not s.inviteLogged then\n', '      if s.inviteWait>=K.inviteReport then\n', 'RADAR_BRAKE_PASS_129'),
+    ('131 prudence non protégée au freinage', 'src/director.lua', ' if protect then caution=max(caution,s.baseCaution); aggression=min(aggression,s.baseAggression) end\n', '', 'CAUTION_BRAKING_131'),
+    ('131 agressivité non bornée au freinage', 'src/director.lua', 'caution=max(caution,s.baseCaution); aggression=min(aggression,s.baseAggression) end', 'caution=max(caution,s.baseCaution) end', 'CAUTION_BRAKING_131'),
+    ('131 protection sans freinage du pilote', 'src/director.lua', ' local protect=ownBrake>K.ruleBrake or a.corner<p.cornerMin\n', ' local protect=a.corner<p.cornerMin\n', 'CAUTION_BRAKING_131'),
+    ('131 protection sans virage', 'src/director.lua', ' local protect=ownBrake>K.ruleBrake or a.corner<p.cornerMin\n', ' local protect=ownBrake>K.ruleBrake\n', 'CAUTION_BRAKING_131'),
+    ('131 rapprochement passager suffisant', 'src/director.lua', '(not closingOnly or s.closeMeters>=K.passCloseMin)', 'true', 'PASS_SUSTAINED_131'),
+    ('131 rapprochement jamais cumulé', 'src/director.lua', 's.closeMeters=s.closeMeters+(front.sa/3.6-s.closeMeters/K.closeMemory)*dt', 's.closeMeters=0', 'PASS_SUSTAINED_131'),
+    ('131 terrain gagné remis à zéro en virage', 'src/director.lua', '     if front and front.index==s.closeFront then s.closeMeters', '     if false then s.closeMeters', 'CORNER_OVERTAKE_COMPLETES'),
+    ('131 tentative jamais notée', 'src/director.lua', "string.format('depassement: %s -> %s (%s, %.0f m, %+.0f km/h)'", "string.format('tentative: %s -> %s (%s, %.0f m, %+.0f km/h)'", 'PASS_SUSTAINED_131'),
+    ('131 fin de tentative jamais notée', 'src/director.lua', '  if U.finite(s.passStartAt) then\n', '  if false then\n', 'PASS_SUSTAINED_131'),
+    ('131 vrais dépassements non comptés', 'src/engine.lua', '      stats.realPass=(stats.realPass or 0)+1\n', '', 'REAL_PASS_131'),
+    ('131 dépassement de l app non reconnu', 'src/engine.lua', '      if s.lastPassTarget==s.frontWas and now-s.lastPassAt<K.realPassWindow then', '      if false then', 'REAL_PASS_131'),
+    ('131 joueur passé non compté', 'src/engine.lua', '     if other.player then stats.passedPlayer=(stats.passedPlayer or 0)+1\n', '     if other.player then\n', 'REAL_PASS_131'),
+    ('131 contexte de tête-à-queue absent', 'src/engine.lua', '  if c.incident and c.since==now and not a.player and c.spin>=K.spinTime then\n', '  if false then\n', 'SPIN_CONTEXT_131'),
 ]
 
 

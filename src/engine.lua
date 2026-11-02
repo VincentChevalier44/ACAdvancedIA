@@ -418,6 +418,41 @@ function M.step(e,frame,dt)
  -- Allure de référence de la flotte (temps delta), quelques endroits par image.
  Delta.refresh(e.delta,frame,e.states,e.run.multiClass==true)
  slowCars(e,frame,now,dt)
+ -- Beta 1.31 : contexte d'un tête-à-queue d'IA (ce que l'app lui commandait juste avant) et vrais dépassements (deux
+ -- voitures à moins de K.realPassGap m qui échangent leur place), avec ou sans manœuvre de l'app, et IA passées devant
+ -- le joueur : ce que l'app change se mesure en jeu.
+ local stats=e.stats
+ for i=1,frame.count do
+  local a=frame.cars[i]; local s=e.states[i]; local c=e.incidents.cars[i]
+  if c.incident and c.since==now and not a.player and c.spin>=K.spinTime then
+   local cmd=e.commands[i]
+   U.log(e.log,now,'INFO',string.format('tete-a-queue, contexte: %s | etat %s depuis %.1f s, derniere manoeuvre %s, decalage %+.2f, prudence %.2f (base %.2f), agressivite %.2f (base %.2f), niveau %.2f, aspiration %s, frein app %.2f',
+    a.name,s.state,now-s.since,U.finite(s.maneuverAt) and string.format('il y a %.1f s',now-s.maneuverAt) or 'aucune',cmd.offset or 0,cmd.caution or 0,s.baseCaution or 0,cmd.aggression or 0,s.baseAggression or 0,cmd.level or 0,
+    (s.slipTime or 0)>K.slipTime and 'oui' or 'non',s.appBrake or 0),i)
+  end
+  if a.valid and not a.player and not a.pit then
+   local row=e.perception.rows[i]
+   if s.frontWas>0 then
+    -- Position relative directe (abscisse sur la piste), sans parcourir les voisins à chaque image.
+    local other=frame.cars[s.frontWas]
+    local ahead=other and other.valid and other.splineValid and a.splineValid and U.spline(other.spline-a.spline)*frame.length or nil
+    if ahead and ahead<0 and -ahead<=K.realPassGap and not other.pit then
+     if other.player then stats.passedPlayer=(stats.passedPlayer or 0)+1
+     else
+      stats.realPass=(stats.realPass or 0)+1
+      if s.lastPassTarget==s.frontWas and now-s.lastPassAt<K.realPassWindow then stats.realPassApp=(stats.realPassApp or 0)+1 end
+     end
+     s.frontWas=0
+    elseif not ahead or math.abs(ahead)>K.realPassGap*2 then s.frontWas=0 end
+   end
+   local front=row.front>0 and row.neighbors[row.front] or nil
+   if front and front.gap<=K.realPassGap then
+    -- Voisins relevés par intermittence : la voiture n'est retenue que si elle est encore devant (position directe).
+    local o=frame.cars[front.index]
+    if o and o.splineValid and a.splineValid and U.spline(o.spline-a.spline)*frame.length>0 then s.frontWas=front.index end
+   end
+  else s.frontWas=0 end
+ end
  local player=frame.player>0 and frame.cars[frame.player] or nil
  if player then
   local learned=Flash.sampleLearn(e.flash,player,now)

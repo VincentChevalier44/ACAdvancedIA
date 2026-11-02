@@ -48,6 +48,9 @@ function M.summary(e)
  -- Règles d'arrêt de la 1.6.0 : voitures lentes écartées des incidents et bouchons suivis sans évitement.
  minute=minute..string.format(' | arrets ecartes : file %d, depart ou stands %d, au pas %d | bouchons suivis sans evitement %d',
   t.suppressed.queue,t.suppressed.spawn,t.suppressed.crawl,c('jam'))
+ -- Beta 1.31 : vrais dépassements entre IA (échange de places à moins de 20 m), dont ceux menés par une manœuvre de
+ -- l'app, et IA passées devant le joueur.
+ minute=minute..string.format(' | depassements reels %d (manoeuvre de l app %d), IA passees devant le joueur %d',c('realPass'),c('realPassApp'),c('passedPlayer'))
  t.suppressed.queue=0; t.suppressed.spawn=0; t.suppressed.crawl=0
  local drsOpen,drsAsk=c('drsOpen'),c('drsAsk')
  for key in pairs(n) do n[key]=0 end

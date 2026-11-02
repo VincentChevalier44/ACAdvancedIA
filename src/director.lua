@@ -27,7 +27,7 @@ function M.newState()
   alongside=false,passAlongside=false,aborts=0,previousIdentity='',fatigue=1,yellow=false,aiFlashAt=-math.huge,overtakeArmed=false,overtakeSpline=-1,yieldClass=false,bop=0,
   hazardRel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},
   scanRel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},avoidClear=0,invited=0,avoidSide=0,passStall=0,holdStall=0,holdLong=math.huge,
-  lane=0,laneActive=false,laneLatched=false,laneSeen=-math.huge,laneMeters=0,laneAt=0,laneLogged=false,passedByPlayerAt=-math.huge,playerBehind=false,inviteWait=0,inviteLogged=false,appBrake=0}
+  lane=0,laneActive=false,laneLatched=false,laneSeen=-math.huge,laneMeters=0,laneAt=0,laneLogged=false,passedByPlayerAt=-math.huge,playerBehind=false,inviteWait=0,inviteLogged=false,appBrake=0,baseCaution=1,baseAggression=0,maneuverAt=-math.huge,passStartAt=-math.huge,passMinGap=0,passName='',closeFront=0,closeMeters=0,lastPassTarget=0,lastPassAt=-math.huge,frontWas=0}
  for j=1,K.paceBins do s.pace[j]=0 end
  for j=1,K.directionLimit do s.directions[j]=-math.huge; s.directionStates[j]=''; s.directionSides[j]=0 end
  for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0 end
@@ -54,8 +54,18 @@ function M.configure(s,g,profile,p,now)
  Persona.fill(s.persona,g.seed,s.slot or 0,profile,p,s.stint)
  s.lapseAt=now+s.persona.lapseInterval
 end
+local passEnd={clear='reussi',chain='reussi, enchaine',abort_slow='cible plus rapide',abort_blocked='cote ferme',abort_stall='sans rapprochement',abort_follower='suiveur rapide',
+ target_lost='cible perdue',abort_yellow='drapeau jaune',hold_limit='cote a cote sans progres',direction_limit='plafond anti-zigzag'}
 local function transition(e,s,state,reason,now)
  if s.state==state then return end
+ -- Beta 1.31 : fin d'une tentative de dépassement de l'app (sortie des états de passage), avec sa raison.
+ if passStates[s.state] and s.state~='OVT_OUT' and not passStates[state] or state=='OVT_OUT' and passStates[s.state] and s.state~='OVT_OUT' then
+  if U.finite(s.passStartAt) then
+   local car=e.frame and e.frame.cars[s.slot]
+   U.log(e.log,now,'INFO',string.format('depassement fini: %s -> %s : %s apres %.1f s (ecart mini %.0f m)',car and car.name or '?',s.passName,passEnd[reason] or reason,now-s.passStartAt,s.passMinGap),s.slot)
+  end
+  s.passStartAt=-math.huge
+ end
  s.state=state; s.reason=reason; s.since=now
  local stats=e.stats; if stats then stats[reason]=(stats[reason] or 0)+1 end
  if e.runtimeG.debugLog then U.log(e.log,now,'DEBUG',state..':'..reason,s.slot) end
@@ -441,6 +451,7 @@ function M.step(e,i,dt,now)
  s.alongside=false
  for j=1,row.count do local r=row.neighbors[j]; if r.alongside and abs(r.lat)>=K.nearLine and abs(r.lat)<=g.occLatMax then s.alongside=true; break end end
  local level,aggression,caution=baseModifiers(s,p,now,a)
+ s.baseCaution=caution; s.baseAggression=aggression
  if courtesy then aggression=aggression*K.courtesyAggression end
  local desired=0; local elapsed=now-e.startedAt
  cmd.active=true; cmd.brake=0
@@ -578,7 +589,7 @@ function M.step(e,i,dt,now)
       local grace=arm and K.abortSlowTime or s.state~='OVT_OUT' and K.targetLostGrace or 0
       if s.targetLost>=grace then transition(e,s,'OVT_OUT','target_lost',now) else desired=arm and s.base or s.offset end
      else
-      s.targetLost=0
+      s.targetLost=0; s.passMinGap=min(s.passMinGap,target.gap)
       local alongside=target.alongside and s.state~='OVT_ARM'
       if alongside then s.passAlongside=true; s.holdStall=0; s.holdLong=math.huge; if s.state~='OVT_OUT' then transition(e,s,'OVT_HOLD','alongside',now) end; desired=s.offset end
       if s.state=='OVT_IN' and abs(s.offset-M.reachable(s,a,p,g,desired))<K.yieldReachedEpsilon then transition(e,s,'OVT_HOLD','pass_position',now) end
@@ -647,6 +658,10 @@ function M.step(e,i,dt,now)
       if invitee and invitee.long>0 and invitee.gap<=K.inviteGap and abs(invitee.lat)>=K.inviteLat and abs(invitee.lat)<=K.inviteLatMax
        and (not front or invitee.gap<front.gap) then front=invitee end
      end
+     -- Beta 1.31 : terrain gagné sur la voiture de devant (mètres, mémoire de K.closeMemory s), suivi à chaque image,
+     -- virages compris : une suite de virages ne le remet pas à zéro.
+     if front and front.index==s.closeFront then s.closeMeters=s.closeMeters+(front.sa/3.6-s.closeMeters/K.closeMemory)*dt
+     else s.closeFront=front and front.index or 0; s.closeMeters=0 end
      local canPass=not s.returning and not startPhase and not s.yellow and not braking and s.lapseUntil<=now and p.overtakeEnabled and front and front.gap>=0 and now>=s.restUntil and directionBudget(s,now,p) and not s.zone.noOvertake and not s.alongside
       and a.kmh>=K.speedMinPass and a.corner>=(profile=='C' and K.passCornerC or p.cornerMin) and ownBrake<K.passBrakeMax
      -- Beta 1.30 : joueur écarté juste devant (invitation) sans dépassement engagé au bout de K.inviteReport s : la raison
@@ -672,9 +687,11 @@ function M.step(e,i,dt,now)
       local leaderRow=e.perception.rows[front.index]; local ahead=leaderRow and leaderRow.front>0 and leaderRow.neighbors[leaderRow.front]
       local fight=lapped and ahead and other.speed>0 and ahead.gap/other.speed<K.fightTime and abs(ahead.sa)<K.fightSpeed or false
       local advantage=profile=='C' and K.passAdvantageC or K.passAdvantageJ
-      local trigger=front.gap<=p.overtakeDetectAhead and front.sa>=margin and front.ttc<=p.overtakeHorizon
+      local closing=front.gap<=p.overtakeDetectAhead and front.sa>=margin and front.ttc<=p.overtakeHorizon
+      local trigger=closing
       local stuck=s.stuck>=p.stuckTime*s.persona.patience
-      trigger=trigger or (front.gap<=max(K.stuckGapMin,K.stuckGapTime*a.speed) and stuck)
+      local stuckTrigger=front.gap<=max(K.stuckGapMin,K.stuckGapTime*a.speed) and stuck
+      trigger=trigger or stuckTrigger
       local free=s.freePace
       local potential=max(front.sa,stuck and (free-a.speed)*3.6 or 0)
       -- Invitation à passer, course comprise : le joueur juste devant, les deux voitures en ligne droite, s'écarte nettement
@@ -691,15 +708,22 @@ function M.step(e,i,dt,now)
       if passedByPlayer and front.index==frame.player and not invited and front.sa<K.courtesyPassSa then trigger=false end
       if trigger and (potential>=advantage or invited) and not slowClass and not fight then
        if s.passCandidate~=front.index then s.passCandidate=front.index; s.passConfirm=0 end
+       -- Beta 1.31 (journaux du 2 novembre : 12 tentatives sur 14 abandonnées, la cible repartant plus vite) : engagé sur
+       -- un seul rapprochement, le dépassement attend que l'IA ait vraiment gagné K.passCloseMin m sur la cible (terrain
+       -- gagné suivi en continu) ; un écart de vitesse passager (sortie de virage, freinage plus tôt) ne suffit plus.
+       local closingOnly=closing and not stuckTrigger and not invited
        s.passConfirm=s.passConfirm+dt; s.passLost=0
        local side=invited and (front.lat>0 and 1 or -1) or passSide(p,profile,s,front,row,other,g)
        local req=U.clamp((front.gap+a.length+other.length+2*p.overtakeClearMargin)*a.speed/max(a.speed-other.speed,K.corridorSpeedMin),K.corridorMin,K.corridorMax)
        if p.overtakeSide=='auto' and yieldStates[otherState.state] and sideFree(row,-otherState.targetSide) then side=-otherState.targetSide end
        local yieldingSame=yieldStates[otherState.state] and otherState.targetSide==side
-       if s.passConfirm>=p.confirmTime and sideFree(row,side) and not yieldingSame and P.corridor(frame.cars,frame.count,i,side,req,front.index,g.occLatMax) then
+       if s.passConfirm>=p.confirmTime and (not closingOnly or s.closeMeters>=K.passCloseMin) and sideFree(row,side) and not yieldingSame and P.corridor(frame.cars,frame.count,i,side,req,front.index,g.occLatMax) then
         s.target=front.index; s.targetSide=side; s.clear=0; s.abortSlow=0; s.passBlocked=0; s.passStall=0; s.passAlongside=false
         s.passConfirm=0; s.passCandidate=0
         if invited then s.ignoreTarget=front.index; s.ignoreUntil=now+K.inviteRespite end
+        -- Beta 1.31 : chaque tentative au journal (déclencheur, écart, avance), et sa fin à la sortie des états de passage.
+        U.log(e.log,now,'INFO',string.format('depassement: %s -> %s (%s, %.0f m, %+.0f km/h)',a.name,other.name,yieldingToMe and 'cession' or invited and 'invitation' or closingOnly and 'rapprochement' or 'retenue',front.gap,front.sa),i)
+        s.passStartAt=now; s.passMinGap=front.gap; s.passName=other.name; s.lastPassTarget=front.index; s.lastPassAt=now
         transition(e,s,profile=='C' and not invited and 'OVT_ARM' or 'OVT_IN',yieldingToMe and 'yielded' or invited and 'invited' or 'pass',now)
        end
       else
@@ -830,11 +854,17 @@ function M.step(e,i,dt,now)
  if now<s.driveUntil and s.state~='AVOID' and s.state~='CALM' then desired=0; if s.state~='IDLE' then transition(e,s,'DRIVE','direction_limit',now) end end
  cmd.offset=M.lateral(s,desired,row,a,p,g,dt,now)
  if s.newDirectionLimit then s.newDirectionLimit=false; e.stats.limit=(e.stats.limit or 0)+1; U.log(e.log,now,'WARN',limitText(s,now),i) end
+ -- Beta 1.31 (têtes-à-queue répétés aux mêmes freinages en descente, Acque Minerali et Rivazza) : en freinage ou en
+ -- virage, jamais moins prudente ni plus agressive que sa base. L'aspiration, le dépassement et la poursuite
+ -- abaissaient la prudence, lissée sur 0,4 s, jusque dans le freinage. Remontée rapide de la prudence.
+ local protect=ownBrake>K.ruleBrake or a.corner<p.cornerMin
+ if protect then caution=max(caution,s.baseCaution); aggression=min(aggression,s.baseAggression) end
+ if passStates[s.state] or yieldStates[s.state] or s.state=='DEFEND' then s.maneuverAt=now end
  local tau=s.state=='CALM' or s.state=='AVOID'
  tau=tau and K.fastModulatorTau or s.state=='YIELD_OUT' and K.yieldRecoveryTau or s.yieldBlue and yieldStates[s.state] and K.blueRecoveryTau or K.modulatorTau
  cmd.level=U.ema(cmd.level,U.clamp(level,K.minNativeLevel,1.1),dt,tau)
- cmd.aggression=U.ema(cmd.aggression,U.clamp(aggression,0,K.maxAggression),dt,tau)
- cmd.caution=U.ema(cmd.caution,U.clamp(caution,0.5,K.maxCaution),dt,tau)
+ cmd.aggression=U.ema(cmd.aggression,U.clamp(aggression,0,K.maxAggression),dt,aggression<cmd.aggression and protect and K.fastModulatorTau or tau)
+ cmd.caution=U.ema(cmd.caution,U.clamp(caution,0.5,K.maxCaution),dt,caution>cmd.caution and protect and K.fastModulatorTau or tau)
  cmd.levelOwned=p.section_general or abs(cmd.level-(a.baseLevel or a.aiLevel))>=K.levelEpsilon
  cmd.aggressionOwned=p.section_general or abs(cmd.aggression-(a.baseAggression or a.aiAggression))>=K.aggrEpsilon
  cmd.cautionOwned=p.section_general or abs(cmd.caution-K.defaultCaution)>=K.cautionEpsilon

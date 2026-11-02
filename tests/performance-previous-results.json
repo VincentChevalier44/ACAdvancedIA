@@ -1,36 +1,36 @@
 {
-  "version": "Beta 1.29",
+  "version": "Beta 1.30",
   "profiling": false,
   "results": [
     {
+      "p99Ms": 0.1466000103391707,
+      "peakMs": 1.4183999737724662,
+      "vmstates": {},
       "errors": 0,
       "frames": 30000,
       "stacks": {},
       "ai": 9,
-      "meanMs": 0.0452513000559217,
-      "p99Ms": 0.12330000754445791,
-      "peakMs": 3.3318999921903014,
-      "vmstates": {}
+      "meanMs": 0.05082476339885034
     },
     {
+      "p99Ms": 0.6198000046424568,
+      "peakMs": 11.790400021709502,
+      "vmstates": {},
       "errors": 0,
       "frames": 30000,
       "stacks": {},
       "ai": 30,
-      "meanMs": 0.22668537004307535,
-      "p99Ms": 0.4907000111415982,
-      "peakMs": 7.451199984643608,
-      "vmstates": {}
+      "meanMs": 0.24811608333645077
     },
     {
+      "p99Ms": 1.8205000087618828,
+      "peakMs": 23.268299992196262,
+      "vmstates": {},
       "errors": 0,
       "frames": 30000,
       "stacks": {},
       "ai": 60,
-      "meanMs": 0.6411328433615078,
-      "p99Ms": 1.3495000021066517,
-      "peakMs": 7.412400009343401,
-      "vmstates": {}
+      "meanMs": 0.7673980634048349
     }
   ],
   "sources": {
@@ -38,9 +38,9 @@
     "calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
     "caps.lua": "85f54153fb4952b79661962c900c806ab18edd1fef015a4452fa064ddb854d61",
     "classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-    "config.lua": "fcbfaae8626d64844b3e2a45ada24b2a21fe40582214bd0ab21660597b54881c",
+    "config.lua": "0f2ecd9b8b9208f53d7fac6aa6e462784a12c99c01531735b5e46fddf11cbd49",
     "delta.lua": "cebd950b028cb380e2d410bade1ddfcde57cbe0e3317aa569918b9a8110096f8",
-    "director.lua": "24a97627eca7cced3715a169a594e5250126f49665dc597bfcc4f87afbb0049d",
+    "director.lua": "39ee33c792a99d9bff29232f3c8026a922200501bf62db5da66d2b3028d1ebb3",
     "engine.lua": "ba021de343004fa4c21bfd0f576f8d1366e59932fee84e691c9217dd4be95202",
     "flash.lua": "a52a5aa06d6649ba2f967400eea288e266b8956a954ec43c5a5cd929a376b0af",
     "flood.lua": "0527562daed5d283c2474666b3d5d584fb36bc57964990a7807db3188c49f31d",
