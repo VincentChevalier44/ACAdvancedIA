@@ -17,19 +17,22 @@ M.rank={[0]=0,[1]=1,[12]=2,[3]=3,[6]=4,[2]=5,[5]=6}
 M.names={[0]='aucun',[1]='vert',[2]='jaune',[3]='piste glissante',[5]='rouge',[6]='vehicule lent',[12]='bleu'}
 local neutralNames={sc='voiture de securite',vsc='VSC',fcy='FCY'}
 function M.new()
- return {at=-math.huge,last=-math.huge,value=0,reason='',slowFor={},slowSlot=0,slowGap=0,slowKmh=0,
+ return {at=-math.huge,last=-math.huge,value=0,reason='',slowFor={},slowSlot=0,slowGap=0,slowKmh=0,greenSeen=-math.huge,greenFrom=-math.huge,greenSpan=0,
   damaged=false,dSuspension=false,dEngine=false,dGearbox=false,dBody=false,dTyre=false,meatballUntil=-math.huge,
   rel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false}}
 end
 function M.reset(l)
  for j in pairs(l.slowFor) do l.slowFor[j]=0 end
  l.slowSlot=0; l.slowGap=0; l.slowKmh=0; l.value=0; l.reason=''; l.last=-math.huge; l.at=-math.huge
+ l.greenSeen=-math.huge; l.greenFrom=-math.huge; l.greenSpan=0
  l.damaged=false; l.dSuspension=false; l.dEngine=false; l.dGearbox=false; l.dBody=false; l.dTyre=false; l.meatballUntil=-math.huge
 end
 function M.rebase(l,amount)
  if U.finite(l.at) then l.at=l.at-amount end
  if U.finite(l.last) then l.last=l.last-amount end
  if U.finite(l.meatballUntil) then l.meatballUntil=l.meatballUntil-amount end
+ if U.finite(l.greenSeen) then l.greenSeen=l.greenSeen-amount end
+ if U.finite(l.greenFrom) then l.greenFrom=l.greenFrom-amount end
 end
 -- Véhicule lent le plus proche devant le joueur, dans la portée (ou déjà à sa hauteur) : en piste, roulé depuis le
 -- départ, ni en incident ni à la sortie des stands, sous K.slowVehicleRatio de son allure apprise à cet endroit (sous
@@ -79,8 +82,23 @@ local function damage(l,frame,now)
  if fresh and not a.pit then l.meatballUntil=now+K.meatballShow; return true end
  return false
 end
+-- Vert des panneaux (Beta 1.37) : chaque vert (fin de neutralisation ou de relance, 5 s ; fin de zone, 3 s) dure sa durée
+-- d'origine mise à l'échelle de la durée réglée (5 s par défaut : durées de la Beta 1.36 à l'identique) ; 0 : aucun vert.
+local function green(l,inc,p,now)
+ local untilAt=inc.greenUntil or -math.huge
+ if untilAt~=l.greenSeen then
+  l.greenSeen=untilAt
+  if untilAt>now then l.greenFrom=now; l.greenSpan=untilAt-now end
+ end
+ local seconds=p.lightsGreenTime or K.greenShow
+ if p.lightsGreen==false or seconds<=0 then return false end
+ if seconds==K.greenShow then return now<untilAt end
+ return now<l.greenFrom+l.greenSpan*seconds/K.greenShow
+end
 -- Valeur des panneaux (ac.FlagType) et sa raison au journal. Rouge (5) décidé tel quel : Applier.flag le ramène au jaune
 -- tant que les drapeaux d'AC ne sont pas masqués (5 est le drapeau noir de leur affichage ; réglage relu à l'écriture).
+-- Beta 1.37 : couleurs choisies dans la section Panneaux lumineux du profil (rouge coupé : jaune à la place ; bleu,
+-- blanc, orange ou vert coupés : couleur suivante) ; le jaune toujours.
 function M.decide(l,inc,frame,p,profile,now)
  local i=frame.player
  if i==0 then return K.flagNone,'' end
@@ -89,7 +107,7 @@ function M.decide(l,inc,frame,p,profile,now)
  if not a.valid or a.finished or frame.finished then return K.flagNone,'arrivee' end
  -- Disqualification du joueur : drapeau noir d'AC rendu, jamais couvert, jusqu'à la fin de la session.
  if l.playerDisqualified then return K.flagNone,'disqualification' end
- if inc.red then return K.flagStop,'drapeau rouge' end
+ if inc.red then return p.lightsRed==false and K.flagCaution or K.flagStop,'drapeau rouge' end
  -- Beta 1.36 : neutralisation avant la pénalité du joueur (la coupure des gaz de l'app ne rend pas les panneaux à AC sous
  -- VSC, FCY ou voiture de sécurité).
  if inc.playerYellow and inc.neutral then return K.flagCaution,neutralNames[inc.neutralMode] or 'neutralisation' end
@@ -99,13 +117,14 @@ function M.decide(l,inc,frame,p,profile,now)
  -- Départ arrêté (Beta 1.34) : jaune pendant la formation et les feux ; vert à l'extinction, avant toute autre
  -- information (Beta 1.35).
  if inc.standing=='grid' or inc.standing=='lights' then return K.flagCaution,'depart arrete' end
- if inc.standing=='go' then return K.flagStart,'depart' end
+ local greenOn=p.lightsGreen~=false and (p.lightsGreenTime or K.greenShow)>0
+ if inc.standing=='go' and greenOn then return K.flagStart,'depart' end
  -- Dernier tour d'une course aux tours : drapeau blanc d'AC rendu, jamais masqué par une information.
  if profile=='C' and frame.sessionLaps>0 and not frame.timedRace and a.lap+1>=frame.sessionLaps then return K.flagNone,'dernier tour' end
- if l.slowSlot>0 then return K.flagSlowVehicle,'vehicule lent' end
- if now<(inc.slipperyUntil or -math.huge) then return K.flagSlippery,'piste glissante' end
- if Panel.blue(l.rel,frame,p,profile,l.value==K.flagFasterCar) then return K.flagFasterCar,'drapeau bleu' end
- if now<(inc.greenUntil or -math.huge) then return K.flagStart,'drapeau vert' end
+ if l.slowSlot>0 and p.lightsWhite~=false then return K.flagSlowVehicle,'vehicule lent' end
+ if now<(inc.slipperyUntil or -math.huge) and p.lightsOrange~=false then return K.flagSlippery,'piste glissante' end
+ if p.lightsBlue~=false and Panel.blue(l.rel,frame,p,profile,l.value==K.flagFasterCar) then return K.flagFasterCar,'drapeau bleu' end
+ if green(l,inc,p,now) then return K.flagStart,'drapeau vert' end
  return K.flagNone,''
 end
 -- Tous les K.panelPeriod : véhicule lent, dégâts, valeur des panneaux. Renvoie vrai à l'apparition d'un dégât.
@@ -118,7 +137,7 @@ function M.update(l,inc,frame,p,profile,d,states,multi,now)
  l.value,l.reason=M.decide(l,inc,frame,p,profile,now)
  return fresh
 end
--- Valeur écrite : panneaux du circuit (option, circuit équipé) ; sinon le jaune natif du HUD que le pilote a demandé
+-- Valeur écrite : panneaux du circuit (section Panneaux lumineux du profil, circuit équipé) ; sinon le jaune natif du HUD que le pilote a demandé
 -- (préférence d'origine, inchangée). hidden : drapeaux d'AC masqués (CSP), seul cas où le rouge est écrit.
 -- Beta 1.36 : rouge rendu tel quel ; Applier.flag relit le réglage « drapeaux d'AC masqués » de CSP au moment de l'écrire
 -- (un réglage changé en cours de session compte aussitôt, sans attendre l'ouverture du menu).

@@ -98,6 +98,7 @@
     "Beta 1.32 : circuit non équipé, drapeau d AC jamais modifié",
     "Beta 1.32 : réglage des panneaux lumineux, nouveaux drapeaux dessinés",
     "Beta 1.33 : vérification au lancement, mise à jour d un clic depuis l en-tête, IA rendues avant le redémarrage",
+    "Beta 1.37 : premier lancement après une installation par la 1.36, restes effacés au démarrage confirmé",
     "Beta 1.33 : mise à jour refusée en conduite, information de l overlay aux stands une fois par lancement",
     "Beta 1.33 : erreurs de mise à jour sans rien changer, annulation, option de vérification coupée",
     "Beta 1.33 : retour à la version sauvegardée, compte rendu après le redémarrage",
@@ -113,6 +114,7 @@
     "Beta 1.36 : module de mise à jour illisible, app chargée sans mise à jour",
     "Beta 1.36 : bouton de l onglet Règles après la réinitialisation d une section",
     "Beta 1.36 : aucune puce de redémarrage après un retour arrière",
-    "Beta 1.36 : puce d état sans IA dans la session"
+    "Beta 1.36 : puce d état sans IA dans la session",
+    "Beta 1.37 : section Panneaux lumineux, accueil et diagnostic"
   ]
 }

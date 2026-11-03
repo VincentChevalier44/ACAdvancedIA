@@ -159,7 +159,9 @@ end
 tests.SECTIONS_DEFAULT_OFF=function()
  for _,profile in ipairs(C.profiles) do
   local p=C.defaults(profile); assert(profile=='H' or not C.any(p))
-  for _,group in ipairs(C.sections) do assert(not C.on(p,group) or profile=='H' and group=='rules') end
+  -- Beta 1.37 : Panneaux lumineux cochés dans chaque profil (comportement de la 1.36), jamais un onglet « qui pilote ».
+  for _,group in ipairs(C.sections) do assert(not C.on(p,group) or profile=='H' and group=='rules' or group=='lights') end
+  assert(C.on(p,'lights') and (profile=='H' or not C.anySection(p)))
   p.schemaVersion=1; p.section_general=true; local migrated=C.validate(profile,p); assert(not migrated.section_general and migrated.levelPct==p.levelPct)
  end
 end
@@ -171,8 +173,10 @@ tests.OPTIONS_FALSE_PRESERVED=function()
    if type(p[s.key])=='boolean' then p[s.key]=false end
   end
   local checked=C.validate(profile,p); local run=C.effective(profile,checked)
+  -- Jaune des panneaux : toujours actif (Beta 1.37).
+  assert(run.lightsYellow==true,'yellow always on')
   for _,s in ipairs(C.schema) do
-   if type(p[s.key])=='boolean' then assert(run[s.key]==false,profile..':'..s.key) end
+   if type(p[s.key])=='boolean' and s.key~='lightsYellow' then assert(run[s.key]==false,profile..':'..s.key) end
   end
  end
 end
@@ -3566,7 +3570,7 @@ tests.HOTLAP_PROFILE=function()
  assert(C.hidden('H','playerPenalties') and C.hidden('H','enduranceOverlay') and C.solo('H'),'penalties hidden')
  local e,f=F.scene('J',3); e.g.presetsUsed=true; e.g.autoProfile=false; e.profiles.H=C.defaults('H'); E.select(e,'H'); F.tick(e,f,0.5)
  assert(e.profile=='H' and not e.profiles.H.configured and e.guard=='ready','Hotlap active with its default')
- for _,group in ipairs(C.sections) do assert(C.on(e.profiles.H,group)==(group=='rules'),'only the rules tab: '..group) end
+ for _,group in ipairs(C.sections) do assert(C.on(e.profiles.H,group)==(group=='rules' or group=='lights'),'only the rules tab (and the track light panels): '..group) end
  -- Hotlap décoché par le pilote : aucun préréglage recommandé ne vient le remplir.
  e.profiles.H.section_rules=false; E.changed(e); F.tick(e,f,0.5)
  assert(not C.anySection(e.profiles.H) and not e.profiles.H.configured,'an unticked Hotlap stays empty')
@@ -5716,5 +5720,60 @@ tests.GRID_RELEASE_COLUMN_136=function()
  for _=1,900 do if e.incidents.standing=='go' then break end; F.place(f,4,-900,60); s4.offset=0.123; s4.filtered=0.123; F.tick(e,f,1/60) end
  assert(e.incidents.standing=='go','lights out after the timeout')
  assert(math.abs(s4.filtered-0.123)<0.05 and math.abs(o4-0.123)>0.1,'far car: no lateral jump to its column')
+end
+-- Beta 1.37 : section Panneaux lumineux de chaque profil (défauts, couleurs, durées, tenue, migration, préréglages).
+tests.LIGHTS_SECTION_137=function()
+ local K=C.K; local Lights=require('src/lights'); local Panel=require('src/panel')
+ for _,profile in ipairs(C.profiles) do
+  local p=C.defaults(profile); assert(C.on(p,'lights') and p.lightsRed and p.lightsGreenTime==5 and p.lightsHold==1.5,'defaults: '..profile)
+  local q=C.validate(profile,p); q.lightsYellow=false; q=C.validate(profile,q); assert(q.lightsYellow==true,'yellow always on')
+  local old=C.defaults(profile); old.section_lights=nil; assert(C.on(C.validate(profile,old),'lights'),'older record: ticked')
+ end
+ for _,name in ipairs({'Nordschleife','Essais','Qualifications','Course','Endurance'}) do assert(C.on(C.preset(name,'C',{}),'lights'),name) end
+ local only=C.defaults('J'); assert(not C.any(only) and not C.anySection(only),'panels alone never drive the AI')
+ -- Révision 18 : option globale décochée (Beta 1.32 à 1.36) gardée, section décochée partout.
+ local function stored(track)
+  local g=C.validateGlobals(C.globalDefaults,{}); g.dataRevision=17; g.presetsUsed=true; g.trackLights=track
+  local profiles={}; for _,profile in ipairs(C.profiles) do profiles[profile]=C.validate(profile,C.defaults(profile)); profiles[profile].configured=true end
+  C.migrate(g,profiles); return g,profiles
+ end
+ local g,ps=stored(false); assert(g.dataRevision==C.dataRevision)
+ for _,profile in ipairs(C.profiles) do assert(not C.on(ps[profile],'lights'),'global off kept: '..profile) end
+ g,ps=stored(true); for _,profile in ipairs(C.profiles) do assert(C.on(ps[profile],'lights'),'global on: '..profile) end
+ -- Couleurs.
+ local e,f=F.scene('C',3); F.tick(e,f,0.2)
+ local l=e.lights; local t=e.incidents; local p=e.run
+ t.red=true; assert(Lights.decide(l,t,f,p,'C',e.time)==K.flagStop,'red by default')
+ p.lightsRed=false; local v,r=Lights.decide(l,t,f,p,'C',e.time); assert(v==K.flagCaution and r=='drapeau rouge','red off: yellow instead')
+ p.lightsRed=true; t.red=false
+ l.slowSlot=2; assert(Lights.decide(l,t,f,p,'C',e.time)==K.flagSlowVehicle,'white')
+ p.lightsWhite=false; assert(Lights.decide(l,t,f,p,'C',e.time)~=K.flagSlowVehicle,'white off'); p.lightsWhite=true; l.slowSlot=0
+ t.slipperyUntil=e.time+10; assert(Lights.decide(l,t,f,p,'C',e.time)==K.flagSlippery,'orange')
+ p.lightsOrange=false; assert(Lights.decide(l,t,f,p,'C',e.time)~=K.flagSlippery,'orange off'); p.lightsOrange=true; t.slipperyUntil=-math.huge
+ local blue=Panel.blue; Panel.blue=function() return true end
+ local okBlue,errBlue=pcall(function()
+  assert(Lights.decide(l,t,f,p,'C',e.time)==K.flagFasterCar,'blue')
+  p.lightsBlue=false; assert(Lights.decide(l,t,f,p,'C',e.time)~=K.flagFasterCar,'blue off'); p.lightsBlue=true
+ end)
+ Panel.blue=blue; assert(okBlue,errBlue)
+ -- Vert : 5 s par défaut (durées de la 1.36), mis à l'échelle de la durée réglée ; 0 ou interrupteur coupé : aucun vert.
+ local now=e.time; t.greenUntil=now+K.greenShow
+ assert(Lights.decide(l,t,f,p,'C',now)==K.flagStart,'green')
+ assert(Lights.decide(l,t,f,p,'C',now+4.9)==K.flagStart and Lights.decide(l,t,f,p,'C',now+5.1)==K.flagNone,'5 s by default, as in 1.36')
+ p.lightsGreenTime=10; t.greenUntil=now+1+K.greenShow; Lights.decide(l,t,f,p,'C',now+1)
+ assert(Lights.decide(l,t,f,p,'C',now+10.9)==K.flagStart and Lights.decide(l,t,f,p,'C',now+11.1)==K.flagNone,'10 s')
+ t.greenUntil=now+20+K.greenZoneShow; Lights.decide(l,t,f,p,'C',now+20)
+ assert(Lights.decide(l,t,f,p,'C',now+25.9)==K.flagStart and Lights.decide(l,t,f,p,'C',now+26.1)==K.flagNone,'zone end: three fifths of it')
+ p.lightsGreenTime=0; t.greenUntil=now+40+K.greenShow; assert(Lights.decide(l,t,f,p,'C',now+40)==K.flagNone,'0: no green')
+ p.lightsGreenTime=5; p.lightsGreen=false; t.greenUntil=now+50+K.greenShow; assert(Lights.decide(l,t,f,p,'C',now+50)==K.flagNone,'green off')
+ t.standing='go'; assert(Lights.decide(l,t,f,p,'C',now+51)~=K.flagStart,'restart green off'); p.lightsGreen=true; t.standing='none'
+ -- Tenue : vers moins important, après la durée réglée ; vers plus important, aussitôt ; sans réglage, K.lightsHold.
+ require('tests/host').create(true); local a=A.new(); assert(A.access(a)); local h=f; h.flag=0
+ A.flag(a,h,K.flagCaution,'drapeau jaune',100,4); assert(a.flagOverride and a.flagValue==K.flagCaution)
+ A.flag(a,h,K.flagStart,'drapeau vert',102,4); assert(a.flagValue==K.flagCaution,'held 4 s, not 1.5')
+ A.flag(a,h,K.flagStart,'drapeau vert',104.1,4); assert(a.flagValue==K.flagStart,'after 4 s')
+ A.flag(a,h,K.flagCaution,'drapeau jaune',104.2,4); assert(a.flagValue==K.flagCaution,'more important: at once')
+ A.flag(a,h,0,'',105,nil); assert(a.flagOverride,'default hold 1.5 s')
+ A.flag(a,h,0,'',105.8,nil); assert(not a.flagOverride,'handed back after 1.5 s')
 end
 return tests

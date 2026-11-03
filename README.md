@@ -131,11 +131,13 @@ One click on **Update**, stopped (paused, in a menu, or at your pit box at stand
 1. downloads the release's SHA-256 digest, then its package, from the repository's release downloads only (no other address is followed);
 2. checks the digest, the package contents (everything under `apps/lua/ACAdvancedIA/`, no path outside it, the updater itself included) and the version in its `manifest.ini`;
 3. unpacks it into CSP's state folder, `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-update/next`, never into the app folder, and checks the unpacked copy;
-4. then, on the first frame you are stopped (**READY · WHEN STOPPED** until then), copies the installed files that the update replaces to `ACAdvancedIA-update/current`, writes a marker, copies the changed files into the app folder in one go with CSP's live reload paused (`src/` first, `ACAdvancedIA.lua` next, `manifest.ini` last), keeps the version you had in `ACAdvancedIA-update/backup`, writes the session log, hands every AI back to AC and restarts the app.
+4. then, on the first frame you are stopped (**READY · WHEN STOPPED** until then), copies the installed files that the update changes to `ACAdvancedIA-update/current` (since Beta 1.37, only the files whose content differs, so the stop is shorter), writes a marker, copies the changed files into the app folder in one go with CSP's live reload paused (`src/` first, `ACAdvancedIA.lua` next, `manifest.ini` last), keeps the version you had in `ACAdvancedIA-update/backup`, writes the session log, hands every AI back to AC and restarts the app.
 
 Steps 1 to 3 can be cancelled and never touch the app folder. A failed copy in step 4 puts the installed version back at once (*Cannot write to the app folder: current version kept*; the log names the file). If that fails too, the block says *Recovery impossible*, names the marker file and does nothing more: restart the game, and reinstall manually if it persists. An install cut short by a crash or a power cut is finished at the next launch, before the app loads anything else: from the unpacked package when it is intact, otherwise by putting the starting version back; the app then restarts once. Two attempts at most, never a loop. **Roll back to Beta X** puts the previous version back the same way. **Check now** asks at most once a minute (greyed in between); GitHub's request limit is shown as such. Your settings, profiles and presets are kept: they live in CSP's storage, not in the app folder. Untick **Check for updates at launch** to never contact GitHub. With a CSP version that lacks the web, zip, copy or digest functions, the block says so: update manually as below. The download size is shown, but not its progress (CSP does not report it).
 
 Each file is copied next to its destination under a temporary name, then renamed over it, so a crash never leaves a half-written file. Each kept version carries its file list, and **Roll back** is offered only for a complete one. A freshly installed version that does not start properly twice in a row (the engine and the window or the overlay running without error, since Beta 1.36) is rolled back automatically at the next launch. Your settings are kept after a roll back: a version reads settings written by a newer one, validating each setting it knows.
+
+**Clean-up (since Beta 1.37).** At every launch, once the app has started properly and no install is pending or watched, the state folder is tidied: the unpacked package (`next/`), the working copy (`current/`), any other leftover file (`*.bak`, `*.tmp`, `*.new`) and empty folders are removed. `backup/` (the previous version, for **Roll back**), a pending marker and `failed.txt` are always kept. The log says `mise a jour: nettoyage (n fichiers)` when something was removed. Beta 1.36 left its unpacked package and a `boot.txt.bak` there: CSP's safe file replacement keeps the old content of a replaced file as `<file>.bak`, and the app rewrites `boot.txt` at the launch that counts the start. Both disappear at the first launch of Beta 1.37, and the app now deletes that `.bak` right after each write.
 
 **Online**, the app drives nothing: checking and installing at your pit box only replace files and restart the app.
 
@@ -210,7 +212,7 @@ Since Beta 1.35 the window uses the **Racing 26** design shared with SetupLab: a
   - a state chip (**ACTIVE · RACE**, **PAUSED · RACE**, **SUSPENDED** in a replay or after the session, **APP OFF**, **PANIC**, **ONLINE**, **WAITING**, **NATIVE AI**), **FR | EN**, the **APP** switch and **PANIC / RESUME**;
   - slanted tabs (the racing-rules tab shows the rule set in use) and the profile selector, with a green dot on the profile in use; in a narrow window the profiles show as their first letter, never hidden.
 - **HOME**: the session panel (profile in use, detection source, automatic profile switch), the built-in presets as tiles, live figures (AI driven, incidents, yellow zones, neutralisation, light panels), the **TO CHECK** list with a link to the section concerned, and the custom presets with their byte counter (64 bytes at most). A banner explains a disabled app, a panic, an online session or the wait for the first session, with a one-click action.
-- **SETTINGS**: the sidebar lists the 14 sections in four groups, each with its switch and the number of settings changed from the profile defaults. A section shows its settings in **sub-groups** on two columns (one when the window is narrow). Sliders show the profile default as a grey mark; changed settings get a cyan diamond; a right click restores the default. Choices with up to three values are segments (a ‹ value › button when their labels do not fit), longer ones a ‹ value › button. An unticked section, **Global options** included, shows why its settings do not apply instead of the settings.
+- **SETTINGS**: the sidebar lists the 15 sections in four groups, each with its switch and the number of settings changed from the profile defaults. A section shows its settings in **sub-groups** on two columns (one when the window is narrow). Sliders show the profile default as a grey mark; changed settings get a cyan diamond; a right click restores the default. Choices with up to three values are segments (a ‹ value › button when their labels do not fit), longer ones a ‹ value › button. An unticked section, **Global options** included, shows why its settings do not apply instead of the settings.
 - **RACING RULES**: the three views (racing rules, mandatory stop, Safety Car) with their switches, then the championship rule sets with their main features and the reset. On a track-day or hotlap profile the mandatory-stop and Safety Car switches are greyed out and their views cannot be opened.
 - **DIAGNOSTICS**: updates, sign calibration, headlight flashes (learnt field, last event id and count) and zones, the track light panels, the session log, CSP capabilities (two columns), the AI functions CSP exposes (names only), the AI table, performance tiles and the circular log with its level filter.
 - **Window size**: 900 × 700 by default. Wider windows widen the columns while the text keeps its size; narrower ones scale the whole window down. Columns, lists, the sidebar and the logs scroll with the wheel.
@@ -859,7 +861,15 @@ Assetto Corsa displays (**ASSETTO CORSA DISPLAYS**):
 
 ### Track light panels
 
-Since Beta 1.32, on a track whose CSP configuration lights its trackside light panels (marshal posts, LED boards) from the player's flag, the app lights them with its own flags. Set it in **SETTINGS › ADVANCED › Overlay › TRACK LIGHT PANELS**: **Track light panels**, on by default, shared by every session, offline only.
+Since Beta 1.32, on a track whose CSP configuration lights its trackside light panels (marshal posts, LED boards) from the player's flag, the app lights them with its own flags. Offline only.
+
+Since Beta 1.37 the panels have their own section, **SETTINGS › RACE & SAFETY › Track light panels**, set per profile like the other sections and ticked by default in every profile:
+- **Active for:** one chip per profile (**TRACK DAY · PRACTICE · QUALI · RACE · HOTLAP**), cyan when the section is ticked for that profile; a click ticks or unticks it, like the section's switch. This section never counts as one that drives the AI: with only this section ticked, the app drives no AI.
+- **Circuit status:** equipped or not, with the file where the panels were found, and the colour shown right now. On a track that is not equipped, colours and durations stay adjustable, with no effect there.
+- **Colours:** yellow (always on: yellow flag, Safety Car, VSC, FCY), red, blue, white (very slow vehicle ahead), orange (slippery track), green (end of zone, of neutralisation and restart). A colour turned off gives way to the next one by priority; red turned off shows yellow.
+- **Durations:** **Green duration (s)**, 0–15, 5 by default (0: no green; the end of a yellow zone keeps three fifths of it, 3 s by default); **Delay before a less important colour (s)**, 0.5–5, 1.5 by default.
+- **The legend** of the six colours and, when AC's own flags are shown, the warning that red appears as yellow.
+- Beta 1.32 to 1.36 had a single switch, shared by every profile, in the Overlay section. When updating, your choice is kept: if you had turned it off, the section is unticked in every profile. The Overlay section now links to this one.
 
 - **How it works.** CSP track configurations light their panels from the player's race flag (`INPUT=FLAG_TYPE`). The app sets that flag (`physics.overrideRacingFlag`), so all the panels of the track show the same colour at once. It hands the flag back to AC as soon as there is nothing to show, and on every exit (stop, panic, session change, unload, reload).
 - **Equipped tracks.** On the first frame at a track, the app reads its configuration, and never writes it:
@@ -867,7 +877,7 @@ Since Beta 1.32, on a track whose CSP configuration lights its trackside light p
   - CSP's own `extension/config/tracks/<track>.ini` and `loaded/<track>.ini`.
   - A track counts as equipped when an active section lights up on a condition read from `FLAG_TYPE` (defined there, in an included file, or in CSP's shared `common/conditions.ini`). CSP's choice between the track's file and its own is not known to the app: the window says *found in its configuration*.
   - On the author's installation, 18 of 41 tracks are equipped (59 of 132 layouts), for example Spa, Monaco, Le Mans, Bahrain, COTA, Suzuka, Zandvoort, and Imola and the Nordschleife through CSP's own configurations. It depends on each track's version and configuration.
-  - Elsewhere, this option never changes the AC flag.
+  - Elsewhere, this section never changes the AC flag.
 - **Colours**, by priority (each track's configuration sets the exact colours):
 
 | Panels | When |
@@ -877,12 +887,12 @@ Since Beta 1.32, on a track whose CSP configuration lights its trackside light p
 | White | A slow vehicle ahead of you |
 | Orange | Slippery track (rain starting, 30 s) |
 | Blue | A car lapping you is behind you (race) |
-| Green | 5 s at the end of a neutralisation or of a yellow zone |
+| Green | At the end of a neutralisation and at a restart (5 s by default), at the end of a yellow zone (3 s by default); see **Green duration (s)** |
 | AC's own | Nothing to report, your last lap in a lap race (AC's white flag), the finish (AC's chequered flag) |
 
 - **AC's own flags are never covered** when they are up: blue, white, black or chequered; over AC's yellow, only yellow or red. While the app shows a colour, AC's own flags come back when it ends.
-- **Changes.** A more important colour is shown at once; a less important one, or handing back to AC, after 1.5 s (track configurations ignore shorter states). The track check and every change are logged (`panneaux lumineux du circuit: …`).
-- **AC's own display.** If AC's flags are shown (not hidden in CSP), its flag icon also shows the yellow, blue and green of the panels; the window says so. The **AC native yellow flag on the HUD** preference still applies on a track that is not equipped, or with the option off.
+- **Changes.** A more important colour is shown at once; a less important one, or handing back to AC, after **Delay before a less important colour (s)**, 1.5 s by default (track configurations ignore shorter states). The track check and every change are logged (`panneaux lumineux du circuit: …`).
+- **AC's own display.** If AC's flags are shown (not hidden in CSP), its flag icon also shows the yellow, blue and green of the panels; the window says so. The **AC native yellow flag on the HUD** preference still applies on a track that is not equipped, or with the section unticked for the profile in use (it is greyed otherwise).
 - **Fixed in Beta 1.34.** In your Imola session on Beta 1.32, the panels never lit: AC keeps its own start flag up for a long time (the whole session in hotlap), and the app refused to write over it, without a word in the log. The start flag no longer blocks the panels. Every wanted colour that cannot be written is now logged once with its cause (`panneaux lumineux du circuit: jaune voulu, non ecrit (drapeau natif 12)`, `capacite missing`, `echec: …`), and every change of AC's own flag is logged (`drapeau d AC: 1 (depart)`). The track configuration is now also read when no section is ticked.
 - **Not confirmed in game yet.** The SDK marks the slippery (3) and slow vehicle (6) values as *does not work yet* for AC's own display; whether the panels show them, and red (5), is to be checked in game.
 
@@ -927,7 +937,7 @@ return { zones = {
 
 **DIAGNOSTICS**, left column:
 - CSP version, track and spline length.
-- **Track light panels**: equipped track or not, and the colour shown.
+- **Track light panels**: equipped track or not, and the colour shown (*Disabled* when the section is unticked for the profile in use).
 - **Sign calibration**: its state, *Offset / side sign*, and **Rerun sign calibration**.
 - **Headlight flashes**: the learned signal, and **Learn headlight flashes (6 s)**.
 - **Track zones**: **Mark start**, **Mark end (no manoeuvres)**, **COPY**, and the zone count.
@@ -1022,6 +1032,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | | **Overtaking** | **Overtaking and defending** | Overtaking, side, margins, chaining, held-up logic, pull-out, slipstream, defending |
 | | **Spacing** | **Traffic spacing** | Track-day spacing |
 | **RACE & SAFETY** | **Accidents** | **Accidents and incidents** | Avoidance, crashed AI stop, yellow flags, double yellow, player flags, messages and beeps, penalties and sanctions |
+| | **Track light panels** | **Track light panels** | Circuit status, colours sent to the panels, durations, profiles it is active for |
 | | **Classes / Endurance** | **Endurance and classes** | Endurance layer, multi-class, class patterns |
 | | **Weather** | **Weather and tyres** | Pace and tyres in the rain, rain compensation |
 | **ADVANCED** | **Global options** | **Global settings** | Level mode, grip bonus, front radar, native awareness, detailed log, occupancy, personality seed |
@@ -1240,6 +1251,21 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **On-screen message on a weather change** | on / off | on | on | on |
 | **Rain compensation without wet tyres (%)** | 0 – 30 | 15 | 15 | 15 |
 
+#### Track light panels (sidebar: **Track light panels**)
+
+Ticked by default in every profile, Hotlap included. See [Track light panels](#track-light-panels).
+
+| Setting | Range | Track day | Practice / Qualifying | Race |
+|---|---|---|---|---|
+| **Yellow · yellow flag, Safety Car, VSC, FCY** | always on | on | on | on |
+| **Red · red flag** | on / off | on | on | on |
+| **Blue · blue flag shown to you** | on / off | on | on | on |
+| **White · very slow vehicle ahead** | on / off | on | on | on |
+| **Orange · slippery track** | on / off | on | on | on |
+| **Green · end of zone, neutralisation and restart** | on / off | on | on | on |
+| **Green duration (s)** | 0 – 15 (0: no green) | 5 | 5 | 5 |
+| **Delay before a less important colour (s)** | 0.5 – 5 | 1.5 | 1.5 | 1.5 |
+
 #### Racing rules: **Racing rules on** view
 
 | Setting | Range | Track day | Practice / Qualifying | Race |
@@ -1332,7 +1358,6 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Click-through when locked** | on / off | on |
 | **Hide in replays** | on / off | on |
 | **Hide in the pits** | on / off | off |
-| **Track light panels** | on / off | on |
 
 ## Session log
 

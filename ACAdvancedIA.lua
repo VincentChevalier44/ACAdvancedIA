@@ -336,10 +336,11 @@ local function update(dt)
  Config.effectiveGlobals(globals,engine.p,engine.runtimeG)
  host.calibrationIndex=calibration.index
  Applier.apply(host,frame,engine.commands,engine.runtimeG,engine.time)
- -- Drapeau du joueur : panneaux lumineux du circuit (option, circuit équipé) ; sinon jaune natif du HUD sur demande.
- local lightsOn=globals.trackLights==true and host.trackLights==true
+ -- Drapeau du joueur : panneaux lumineux du circuit (section du profil en cours, circuit équipé) ; sinon jaune natif du
+ -- HUD sur demande.
+ local lightsOn=Config.on(engine.run,'lights') and host.trackLights==true
  local flagValue,flagReason=Lights.output(engine.lights,engine.incidents,lightsOn)
- Applier.flag(host,frame,flagValue,flagReason,lightsOn and engine.time or nil)
+ Applier.flag(host,frame,flagValue,flagReason,lightsOn and engine.time or nil,engine.run.lightsHold)
  Applier.penalty(host,frame,engine.penalties)
  Applier.beep(host,frame,engine.drs)
  Applier.deltaBeep(host,frame,engine.deltaBeep)
@@ -391,7 +392,11 @@ HUMANAI={engine=engine,host=host,release=release,updater=updater,port=port,panel
 function script.HUMANAI__UPDATE(dt)
  local before=Applier.clock(host)
  local ran=protect(update,dt)
- if ran and not booted then bootEngine=bootEngine+1; if bootEngine>=K.bootFrames and bootUI>=K.bootUIFrames then booted=true; pcall(port.bootOk) end end
+ if ran and not booted then
+  bootEngine=bootEngine+1
+  -- Démarrage confirmé : surveillance levée, puis restes de la mise à jour effacés (Beta 1.37).
+  if bootEngine>=K.bootFrames and bootUI>=K.bootUIFrames then booted=true; pcall(port.bootOk); if port.ready then pcall(Update.tidy,updater,port); updateLog() end end
+ end
  local ok,err=pcall(updateTick,dt)
  if not ok then host.errors=host.errors+1; U.log(engine.log,engine.time,'ERROR','mise a jour: '..tostring(err):sub(1,200),-1) end
  local after=before and Applier.clock(host)

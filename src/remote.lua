@@ -7,6 +7,10 @@
 --   updated.txt                  compte rendu de la dernière opération, lu au lancement suivant ;
 --   boot.txt                     démarrage surveillé de la version tout juste installée ;
 --   failed.txt                   reprise abandonnée (rappelée tant que la même version reste installée).
+-- Beta 1.37 : io.save(…, ensure) passe par io.replaceFile, qui garde l'ancien contenu en <fichier>.bak quand le fichier
+-- existe déjà (boot.txt réécrit au lancement qui le compte) : ce reste est effacé à chaque écriture et à chaque
+-- suppression ; tout autre reste (paquet extrait, copie des fichiers remplacés, fichiers inconnus) est effacé par
+-- p.tidy, seulement sans repère ni démarrage surveillé (M.tidy de src/update.lua).
 -- Chaque source garde la liste de ses fichiers (.files) : une source n'est utilisée que si tous ses fichiers sont là.
 -- Le dossier de l'app (sur un autre disque que Documents, le plus souvent) ne reçoit que la copie finale : chaque fichier
 -- copié à côté (.new) puis mis en place d'un seul coup (même disque), surveillance des fichiers de CSP suspendue puis
@@ -90,9 +94,21 @@ function M.new(onRelease)
  local legacyMarker=app and app..'/backup/installing.txt'; local legacyReport=app and app..'/backup/updated.txt'
  local function exists(f) if not ready or not f then return false end; local ok,r=pcall(io.fileExists,f); return ok and r==true end
  local function load(f) if not exists(f) then return nil end; local ok,t=pcall(io.load,f); return ok and type(t)=='string' and t or nil end
- local function save(f,t) if not ready or not f then return false end; pcall(io.createFileDir,f); local ok,r=pcall(io.save,f,t,true); return ok and r~=false end
- local function delete(f) if exists(f) then pcall(io.deleteFile,f) end; return not exists(f) end
- local function clock() local t=rawget(_G,'os'); local f=type(t)=='table' and (t.preciseClock or t.clock); if callable(f) then local ok,v=pcall(f); if ok and type(v)=='number' then return v end end; return 0 end
+ local function save(f,t)
+  if not ready or not f then return false end
+  pcall(io.createFileDir,f)
+  local ok,r=pcall(io.save,f,t,true)
+  if exists(f..'.bak') then pcall(io.deleteFile,f..'.bak') end
+  return ok and r~=false
+ end
+ local function delete(f)
+  if exists(f) then pcall(io.deleteFile,f) end
+  if f and exists(f..'.bak') then pcall(io.deleteFile,f..'.bak') end
+  return not exists(f)
+ end
+ -- Horloge de la copie : os.clock d'abord (os.preciseClock de CSP peut ne pas avancer pendant une image : la 1.36
+ -- notait « 0 ms » pour une copie de 16 fichiers).
+ local function clock() local t=rawget(_G,'os'); local f=type(t)=='table' and (t.clock or t.preciseClock); if callable(f) then local ok,v=pcall(f); if ok and type(v)=='number' then return v end end; return 0 end
  -- Surveillance des fichiers de CSP suspendue (rechargement en direct) le temps d'écrire dans le dossier de l'app, puis
  -- rétablie.
  local function watch(paused) if ac and callable(ac.pauseFilesWatching) then pcall(ac.pauseFilesWatching,paused) end end
@@ -194,11 +210,14 @@ function M.new(onRelease)
   end)
   if not ok then cb('extraction: '..tostring(err)) end
  end
- -- Fichiers de l'app que la copie d'une source va remplacer, copiés dans current/ avec leur liste (le manifeste
- -- toujours) ; renvoie true, ou false et le fichier en cause.
+ -- Fichiers de l'app que la copie d'une source va remplacer (contenu différent de la source ; le manifeste toujours),
+ -- copiés dans current/ avec leur liste ; les fichiers identiques n'y vont pas (Beta 1.37 : la copie d'une mise à jour
+ -- n'en écrit plus que la part qui change). Renvoie true, nil et les chiffres, ou false et le fichier en cause.
  function p.snapshot(source)
   if not ready then return false,'indisponible' end
-  local names=listOf(roots[source])
+  local started=clock()
+  local from=roots[source]
+  local names=listOf(from)
   if not names then return false,'liste des fichiers de '..tostring(source) end
   local root=roots.current
   clear(root); pcall(io.createDir,root)
@@ -206,14 +225,15 @@ function M.new(onRelease)
   for _,rel in ipairs(names) do seen[rel]=true end
   if not seen['manifest.ini'] then names[#names+1]='manifest.ini' end
   for _,rel in ipairs(names) do
-   if exists(app..'/'..rel) then
-    if not copy(app..'/'..rel,root..'/'..rel) then return false,rel end
+   local dst=app..'/'..rel
+   if exists(dst) and (rel=='manifest.ini' or load(dst)~=load(from..'/'..rel)) then
+    if not copy(dst,root..'/'..rel) then return false,rel end
     kept[#kept+1]=rel
    end
   end
   if not save(root..'/'..M.list,table.concat(kept,'\n')) then return false,M.list end
   if p.sourceVersion('current')~=p.installedVersion() or not complete(root) then return false,'manifest.ini' end
-  return true
+  return true,nil,{saved=#kept,ms=(clock()-started)*1000}
  end
  -- Copie finale d'une source complète dans le dossier de l'app : fichiers changés seulement, dans l'ordre sûr, chacun
  -- remplacé d'un seul coup ; true et les chiffres de la copie, ou false et le fichier en cause.
@@ -259,6 +279,41 @@ function M.new(onRelease)
   if not copy(cur..'/'..M.list,bak..'/'..M.list) or not complete(bak) then return false,M.list end
   clear(cur); clear(old)
   return true
+ end
+ -- Nettoyage du dossier de travail (Beta 1.37 ; appelé sans repère ni démarrage surveillé, voir M.tidy) : paquet extrait
+ -- (next/), copie d'une installation finie (current/), ancienne version précédente (backup.old/), fichiers inconnus de la
+ -- racine (restes .bak, .tmp, .new), fichiers de backup/ hors de sa liste, puis dossiers vides. Jamais la version
+ -- précédente, le repère, le compte rendu, le démarrage surveillé ni la note d'une reprise abandonnée. Renvoie le
+ -- nombre de fichiers effacés.
+ local known={['installing.txt']=true,['updated.txt']=true,['boot.txt']=true,['failed.txt']=true}
+ local function empty(dir)
+  local ok,subs=pcall(folders,dir,'',{})
+  if ok and type(subs)=='table' and callable(io.deleteDir) then for _,rel in ipairs(subs) do pcall(io.deleteDir,dir..'/'..rel) end end
+ end
+ function p.tidy()
+  if not ready or not work then return 0 end
+  local n=0
+  local function gone(path) if exists(path) then pcall(io.deleteFile,path); if not exists(path) then n=n+1 end end end
+  local dirs={work..'/next'}
+  -- Copie d'une installation finie et ancienne version précédente : effacées seulement avec une version précédente
+  -- complète dans backup/ (après une promotion refusée, elles peuvent porter la seule copie de cette version).
+  if complete(roots.backup) then dirs[2]=roots.current; dirs[3]=old end
+  for _,dir in ipairs(dirs) do
+   for _,rel in ipairs(list(dir) or {}) do gone(dir..'/'..rel) end
+   clear(dir)
+  end
+  local stray={}
+  pcall(io.scanDir,work,'*',function(name,attr)
+   if name~='.' and name~='..' and name~='' and not (attr and attr.isDirectory) and not known[name] then stray[#stray+1]=name end
+  end)
+  for _,name in ipairs(stray) do gone(work..'/'..name) end
+  local listed=listOf(roots.backup)
+  if listed then
+   local keep={[M.list]=true}; for _,rel in ipairs(listed) do keep[rel]=true end
+   for _,rel in ipairs(list(roots.backup) or {}) do if not keep[rel] then gone(roots.backup..'/'..rel) end end
+   empty(roots.backup)
+  end
+  return n
  end
  function p.restart()
   if callable(onRelease) then pcall(onRelease) end

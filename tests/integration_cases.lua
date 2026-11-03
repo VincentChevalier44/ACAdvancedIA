@@ -35,7 +35,8 @@ return function(source)
  check('première installation : Essais, Qualifications et Course comme « Règles de base » ; Journée circuit sans commande ni sonde',function()
   H.tick(HOST,5); local e=HUMANAI.engine
   assert(e.profile=='J' and HOST.calls==0 and HOST.accessCalls==0 and e.guard=='nosections','track day: zero command')
-  for _,group in ipairs(C.sections) do assert(not C.on(e.profiles.J,group),'track day: '..group) end
+  -- Panneaux lumineux (Beta 1.37) : cochés partout par défaut, sans rien piloter tant qu'aucun autre onglet ne l'est.
+  for _,group in ipairs(C.sections) do assert(not C.on(e.profiles.J,group) or group=='lights','track day: '..group) end
   for _,profile in ipairs(C.ruleProfiles) do
    local p=e.profiles[profile]
    assert(p.configured and C.on(p,'rules') and C.on(p,'accidents') and C.ruleCategory(profile,p)=='base',profile)
@@ -1591,8 +1592,9 @@ return function(source)
   assert(e.panel.title==L.flagTitles.yellow2 or e.panel.title==L.flagTitles.zone,'own flag not read back as an AC yellow')
   local logged=false; for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find('panneaux lumineux du circuit: jaune',1,true) then logged=true end end
   assert(logged,'write logged with its reason')
-  e.g.trackLights=false; H.tick(HOST,0.5); assert(HOST.flag==0 and not HUMANAI.host.flagOverride,'handed back at once when the option is off')
-  e.g.trackLights=true; H.tick(HOST,0.5); assert(HOST.flag==C.K.flagCaution,'back on')
+  -- Section Panneaux lumineux du profil en cours (Beta 1.37) : décochée, drapeau rendu à AC aussitôt ; cochée, de retour.
+  e.profiles.J.section_lights=false; E.changed(e); H.tick(HOST,0.5); assert(HOST.flag==0 and not HUMANAI.host.flagOverride,'handed back at once when the section is off')
+  e.profiles.J.section_lights=true; E.changed(e); H.tick(HOST,0.5); assert(HOST.flag==C.K.flagCaution,'back on')
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
   assert(HOST.flag==0,'handed back on unload')
  end)
@@ -1648,13 +1650,20 @@ return function(source)
  end)
  check('Beta 1.32 : réglage des panneaux lumineux, nouveaux drapeaux dessinés',function()
   HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); H.tick(HOST,1); pause(true)
-  local g=HUMANAI.engine.g; section('overlay'); redraw(); assert(g.trackLights==true,'on by default')
-  g.trackLights=false; redraw(); press('reset_overlay'); assert(g.trackLights==true,'overlay reset')
-  -- En bas de la section : atteint à la molette.
+  local g=HUMANAI.engine.g
+  -- Beta 1.37 : l'overlay mène à la section Panneaux lumineux (en bas, atteint à la molette).
+  section('overlay'); redraw()
   local r=HOST.hits['##aai_overlay_lock']; HOST.mouse={x=r.x+5,y=r.y+5}
   for _=1,10 do HOST.wheel=-1; main() end
-  redraw(); assert(drawn('overlay_trackLights'),'option shown'); HOST.mouse={x=-1e6,y=-1e6}
-  press('overlay_trackLights'); assert(g.trackLights==false,'turned off'); press('overlay_trackLights'); assert(g.trackLights==true,'turned on')
+  redraw(); assert(drawn('overlay_lights') and not drawn('overlay_trackLights'),'link to the section, no global switch'); HOST.mouse={x=-1e6,y=-1e6}
+  press('overlay_lights'); redraw(); assert(lit('cat_lights') and drawn('set_lightsRed') and drawn('lights_on_J'),'section opened by the link')
+  -- Section propre de chaque profil : interrupteur de la liste, puces « Active pour », réinitialisation.
+  local e0=HUMANAI.engine; local view=e0.profiles[HUMANAI.engine.profile]
+  assert(C.on(e0.profiles.J,'lights') and C.on(e0.profiles.H,'lights'),'on by default in every profile')
+  press('lights_on_J'); assert(not C.on(e0.profiles.J,'lights') and lit('lights_on_C'),'chip unticks that profile only')
+  press('lights_on_J'); assert(C.on(e0.profiles.J,'lights'),'chip ticks it back')
+  press('set_lightsRed'); assert(view.lightsRed==false,'red off'); press('reset_lights'); assert(view.lightsRed==true,'section reset')
+  local yellow=view.lightsYellow; press('set_lightsYellow'); assert(view.lightsYellow==true and yellow==true,'yellow always on')
   pause(false)
   local e=HUMANAI.engine
   e.lights.meatballUntil=e.time+10; H.tick(HOST,0.5)
@@ -1716,6 +1725,36 @@ return function(source)
    H.tick(HOST,0.3); assert(files[WORK..'boot.txt']~=nil,'engine alone: not confirmed yet')
    for _=1,3 do script.HUMANAI__HUD() end
    H.tick(HOST,0.1); assert(files[WORK..'boot.txt']==nil,'boot confirmed once the engine and the overlay ran')
+  end)
+ end)
+ -- Beta 1.37 : premier lancement réel de la 1.37, installée par le module de la 1.36 : version précédente gardée, paquet
+ -- extrait jamais effacé, démarrage armé (compte 0), ancien boot.txt.bak, compte rendu. Restes effacés une fois le
+ -- démarrage confirmé, noté une fois ; rien au lancement suivant.
+ check('Beta 1.37 : premier lancement après une installation par la 1.36, restes effacés au démarrage confirmé',function()
+  updated(function(F)
+   local back={'ACAdvancedIA.lua','manifest.ini','src/update.lua','src/remote.lua','src/ui.lua'}
+   for _,rel in ipairs(back) do F.files[WORK..'backup/'..rel]=rel=='manifest.ini' and '[ABOUT]\nVERSION='..ver(-1)..'\n' or 'old '..rel end
+   F.files[WORK..'backup/.files']=table.concat(back,'\n')
+   local nxt=WORK..'next/'..Fake.prefix
+   for _,rel in ipairs(back) do F.files[nxt..rel]=rel=='manifest.ini' and '[ABOUT]\nVERSION='..ver(0)..'\n' or 'new '..rel end
+   F.files[nxt..'.files']=table.concat(back,'\n')
+   F.files[WORK..'boot.txt']=ver(0)..'\n0\n'..ver(-1)
+   F.files[WORK..'boot.txt.bak']=ver(-1)..'\n1\n'..ver(-2)
+   F.files[WORK..'updated.txt']='update '..ver(-1)..' -> '..ver(0)
+  end,function()
+   local files=HOST.files
+   assert(files[WORK..'boot.txt']==ver(0)..'\n1\n'..ver(-1) and files[WORK..'boot.txt.bak']==nil,'start counted, no .bak left')
+   assert(files[WORK..'next/'..Fake.prefix..'src/ui.lua'],'nothing removed while the start is watched')
+   H.tick(HOST,0.3); for _=1,3 do script.HUMANAI__HUD() end; H.tick(HOST,0.1)
+   assert(files[WORK..'boot.txt']==nil,'start confirmed')
+   for path in pairs(files) do assert(path:sub(1,#WORK+5)~=WORK..'next/' and not path:find('%.bak$'),'left: '..path) end
+   assert(files[WORK..'backup/src/ui.lua']=='old src/ui.lua' and HUMANAI.updater.previous==ver(-1),'previous version kept, roll back offered')
+   local e=HUMANAI.engine; local n=0
+   for k=0,e.log.count-1 do local row=e.log[(e.log.head-k-1)%e.log.limit+1]; if row.message:find('mise a jour: nettoyage (',1,true) then n=n+1 end end
+   assert(n==1,'clean-up logged once: '..n)
+   HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
+   assert(loadstring(source))(); H.tick(HOST,0.3); for _=1,3 do script.HUMANAI__HUD() end; H.tick(HOST,0.1)
+   assert(not logged('mise a jour: nettoyage ('),'next launch: nothing left to clean')
   end)
  end)
  check('Beta 1.33 : mise à jour refusée en conduite, information de l overlay aux stands une fois par lancement',function()
@@ -1865,11 +1904,11 @@ return function(source)
   press('reset_overlay'); assert(g.overlayBackground=='solid','overlay reset')
   -- Jaune natif du HUD : remplacé (grisé, sans effet) sur un circuit équipé avec les panneaux ; réglable sinon.
   go('home'); press('profile_J'); local p=e.profiles.J; p.section_accidents=true; p.configured=true; section('accidents','yellowHud')
-  HUMANAI.host.trackLights=true; g.trackLights=true; redraw()
+  HUMANAI.host.trackLights=true; p.section_lights=true; redraw()
   local before=p.yellowHud; press('set_yellowHud'); assert(p.yellowHud==before,'locked while the panels replace it')
   redraw(); assert(begins(L.yellowHudLocked),'replacement explained')
-  g.trackLights=false; redraw(); press('set_yellowHud'); assert(p.yellowHud==not before,'settable with the panels off')
-  press('set_yellowHud'); g.trackLights=true; HUMANAI.host.trackLights=nil
+  p.section_lights=false; redraw(); press('set_yellowHud'); assert(p.yellowHud==not before,'settable with the panels off for this profile')
+  press('set_yellowHud'); p.section_lights=true; HUMANAI.host.trackLights=nil
   -- Point à vérifier : lien vers la section concernée.
   p.section_weather=false; go('home'); redraw(); assert(drawn('warn_weather'),'weather warning linked')
   press('warn_weather'); redraw(); assert(lit('cat_weather') and lit('tab_settings'),'link opens the Weather section')
@@ -2093,7 +2132,7 @@ return function(source)
   press('overlay_overlayExplain'); assert(g.overlayExplain==not C.globalDefaults.overlayExplain,'overlay switched')
   rightClick('overlay_overlayExplain'); assert(g.overlayExplain==C.globalDefaults.overlayExplain,'overlay switch: right click resets')
   -- Panneaux lumineux pas encore lus : « inconnus », jamais « éteints ».
-  local known=HUMANAI.host.trackLights; HUMANAI.host.trackLights=nil; g.trackLights=true; go('home'); redraw()
+  local known=HUMANAI.host.trackLights; HUMANAI.host.trackLights=nil; go('home'); redraw()
   assert(drawnText(L.kpiLightsUnknown) and not drawnText(L.kpiLightsIdle),'lights not read yet: unknown')
   HUMANAI.host.trackLights=known
   -- Changement de langue : ligne des panneaux lumineux du diagnostic refaite.
@@ -2191,6 +2230,16 @@ return function(source)
   local ready=W.upper(L.pillStates.ready); found=false
   for _,t in ipairs(HOST.drawnTexts) do if t:sub(1,#ready)==ready then found=true end end
   assert(found,'ACTIVE chip with AI')
+ end)
+ check('Beta 1.37 : section Panneaux lumineux, accueil et diagnostic',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); H.tick(HOST,1); pause(true)
+  local e=HUMANAI.engine; HUMANAI.host.trackLights=true
+  go('home'); redraw(); assert(not drawnText(L.kpiLightsOff),'section on: not disabled')
+  e.p.section_lights=false; redraw(); assert(drawnText(L.kpiLightsOff),'running profile unticked: disabled')
+  e.p.section_lights=true; go('settings'); press('cat_lights'); redraw()
+  assert(drawn('set_lightsGreenTime') and drawn('set_lightsHold') and drawn('lights_on_H'),'durations and session chips')
+  HUMANAI.host.trackLights=false; redraw(); assert(begins(L.lightsNoEffect),'not equipped: no effect on this track')
+  HUMANAI.host.trackLights=nil; pause(false)
  end)
  return results
 end

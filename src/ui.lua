@@ -101,7 +101,7 @@ local function texts(v)
  v.updateLine=nil; v.loadedFor=nil; v.carFilterBuilt=nil; v.panelVersion=nil; v.deltaHundredths=nil; v.giveBackName=nil; v.blueTenths=nil; v.presetMessage=''
  -- Textes et mesures de la fenêtre refaits à la prochaine image (Beta 1.35) : textes mémorisés (v.memo), ligne des
  -- panneaux lumineux du diagnostic, place à rejoindre de l'overlay.
- v.setupFor=nil; v.memo={}; v.lightsFor=nil; v.lightsValue=nil; v.placeSlot=nil; v.placeMeters=nil
+ v.setupFor=nil; v.memo={}; v.lightsFor=nil; v.lightsValue=nil; v.lightsSection=nil; v.placeSlot=nil; v.placeMeters=nil; v.lightOpts={}; v.activeFor=nil
 end
 function M.new(e,host,calibration,dirty)
  local v={e=e,host=host,calibration=calibration,dirty=dirty,open={},controls={},logFilter=1,patternInvalid=false,category='general',keptRules={},
@@ -204,7 +204,7 @@ end
 -- seules les saisies de texte et la liste des voitures restent natives. Identifiants des commandes inchangés.
 local tabs={'home','settings','rules','diagnostic'}
 local sidebar={{'drive','general','human','lateral','start'},{'traffic','yield','blue','flash','overtake','traffic'},
- {'race','accidents','endurance','weather'},{'advanced','globals','overlay'}}
+ {'race','accidents','lights','endurance','weather'},{'advanced','globals','overlay'}}
 local languageOrder={'fr','en'}
 local languageLabels={fr='FR',en='EN'}
 local HEADER=84
@@ -240,6 +240,8 @@ local function input(id,x,y,w,value,tip,err)
 end
 -- Valeur affichée d'un réglage numérique : virgule décimale, entiers sans décimale.
 local function valueText(s,value)
+ -- Valeur nulle nommée (Beta 1.37 : « pas de vert »).
+ if value==0 and L.zeroValues[s.key] then return L.zeroValues[s.key] end
  if C.integerKeys[s.key] then return string.format('%.0f',value) end
  return number(value)
 end
@@ -268,6 +270,16 @@ local function segmentFits(control,w)
 end
 -- Une commande de réglage (.st / .r) dans une colonne de largeur w ; renvoie sa hauteur. Clic droit : valeur par
 -- défaut du profil affiché.
+-- Pastilles des couleurs de la section Panneaux lumineux (valeur ac.FlagType de chaque réglage).
+local lightSwatch={lightsYellow=2,lightsRed=5,lightsBlue=12,lightsWhite=6,lightsOrange=3,lightsGreen=1}
+local function toggleOpts(v,key)
+ local sw=lightSwatch[key]
+ if not sw then return nil end
+ local o=v.lightOpts[key]
+ if not o then o={}; v.lightOpts[key]=o end
+ o.swatch=v.lightColors and v.lightColors[sw]; o.note=L.lightNotes[key]; o.forced=key=='lightsYellow'
+ return o
+end
 local function settingControl(v,control,view,p,x,y,w,locked)
  local c=W.colors(); local s=control.schema; local tip=control.hint[view]
  local value,changed,reset=p[s.key],false,false
@@ -326,14 +338,18 @@ local function settingControl(v,control,view,p,x,y,w,locked)
   if changed then p[s.key]=value; C.validate(view,p,p); touch(v,p) end
   return h
  end
- if W.visible(y,28) then
-  local clicked,right=W.toggle(control.id,shortLabel(s),x,y,w,value==true,tip,locked,mod and not locked)
+ local opts=toggleOpts(v,s.key)
+ -- Jaune des panneaux : toujours actif (allumé, grisé, sans effet).
+ if opts and opts.forced then locked=true end
+ local h=W.toggleHeight(opts)
+ if W.visible(y,h) then
+  local clicked,right=W.toggle(control.id,shortLabel(s),x,y,w,value==true,tip,locked,mod and not locked,opts)
   if clicked then value=not value; changed=true end
   reset=right and not locked
  end
  if reset then value=s.defaults[view]; changed=value~=p[s.key] end
  if changed then p[s.key]=value; C.validate(view,p,p); touch(v,p) end
- return 28
+ return h
 end
 -- Note d'un réglage masqué dans ce profil (pénalités en journée circuit, surcouche Endurance en essais et en
 -- qualifications, répartition des IA en course et en hotlap) ; nil sans note.
@@ -353,7 +369,7 @@ local function groupHeight(group,view)
  for _,control in ipairs(group.controls) do
   local s=control.schema
   if C.hidden(view,s.key) then local note=hiddenNote(view,s.key,heightShown); if note then heightShown[note]=true; h=h+36 end
-  else h=h+(s.min and 44 or s.choices and 46 or 28) end
+  else h=h+(s.min and 44 or s.choices and 46 or (L.lightNotes[s.key] and 42 or 28)) end
  end
  return h
 end
@@ -686,7 +702,7 @@ local overlayContentKeys={'overlaySession','overlayExplain','overlayRecap'}
 local overlayNativeKeys={'overlayNativeBox','overlayMessages','overlayBlockMessages'}
 local overlayBehaviourKeys={'overlayClickThrough','overlayHideReplay','overlayHidePits'}
 local overlayResetKeys={'overlayX','overlayY','overlayScale','overlayLocked','overlayBackground','overlayContent','panelOpacity','panelShow','panelInfoTime',
- 'overlaySession','overlayExplain','overlayRecap','overlayNativeBox','overlayMessages','overlayBlockMessages','overlayClickThrough','overlayHideReplay','overlayHidePits','trackLights'}
+ 'overlaySession','overlayExplain','overlayRecap','overlayNativeBox','overlayMessages','overlayBlockMessages','overlayClickThrough','overlayHideReplay','overlayHidePits'}
 local backgroundKeys={'solid','ghost','transparent'}
 local function switchList(v,g,keys,titles,x,y,w)
  if W.visible(y,24) then W.heading(titles[1],x,y,w,titles[2]) end
@@ -741,15 +757,24 @@ local function overlayBlock(v,e,x,y,w)
  yr=switchList(v,g,overlayBehaviourKeys,L.subgroups.overlayBehaviour,rx,yr,cw)
  if g.overlayBlockMessages then yr=yr+6+W.message(L.overlayBlockedNote,rx,yr+6,cw,'mut') end
  y=math.max(yl,yr)+10
- -- Panneaux lumineux du circuit (Beta 1.32) : option, circuit équipé ou non, état, couleurs, rouge et drapeaux d'AC.
- local host=v.host
- if W.visible(y,24) then W.heading(L.trackLightsHeading,x,y,w,L.trackLightsScope) end
+ -- Panneaux lumineux du circuit : réglés dans leur section (Beta 1.37), une ligne y mène.
+ if W.visible(y,24) then
+  local lw=W.linkWidth(L.lightsLink)
+  W.rect(x,y,w,1,c.ruleSoft)
+  W.cell(L.overlayLightsLink,x,y+8,w-lw-12,12,c.body)
+  if W.link('overlay_lights',L.lightsLink,x+w-lw,y+7,v.tips.tabs.lights) then v.category='lights'; v.presetMessage='' end
+ end
+ return y+30
+end
+-- Section Panneaux lumineux (Beta 1.37) : état du circuit en tête (lecture de sa configuration, couleur en cours).
+local function lightsStatus(v,p,x,y,w)
+ local c=W.colors(); local host=v.host
+ if W.visible(y,24) then W.heading(L.subgroups.lightsStatus[1],x,y,w,L.subgroups.lightsStatus[2]) end
  y=y+30
- if W.visible(y,28) then globalSwitch(v,g,'overlay_trackLights','trackLights',L.overlaySwitches.trackLights,x,y,w,tips.trackLights) end
- y=y+34
  local status=host.trackLights==true and fmt(v,'lightsOn',L.trackLightsOn,host.trackLightsSource) or host.trackLights==false and L.trackLightsOff or L.trackLightsUnknown
  y=y+W.message(status,x,y,w,host.trackLights==true and 'gr' or 'mut')+6
- if g.trackLights and host.trackLights==true then
+ if host.trackLights~=true then y=y+W.paragraph(L.lightsNoEffect,x,y,w,12,c.label)+6 end
+ if host.trackLights==true and C.on(p,'lights') then
   local value=host.flagOverride and host.flagValue or 0
   if W.visible(y,18) then
    W.circle(x+7,y+8,7,v.lightColors[value] or c.rule)
@@ -757,6 +782,11 @@ local function overlayBlock(v,e,x,y,w)
   end
   y=y+24
  end
+ return y
+end
+-- Section Panneaux lumineux : légende des six couleurs, note et avertissement du rouge, en bas.
+local function lightsLegend(v,p,x,y,w)
+ local c=W.colors(); local host=v.host; local two=w>=560
  local lw=two and (w-18)/2 or w
  for i in ipairs(L.lightLegend) do
   local cx=two and x+((i-1)%2)*(lw+18) or x
@@ -768,8 +798,29 @@ local function overlayBlock(v,e,x,y,w)
  end
  y=y+(two and math.ceil(#L.lightLegend/2) or #L.lightLegend)*20+6
  y=y+W.paragraph(L.trackLightsLegend,x,y,w,12,c.label)+6
- if host.raceFlagsHidden~=true then y=y+W.message(L.trackLightsRed,x,y,w,'wn')+6 end
+ if host.trackLights==true and C.on(p,'lights') and host.raceFlagsHidden~=true then y=y+W.message(L.trackLightsRed,x,y,w,'wn')+6 end
  return y
+end
+-- « Active pour : » et une puce par profil (cyan : section cochée dans ce profil) ; un clic coche ou décoche la section
+-- de ce profil, comme son interrupteur.
+local activeProfiles={'J','P','Q','C','H'}
+local function activeFor(v,e,x,y,w)
+ if W.visible(y,20) then
+  local lx=x
+  W.label(L.lightsActiveFor,lx,y+3); lx=lx+W.labelWidth(L.lightsActiveFor)+8
+  for _,profile in ipairs(activeProfiles) do
+   local cw=W.chipWidth(L.shortProfiles[profile])
+   if lx+cw>x+w then break end
+   local target=e.profiles[profile]
+   local on=C.on(target,'lights')
+   local id=idOf('lights_on_',profile)
+   if W.hit(id,lx,y+1,cw,17) then target.section_lights=not on; on=not on; touch(v,target) end
+   W.frame().active[id]=on
+   W.chip(L.shortProfiles[profile],lx,y+1,on and 'c' or 'n'); W.help(v.tips.sections.lights,lx,y+1,cw,17,5)
+   lx=lx+cw+4
+  end
+ end
+ return y+26
 end
 -- Réinitialisation d'une section (Beta 1.24) : valeurs par défaut du profil affiché, comme le clic droit sur un réglage ;
 -- préférences du pilote, motifs de classes et réglages fixés par le jeu de règles gardés. Options globales : seulement
@@ -805,18 +856,21 @@ local function sectionContent(v,e,group,view,p,x,top,w,listKey,controls)
  for i=#status,1,-1 do y=y+W.message(status[i],x,y,w,'ok')+4; status[i]=nil end
  if #v.statusLines==0 and y>top then y=y+4 end
  if group=='overlay' then return overlayBlock(v,e,x,y,w)-top end
+ if group=='lights' then y=lightsStatus(v,p,x,y,w)+8 end
  if not C.on(p,group) then
   y=y+W.message(group=='rules' and L.rulesOff or L.sectionOff,x,y,w,'wn')+6
   return y-top
  end
  if group=='globals' then return globalBlock(v,e,x,y,w)-top end
  local list=Groups.build(listKey,controls)
- -- Jaune natif du HUD remplacé par les panneaux lumineux seulement sur un circuit équipé (ailleurs il sert encore).
- local locked=group=='accidents' and v.e.g.trackLights and v.host.trackLights==true and 'yellowHud' or nil
+ -- Jaune natif du HUD remplacé par les panneaux lumineux seulement sur un circuit équipé, section Panneaux lumineux
+ -- cochée pour le profil affiché (ailleurs il sert encore).
+ local locked=group=='accidents' and C.on(p,'lights') and v.host.trackLights==true and 'yellowHud' or nil
  y=groupColumns(v,idOf(listKey,view),list,view,p,x,y,w,locked)
  if locked and W.visible(y,16) then y=y+4+W.message(L.yellowHudLocked,x,y+4,w,'mut') end
  if group=='rules' and v.rulesView=='safety' then y=safetyBlock(v,e,x,y+12,w) end
  if group=='endurance' then y=patternBlock(v,p,x,y+12,w) end
+ if group=='lights' then y=lightsLegend(v,p,x,y+12,w) end
  return y-top+8
 end
 -- Langue de l'interface : textes de la fenêtre et du panneau de drapeaux refaits aussitôt ; choix enregistré.
@@ -1149,7 +1203,7 @@ local function entrySignature(v,entry)
  return s
 end
 -- Points à vérifier (Beta 1.10) : texte, lien vers la section concernée.
-local warnTargets={signs={'diagnostic'},endurance={'settings','endurance'},weather={'settings','weather'},tabs={'settings','accidents'},lights={'settings','overlay'}}
+local warnTargets={signs={'diagnostic'},endurance={'settings','endurance'},weather={'settings','weather'},tabs={'settings','accidents'},lights={'settings','lights'}}
 local function openTarget(v,kind)
  local t=warnTargets[kind]
  if not t then return end
@@ -1286,7 +1340,7 @@ local function homeTab(v,e,host)
   local neutral=t.neutral and t.neutralMode or nil
   kpi(x+12,ky,unit*3+10,L.kpiNeutral,neutral and W.upper(L.neutralNames[neutral]) or (liveNow and L.neutralNames.none or '—'),neutral~=nil,nil,false,liveNow)
   local value=host.flagOverride and host.flagValue or 0
-  local lightText=host.trackLights==false and L.kpiLightsNone or not e.g.trackLights and L.kpiLightsOff or host.trackLights==nil and L.kpiLightsUnknown or value~=0 and (L.lightShort[value] or '') or L.kpiLightsIdle
+  local lightText=host.trackLights==false and L.kpiLightsNone or not C.on(e.p,'lights') and L.kpiLightsOff or host.trackLights==nil and L.kpiLightsUnknown or value~=0 and (L.lightShort[value] or '') or L.kpiLightsIdle
   kpi(x+12+3*(unit+5)+5,ky,unit*3+5,L.kpiLights,lightText,false,value~=0 and v.lightColors[value] or c.rule,false,liveNow)
  end
  y=y+8+24+8+2*59+8+GAP
@@ -1303,7 +1357,7 @@ local function homeTab(v,e,host)
   if v.upgradedFor~=host.upgraded or v.upgradedCount~=#host.upgraded then v.upgradedFor=host.upgraded; v.upgradedCount=#host.upgraded; v.upgradedList=table.concat(host.upgraded,', ') end
   addWarning(v,fmt(v,'upgraded','%s%s',L.upgraded,v.upgradedList))
  end
- if host.trackLights==true and e.g.trackLights and host.raceFlagsHidden==false then addWarning(v,L.lightsRedWarning,'lights') end
+ if host.trackLights==true and C.on(e.p,'lights') and e.p.lightsRed~=false and host.raceFlagsHidden==false then addWarning(v,L.lightsRedWarning,'lights') end
  -- Mise à jour (Beta 1.33) : nouvelle version (bouton d'un clic) ou compte rendu de la dernière opération.
  local u=host.updater; local offered=u~=nil and host.updatePort~=nil and host.updatePort.ready and Update.offered(u)
  local report=u~=nil and u.updated~=nil and not offered
@@ -1466,6 +1520,7 @@ local function sectionPane(v,e,group,view,p,opts)
   desc=fmt(v,'paneDesc','%s %s',desc,v.modText)
  end
  y=y+W.paragraph(desc,ix,y,iw,12,c.label)+6
+ if group=='lights' then y=activeFor(v,e,ix,y,iw) end
  -- Confirmation de la réinitialisation de cette section seulement (onglet Réglages ; l'onglet Règles de course a la
  -- sienne) : jamais un autre message (accueil, arrivé par un lien des points à vérifier).
  if v.tab=='settings' and v.resetGroup==group and v.presetMessage~='' and v.presetMessage==v.resetText then y=y+W.message(v.presetMessage,ix,y,iw,'ok')+6 end
@@ -1622,9 +1677,10 @@ local function diagnosticTab(v,e,host)
   end
   y=y+W.paragraph(v.cspLine,x+2,y,w,11,c.label,'mono')+4
   local lightValue=host.flagOverride and host.flagValue or 0
-  if v.lightsFor~=host.trackLights or v.lightsValue~=lightValue then
-   v.lightsFor=host.trackLights; v.lightsValue=lightValue
-   v.lightsLine=L.diagLights..(host.trackLights==true and L.diagLightsOn or host.trackLights==false and L.diagLightsOff or L.diagLightsUnknown)..' · '..(L.lightNames[lightValue] or '')
+  local lightsOn=C.on(e.p,'lights')
+  if v.lightsFor~=host.trackLights or v.lightsValue~=lightValue or v.lightsSection~=lightsOn then
+   v.lightsFor=host.trackLights; v.lightsValue=lightValue; v.lightsSection=lightsOn
+   v.lightsLine=L.diagLights..(host.trackLights==true and L.diagLightsOn or host.trackLights==false and L.diagLightsOff or L.diagLightsUnknown)..' · '..(lightsOn and (L.lightNames[lightValue] or '') or L.kpiLightsOff)
   end
   y=y+W.paragraph(v.lightsLine,x+2,y,w,11,c.label,'mono')+8
  end

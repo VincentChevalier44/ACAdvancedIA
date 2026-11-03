@@ -40,5 +40,6 @@ DWrite weight names are CSP's (`ui.DWriteFont.Weight`): Regular is 400 and Ultra
 - **Updates**: the block adds three states to the mockup's, *ready* (copy when stopped), *GitHub request limit* and *recovery impossible* (with the marker file).
 - **Minimum size**: the manifest keeps 640 × 520 (small screens); below 900 px the window scales down instead of cropping.
 - **Pattern editor**: the eight rows open with **Edit row by row**; closed, the free-text field stays (as before).
-- **Native AC yellow on the HUD** is greyed out only on an equipped track (detected panels) with the panels on; elsewhere it still works and stays settable.
+- **Native AC yellow on the HUD** is greyed out only on an equipped track (detected panels) with the **Track light panels** section ticked for the profile shown; elsewhere it still works and stays settable.
+- **Track light panels** (Beta 1.37, mockup version 1793693617-17ad): the section follows the app's rule for an unticked section (its warning instead of dimmed settings); its circuit status and **Active for** chips stay visible so it can be ticked again. Two defaults differ from the mockup's example on purpose: red is on (as in Beta 1.36) and the section is ticked for every profile, Hotlap included. The colour rows draw a 14 px swatch with the kit's flag colours; the yellow row is a switch drawn on and greyed. The English link line says *Race & safety*, the sidebar's real name (the mockup's English texts say *Racing & safety*).
 - **Download progress** is not shown (CSP gives none), as agreed in the mockup.

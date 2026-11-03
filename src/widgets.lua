@@ -349,11 +349,12 @@ function W.icon(id,kind,x,y,tip)
  return clicked
 end
 -- Interrupteur (.sw, 30 × 16) : état allumé cyan, éteint gris, désactivé grisé.
+-- Interrupteur grisé mais allumé (réglage toujours actif, Beta 1.37) : on et disabled vrais ensemble, bouton à droite.
 function W.switchShape(x,y,on,hover,disabled)
  local c=W.colors()
  local track=disabled and c.control or on and (hover and c.cyanHover or c.cyan) or (hover and c.switchOffHover or c.switchOff)
  W.rect(x,y,30,16,track,8)
- W.circle(x+(on and not disabled and 22 or 8),y+8,5,disabled and c.knobDisabled or on and c.ink or c.knobOff)
+ W.circle(x+(on and 22 or 8),y+8,5,disabled and c.knobDisabled or on and c.ink or c.knobOff)
 end
 function W.switch(id,x,y,on,tip,disabled)
  local clicked,hover=W.hit(id,x-4,y-4,38,24)
@@ -363,17 +364,23 @@ function W.switch(id,x,y,on,tip,disabled)
  return clicked and not disabled
 end
 -- Ligne de réglage à interrupteur (.r, 28 px) : libellé à gauche, interrupteur à droite ; toute la ligne est cliquable.
-function W.toggle(id,label,x,y,w,on,tip,disabled,modified)
+-- Ligne d'interrupteur ; opts (facultatif, Beta 1.37) : swatch (couleur d'une pastille de 14 px devant le libellé),
+-- note (deuxième ligne, discrète), forced (allumé et grisé : réglage toujours actif). Hauteur : W.toggleHeight(opts).
+function W.toggleHeight(opts) return opts and opts.note and 42 or 28 end
+function W.toggle(id,label,x,y,w,on,tip,disabled,modified,opts)
  local c=W.colors()
- local clicked,hover,_,right=W.hit(id,x,y,w,28)
+ local h=W.toggleHeight(opts)
+ local clicked,hover,_,right=W.hit(id,x,y,w,h)
  f.active[id]=on==true
- if hover and not disabled then W.rect(x,y,w,27,c.block) end
+ if hover and not disabled then W.rect(x,y,w,h-1,c.block) end
  local lx=x+2
  if modified then W.marker(lx,y+11); lx=lx+12 end
- W.cell(label,lx,y+7,w-48-(lx-x),12,disabled and c.label or c.body)
- W.switchShape(x+w-32,y+6,on and not disabled,hover,disabled)
- W.rect(x,y+27,w,1,c.ruleSoft)
- W.help(tip,x,y,w,28,5)
+ if opts and opts.swatch then W.rect(lx,y+7,14,14,opts.swatch); lx=lx+20 end
+ W.cell(label,lx,y+7,w-48-(lx-x),12,disabled and not (opts and opts.forced) and c.label or c.body)
+ if opts and opts.note then W.cell(opts.note,lx,y+24,w-48-(lx-x),11,c.label) end
+ W.switchShape(x+w-32,y+6,opts and opts.forced or on and not disabled,hover,disabled)
+ W.rect(x,y+h-1,w,1,c.ruleSoft)
+ W.help(tip,x,y,w,h,5)
  return clicked and not disabled,right
 end
 -- Puces (.k) : C cyan plein, c cyan foncé, g vert, a ambre, r rouge, n neutre, o orange. Renvoie la largeur.

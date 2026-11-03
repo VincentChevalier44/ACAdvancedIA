@@ -1,5 +1,24 @@
 # Changelog
 
+## Beta 1.37 — 3 November 2026
+
+The clean, final version after the first real update from the app (1.35 → 1.36), with the track light panels in their own settings section.
+
+- **Track light panels, own section:** **SETTINGS › RACE & SAFETY › Track light panels**, per profile, ticked by default in every profile (the Beta 1.36 behaviour):
+  - **Active for** chips for the five profiles, the circuit status and the colour shown now, moved from the Overlay section (which now links to it);
+  - a switch per colour: yellow always on; red off shows yellow (red still needs AC's flags hidden); blue, white, orange and green off give way to the next colour;
+  - **Green duration (s)**, 0–15, 5 by default (0: no green), and **Delay before a less important colour (s)**, 0.5–5, 1.5 by default;
+  - built-in presets tick it; the former global switch is migrated (turned off, the section is unticked in every profile); it never counts as a section that drives the AI;
+  - the greyed **AC native yellow flag on the HUD**, the home tile, its warning (now linking to this section) and the Diagnostics line follow the section of the profile concerned;
+  - with the default values, the panels behave exactly as in Beta 1.36.
+- **Update from the app:**
+  - the state folder is tidied at every launch once the app has started properly and nothing is pending: the unpacked package, the working copy, stray `*.bak`, `*.tmp` and `*.new` files and empty folders go; `backup/`, a pending marker and `failed.txt` stay. Logged once: `mise a jour: nettoyage (n fichiers)`. The leftovers of the 1.35 → 1.36 update (`next/`, `boot.txt.bak`) disappear at the first launch;
+  - `boot.txt.bak` came from CSP's safe file replacement, which keeps the old content as `<file>.bak`; the app now deletes it after each write;
+  - the copy of the installed version before an update only takes the files whose content changes (the manifest always), which shortens the stop; the log gives their number and the time taken.
+- **Housekeeping:** documentation brought up to date (Updating, Track light panels, settings reference, interface notes).
+
+**Verification**: 448 checks; 115 integration cases; 1,076 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.36; 8-hour soak without errors on the final sources (memory between 8.1 and 9.3 MB, peak frame 0.83 ms; Beta 1.36 the same day: 8.5 to 9.7 MB, 0.89 ms; memory and peak criteria still not met, as before; earlier runs showed isolated peaks of a few ms on both versions, machine noise), one hour of regulated racing at 0.23 ms on average (Beta 1.36 the same day: 0.27); benchmark (median of five alternating runs) 30 AI 0.24 ms (Beta 1.36: 0.23), 60 AI 0.62 ms (Beta 1.36: 0.63).
+
 ## Beta 1.36 — 3 November 2026
 
 The fixes from the third adversarial review of Beta 1.35 (no blocker, no major finding), and the version that carries the **first real update from the app** (1.35 → 1.36).

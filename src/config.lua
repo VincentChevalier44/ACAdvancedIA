@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.36',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
+local M={version=3,release='Beta 1.37',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -7,11 +7,11 @@ M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPe
 -- journée circuit ; la cession ordinaire est sans objet en course, les drapeaux bleus par tours hors course.
 -- Les options physiques globales restent désactivées.
 local presetSections={
- Nordschleife={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,traffic=true},
- Qualifications={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true},
+ Nordschleife={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,traffic=true,lights=true},
+ Qualifications={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,lights=true},
  -- Essais : mêmes onglets que les qualifications, sessions d'essais seules ou de week-end.
- Essais={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true},
- Course={general=true,blue=true,flash=true,overtake=true,lateral=true,human=true,start=true,accidents=true,rules=true,endurance=true,weather=true}}
+ Essais={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,lights=true},
+ Course={general=true,blue=true,flash=true,overtake=true,lateral=true,human=true,start=true,accidents=true,rules=true,endurance=true,weather=true,lights=true}}
 -- Valeurs propres à un préréglage, au-delà des valeurs par défaut du profil. Multi-classes partout : sans écart
 -- d'allure d'au moins classGapPct, une grille d'une seule classe reste une seule classe.
 local presetValues={
@@ -253,6 +253,18 @@ newKeys.open=true
 b('weather','weatherMessage','Message à l’écran au changement de météo',true,true,true)
 newKeys.open=nil
 n('weather','rainGripBoostPct','Compensation pluie sans pneu pluie (%)',0,30,15,15,15)
+-- Panneaux lumineux du circuit (Beta 1.37, section propre, demande du pilote) : couleurs envoyées aux panneaux (le jaune
+-- toujours), durée du vert, tenue avant une couleur moins importante. Les défauts redonnent la Beta 1.36 à l'identique.
+newKeys.open=true
+b('lights','lightsYellow','Jaune · drapeau jaune, voiture de sécurité, VSC, FCY',true,true,true)
+b('lights','lightsRed','Rouge · drapeau rouge',true,true,true)
+b('lights','lightsBlue','Bleu · drapeau bleu vers vous',true,true,true)
+b('lights','lightsWhite','Blanc · véhicule très lent devant',true,true,true)
+b('lights','lightsOrange','Orange · piste glissante',true,true,true)
+b('lights','lightsGreen','Vert · fin de zone, de neutralisation et relance',true,true,true)
+n('lights','lightsGreenTime','Durée du vert (s)',0,15,5,5,5)
+n('lights','lightsHold','Délai avant une couleur moins importante (s)',0.5,5,1.5,1.5,1.5)
+newKeys.open=nil
 n('traffic','trafficGapSeconds','Intervalle de base (s)',0.5,5,2.5,2.5,2.5)
 n('traffic','trafficDensityGain','Distance ajoutée par IA (m)',0.5,5,2.8,2.8,2.8)
 n('traffic','trafficVariation','Variation des espacements (%)',0,50,45,45,45)
@@ -332,18 +344,20 @@ function M.defaults(profile)
  for _,group in ipairs(M.sections) do r['section_'..group]=false end
  -- Hotlap : onglet Règles seul coché (règles de base) ; drapeaux, panneau et bip du DRS, aucune IA à piloter.
  if profile=='H' then r.section_rules=true end
+ -- Panneaux lumineux (Beta 1.37) : cochés dans chaque profil.
+ r.section_lights=true
  return r
 end
 -- Onglets différents du défaut du profil (Hotlap : onglet Règles coché par défaut).
 function M.sectionsChanged(profile,p)
  for _,group in ipairs(M.sections) do
   local key=sectionKeys[group]
-  if (p[key]==true)~=(profile=='H' and group=='rules') then return true end
+  if (p[key]==true)~=(profile=='H' and group=='rules' or group=='lights') then return true end
  end
  return false
 end
 function M.anySection(p)
- for _,group in ipairs(M.sections) do if p[sectionKeys[group]]==true then return true end end
+ for _,group in ipairs(M.sections) do if group~='lights' and p[sectionKeys[group]]==true then return true end end
  return false
 end
 local function choice(v,list) for _,x in ipairs(list) do if x==v then return true end end return false end
@@ -372,6 +386,8 @@ function M.validate(profile,input,out)
  end
  for _,group in ipairs(M.sections) do
   local active=(input.schemaVersion==M.version or input.schemaVersion==2 or newer) and input[sectionKeys[group]]==true
+  -- Panneaux lumineux (Beta 1.37) : section absente d'un enregistrement plus ancien, cochée comme son défaut.
+  if group=='lights' and input[sectionKeys[group]]==nil then active=true end
   if group=='weather' and input.schemaVersion==2 then active=input.section_endurance==true and input.weatherAdaptation==true end
   out[sectionKeys[group]]=active
  end
@@ -382,6 +398,8 @@ function M.validate(profile,input,out)
  local _,valid=M.patterns(input.classPatterns); out.classPatterns=valid and input.classPatterns or ''
  if not valid then errors=errors+1 end
  for key in pairs(M.integerKeys) do out[key]=math.floor(out[key]+0.5) end
+ -- Jaune des panneaux : signal de base, toujours envoyé.
+ out.lightsYellow=true
  out.schemaVersion=newer and input.schemaVersion or M.version
  -- Migration : un profil ayant déjà une section active est considéré comme réglé.
  out.configured=input.configured==true or M.sectionsChanged(profile,out)
@@ -422,7 +440,7 @@ function M.preset(name,profile,out)
 end
 function M.on(p,group) return p[sectionKeys[group]]==true end
 function M.any(p)
- for _,group in ipairs(M.sections) do if group~='globals' and M.on(p,group) then return true end end
+ for _,group in ipairs(M.sections) do if group~='globals' and group~='lights' and M.on(p,group) then return true end end
  return false
 end
 -- Les valeurs sauvegardées restent intactes ; seules les sections cochées sont appliquées.
@@ -500,7 +518,7 @@ function M.legacyMatch(profile,p)
   for _,group in ipairs(M.sections) do
    if not same then break end
    local expected=legacyGroups[group]==true and (sections[group]==true or endurance and group=='endurance')
-   if p['section_'..group]~=expected then same=false end
+   if group~='lights' and p['section_'..group]~=expected then same=false end
   end
   if same then return name end
  end
@@ -518,7 +536,7 @@ function M.upgradeObstacles(p) if p.section_start==true and not p.section_accide
 -- profils qui portaient exactement les anciennes règles GT changent. Renvoie la liste des changements faits.
 -- Clés de règles apparues après les révisions qui jugent un jeu de règles : ignorées par ces révisions.
 local keys18={safetyCarEscalation=true}
-M.dataRevision=17
+M.dataRevision=18
 function M.migrateProfile(profile,p,from,preset,out)
  out=out or {}
  if from<5 then
@@ -621,6 +639,10 @@ function M.migrate(g,profiles)
  if restored then g.offsetSign=-1; g.sideSign=-1 end
  -- Révision 15 (Beta 1.26, demande du pilote) : messages d'origine d'AC masqués par défaut, repris sur l'overlay.
  if g.dataRevision<15 then g.overlayBlockMessages=true end
+ -- Révision 18 (Beta 1.37) : l'option globale des panneaux lumineux (Beta 1.32 à 1.36) devient la section propre de
+ -- chaque profil ; l'option décochée par le pilote décoche la section partout (choix gardé). La clé globale n'est plus
+ -- lue qu'ici.
+ if g.dataRevision<18 and g.trackLights==false then for _,profile in ipairs(M.profiles) do profiles[profile].section_lights=false end end
  g.dataRevision=M.dataRevision
  return upgraded,fresh,restored
 end

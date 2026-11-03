@@ -58,7 +58,7 @@ local function port(o)
   local function done() cb(o.stageErr) end
   if p.holdStage then p.staged=done else done() end
  end
- function p.snapshot(source) log('snapshot'); p.snapSource=source; if o.snapshotFails then return false,'src/ui.lua' end; versions.current=o.installed or 'Beta 1.33'; return true end
+ function p.snapshot(source) log('snapshot'); p.snapSource=source; if o.snapshotFails then return false,'src/ui.lua' end; versions.current=o.installed or 'Beta 1.33'; return true,nil,{saved=2,ms=1} end
  function p.place(name)
   log('place '..name)
   if (o.placeFails or {})[name] then return false,o.placeFails[name] end
@@ -172,7 +172,7 @@ tests.UPDATE_INSTALL_ORDER=function()
  assert(p.snapSource=='next' and p.names and #p.names==#Up.required,'snapshot of the files the copy replaces')
  assert(u.phase=='restarting' and u.after=='update' and p.marked==nil and Up.view(u,true)=='done')
  local log=events(u)
- for _,line in ipairs({'telechargement de la Beta 1.34','Beta 1.34 prete, empreinte et contenu verifies','Beta 1.34 installee (5 fichiers compares, 3 copies en 2 ms), commandes des IA rendues a AC'}) do assert(log:find(line,1,true),line) end
+ for _,line in ipairs({'telechargement de la Beta 1.34','Beta 1.34 prete, empreinte et contenu verifies','Beta 1.34 installee (5 fichiers compares, 3 copies en 2 ms ; 2 fichiers gardes en 1 ms), commandes des IA rendues a AC'}) do assert(log:find(line,1,true),line) end
  -- Version de départ lue dans le manifeste installé (pas seulement celle du module).
  u,p=ready({installed='Beta 1.33.1'}); Up.install(u,p,true); Up.tick(u,p,true,1); assert(find(p.calls,'mark update Beta 1.33.1 -> Beta 1.34'))
 end
@@ -585,5 +585,86 @@ tests.UPDATE_RECOVER_BOOT_136=function()
  r=Up.recover(p); assert(r.outcome=='completed' and r.restart and p.boots and p.boots[1]=='Beta 1.34' and p.boots[2]==0,'completed: watched from its first start')
  p=port({marked='rollback Beta 1.34 -> Beta 1.33',installed='Beta 1.33',boot={'Beta 1.34',1,'Beta 1.33'}})
  r=Up.recover(p); assert(r.outcome=='finished' and p.boots==nil,'rollback finished: watch cleared')
+end
+-- Beta 1.37 : état réel du disque du pilote après la mise à jour 1.35 -> 1.36 (version précédente gardée, paquet extrait
+-- jamais effacé, boot.txt.bak) : nettoyé au lancement suivant ; la version précédente reste entière.
+tests.UPDATE_TIDY_USER_STATE_137=function()
+ local f=Fake.install({})
+ local ok,err=pcall(function()
+  f.app('Beta 1.36')
+  local W=f.work
+  local back={'ACAdvancedIA.lua','manifest.ini','src/update.lua'}
+  for _,rel in ipairs(back) do f.files[W..'/backup/'..rel]=rel=='manifest.ini' and 'VERSION=Beta 1.35' or 'old '..rel end
+  f.files[W..'/backup/.files']=table.concat(back,'\n')
+  local nxt=W..'/next/'..Fake.prefix
+  for _,rel in ipairs({'ACAdvancedIA.lua','manifest.ini','src/update.lua','src/remote.lua','src/ui.lua'}) do f.files[nxt..rel]='new '..rel end
+  f.files[nxt..'.files']='ACAdvancedIA.lua\nmanifest.ini\nsrc/update.lua\nsrc/remote.lua\nsrc/ui.lua'
+  f.files[W..'/boot.txt.bak']='Beta 1.36\n0\nBeta 1.35'
+  local p=Remote.new(function() end)
+  local u=Up.new('Beta 1.36'); Up.start(u,p,Up.recover(p))
+  for path in pairs(f.files) do assert(not path:find(W..'/next',1,true) and path~=W..'/boot.txt.bak','left: '..path) end
+  for path in pairs(f.dirs) do assert(not path:find(W..'/next',1,true),'folder left: '..path) end
+  for _,rel in ipairs(back) do assert(f.files[W..'/backup/'..rel],'previous version kept: '..rel) end
+  assert(u.previous=='Beta 1.35','rollback still offered')
+  assert(events(u):find('mise a jour: nettoyage (7 fichiers)',1,true),events(u))
+  local u2=Up.new('Beta 1.36'); Up.start(u2,p,Up.recover(p)); assert(not events(u2):find('nettoyage',1,true),'nothing left to clean')
+  -- Démarrage surveillé ou repère en cours : rien n'est effacé.
+  f.files[W..'/next/x']='x'; f.files[W..'/boot.txt']='Beta 1.36\n1\nBeta 1.35'
+  assert(Up.tidy(Up.new('Beta 1.36'),p)==0 and f.files[W..'/next/x'],'boot watched: nothing removed')
+  f.files[W..'/boot.txt']=nil; f.files[W..'/installing.txt']='update Beta 1.35 -> Beta 1.36'
+  assert(Up.tidy(Up.new('Beta 1.36'),p)==0 and f.files[W..'/next/x'],'marker pending: nothing removed')
+  -- Version précédente incomplète : la copie current/ peut en être la seule trace, gardée ; complète : effacée.
+  f.files[W..'/installing.txt']=nil; f.files[W..'/current/a.lua']='a'; f.files[W..'/current/.files']='a.lua'
+  local kept=f.files[W..'/backup/src/update.lua']; f.files[W..'/backup/src/update.lua']=nil
+  Up.tidy(Up.new('Beta 1.36'),p); assert(f.files[W..'/current/a.lua'] and not f.files[W..'/next/x'],'backup incomplete: current kept, next removed')
+  f.files[W..'/backup/src/update.lua']=kept
+  Up.tidy(Up.new('Beta 1.36'),p); assert(not f.files[W..'/current/a.lua'] and f.files[W..'/backup/src/update.lua'],'backup complete: current removed')
+ end)
+ f.restore(); assert(ok,err)
+end
+-- Beta 1.37 : mises à jour successives par le vrai port : rien d'autre que la version précédente ne reste ; aucun .bak,
+-- même juste après le lancement qui compte le démarrage (boot.txt réécrit).
+tests.UPDATE_NO_LEFTOVERS_137=function()
+ local f=Fake.install({})
+ local ok,err=pcall(function()
+  f.app('Beta 1.34')
+  for round,v in ipairs({'Beta 1.35','Beta 1.36','Beta 1.37'}) do
+   f.release(v)
+   local installed=Up.manifestVersion(f.files[f.root..'/manifest.ini'])
+   local p=Remote.new(function() end)
+   local u=Up.new(installed); Up.start(u,p,Up.recover(p)); p.bootOk(); Up.tidy(u,p)
+   Up.check(u,p,0); f.flush(); f.watch(); assert(Up.install(u,p,true)); f.flush(); Up.tick(u,p,true,10)
+   assert(u.phase=='restarting','round '..round..': '..tostring(u.phase)..' '..tostring(u.detail))
+   local p2=Remote.new(function() end); local u2=Up.new(v); Up.start(u2,p2,Up.recover(p2))
+   assert(f.files[f.work..'/boot.txt'] and not f.files[f.work..'/boot.txt.bak'],'round '..round..': boot counted, no .bak')
+   p2.bootOk(); Up.tidy(u2,p2)
+   for path in pairs(f.files) do
+    if path:sub(1,#f.work)==f.work then
+     local rest=path:sub(#f.work+2)
+     assert(rest:sub(1,7)=='backup/' and not rest:find('%.bak$') and not rest:find('%.new$'),'round '..round..' left: '..rest)
+    end
+   end
+   for path in pairs(f.dirs) do assert(not path:find('/next',1,true) and not path:find('/current',1,true) and not path:find('backup.old',1,true),'round '..round..' folder left: '..path) end
+  end
+ end)
+ f.restore(); assert(ok,err)
+end
+-- Beta 1.37 : la copie de la version installée ne garde que les fichiers que la mise à jour remplace (le manifeste
+-- toujours) ; les fichiers identiques ne sont ni copiés ni gardés.
+tests.UPDATE_SNAPSHOT_CHANGED_137=function()
+ local f=Fake.install({})
+ local ok,err=pcall(function()
+  f.app('Beta 1.36'); f.release('Beta 1.37')
+  local p=Remote.new(function() end); local u=Up.new('Beta 1.36'); Up.start(u,p,Up.recover(p))
+  Up.check(u,p,0); f.flush(); f.watch(); assert(Up.install(u,p,true)); f.flush()
+  local before=#f.calls; Up.tick(u,p,true,10); assert(u.phase=='restarting',tostring(u.phase))
+  local saved={}
+  for k=before+1,#f.calls do local rel=f.calls[k]:match('^copy state:ACAdvancedIA%-update/current/(.*)$'); if rel then saved[#saved+1]=rel end end
+  table.sort(saved)
+  assert(table.concat(saved,',')=='ACAdvancedIA.lua,manifest.ini,src/remote.lua,src/ui.lua,src/update.lua',table.concat(saved,','))
+  assert(f.files[f.work..'/backup/sounds/beep.wav']==nil and f.files[f.work..'/backup/ACAdvancedIA.lua']=='main Beta 1.36','unchanged file not kept')
+  assert(events(u):find('5 fichiers gardes',1,true),events(u))
+ end)
+ f.restore(); assert(ok,err)
 end
 return tests

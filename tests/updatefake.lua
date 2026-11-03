@@ -14,6 +14,8 @@
 -- ni effacés, ni remplacés), source illisible (f.unreadable[chemin] : copie refusée ; f.locked : ouvert en lecture par
 -- l'app, copiable mais jamais remplacé), suppression refusée
 -- (f.failDelete, motif du chemin).
+-- Beta 1.37 : io.save(…, true) sur un fichier existant garde l'ancien contenu en <fichier>.bak, comme io.replaceFile de
+-- CSP (ReplaceFileW avec copie de sauvegarde), vu sur le disque du pilote (boot.txt.bak après la mise à jour 1.35 -> 1.36).
 -- Beta 1.36 : dossiers gardés une fois vides (f.dirs), comme sous Windows : créés par createDir/createFileDir ou par
 -- l'écriture d'un fichier, effacés seulement par io.deleteDir (vides) ; un dossier déplacé d'un bloc refuse une
 -- destination qui existe déjà, même vide.
@@ -83,12 +85,13 @@ function M.install(o)
  for _,name in ipairs({'load','save','fileExists','deleteFile','copyFile','move','createDir','createFileDir','scanDir','scanZip','loadFromZip','extractFromZipAsync','deleteDir','dirExists'}) do keep(io,name) end
  local orig={}; for _,s in ipairs(f.saved) do if s[1]==io then orig[s[2]]=s[3] end end
  io.load=function(path,...) if under(path) then return f.files[path] end; return orig.load(path,...) end
- io.save=function(path,data,...)
+ io.save=function(path,data,ensure,...)
   if under(path) then
    if f.failSave and path:find(f.failSave,1,true) or f.readonly[path] then return false end
+   if ensure==true and f.files[path]~=nil then f.files[path..'.bak']=f.files[path]; log('bak '..rel(path)) end
    touched(path); parents(path); f.files[path]=data; log('save '..rel(path)); return true
   end
-  return orig.save(path,data,...)
+  return orig.save(path,data,ensure,...)
  end
  io.fileExists=function(path) if under(path) then return f.files[path]~=nil end; return orig.fileExists(path) end
  io.deleteFile=function(path)

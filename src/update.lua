@@ -16,6 +16,8 @@
 -- et son résultat {outcome, kind, from, to, file, failed, restart}, Remote.new(onRelease), port.ready, port.work,
 -- port.restart, port.log, port.bootOk. Ne jamais changer ces noms ni leur sens.
 -- Événements du journal (u.events) : textes prêts, versés au journal de session par le script principal.
+-- Beta 1.37 : dossier de travail nettoyé (M.tidy) au lancement sans repère ni démarrage surveillé, et dès qu'une version
+-- tout juste installée a démarré (port.bootOk, puis M.tidy) : aucun reste après une mise à jour réussie.
 local M={}
 M.repo='VincentChevalier44/ACAdvancedIA'
 M.api='https://api.github.com/repos/'..M.repo..'/releases/latest'
@@ -324,6 +326,17 @@ function M.start(u,port,recovered)
   event(u,'INFO',kind=='update' and 'mise a jour reussie: '..from..' -> '..to or kind=='rollback' and 'retour arriere termine'..(auto and ' (automatique)' or '')..': '..from..' -> '..to
    or 'installation interrompue rattrapee: '..from..' remise en place, '..to..' a refaire')
  end
+ M.tidy(u,port)
+end
+-- Nettoyage du dossier de travail (Beta 1.37) : seulement sans repère (aucune copie à reprendre) ni démarrage surveillé
+-- (version précédente encore utile au retour automatique), jamais pendant une opération ni avec un paquet extrait gardé
+-- pour un nouveau clic ; noté au journal s'il a effacé quelque chose.
+function M.tidy(u,port)
+ if M.busy(u) or u.release and u.release.staged then return 0 end
+ if not port.ready or type(port.tidy)~='function' or port.marker() or port.boot() then return 0 end
+ local n=port.tidy() or 0
+ if n>0 then event(u,'INFO',string.format('mise a jour: nettoyage (%d fichiers)',n)) end
+ return n
 end
 -- Réponse encore attendue : aucune annulation ni nouvelle opération depuis la demande (jeton u.gen).
 local function live(u,gen) return u.gen==gen end
@@ -358,7 +371,7 @@ local function place(u,port,kind,to,now)
  u.phase='saving'
  -- Version de départ lue dans le manifeste installé (celle que la reprise retrouvera).
  local from=port.installedVersion() or u.installed
- local saved,missing=port.snapshot(targets[kind])
+ local saved,missing,kept=port.snapshot(targets[kind])
  if not saved then fail(u,'write',0,'sauvegarde : '..tostring(missing),true); return end
  u.phase='placing'
  local mark=kind..' '..from..' -> '..to
@@ -378,8 +391,8 @@ local function place(u,port,kind,to,now)
  if not port.report(mark) then event(u,'WARN','mise a jour: compte rendu non ecrit') end
  if kind=='update' then port.bootSet(to,from,0) else port.bootClear() end
  u.phase='restarting'; u.after=kind; u.restartAt=now; u.serial=u.serial+1
- event(u,'INFO',string.format('mise a jour: %s%s (%d fichiers compares, %d copies en %.0f ms), commandes des IA rendues a AC et redemarrage de l app',
-  to,kind=='update' and ' installee' or ' retablie',stats and stats.compared or 0,stats and stats.copied or 0,stats and stats.ms or 0))
+ event(u,'INFO',string.format('mise a jour: %s%s (%d fichiers compares, %d copies en %.0f ms ; %d fichiers gardes en %.0f ms), commandes des IA rendues a AC et redemarrage de l app',
+  to,kind=='update' and ' installee' or ' retablie',stats and stats.compared or 0,stats and stats.copied or 0,stats and stats.ms or 0,kept and kept.saved or 0,kept and kept.ms or 0))
  port.restart()
 end
 -- Installation (un clic, à l'arrêt) : paquet déjà extrait et intact repris tel quel ; sinon téléchargement, contrôles et

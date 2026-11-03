@@ -36,6 +36,9 @@ M.sections={
   {'endClasses',{'multiClass','classGapPct','classYieldMargin'}}},
  weather={{'weatherRain',{'weatherAdaptation','weatherTyresEnabled','rainGripBoostPct'}},
   {'weatherMessages',{'weatherMessage'}}},
+ -- Panneaux lumineux (Beta 1.37) : l'état du circuit est dessiné à part, en tête de la section.
+ lights={{'lightsColours',{'lightsYellow','lightsRed','lightsBlue','lightsWhite','lightsOrange','lightsGreen'}},
+  {'lightsDurations',{'lightsGreenTime','lightsHold'}}},
  -- Règles de course. Étape B (Beta 1.34) : relance après drapeau rouge (redRestart) et dépassement après la relance.
  rules_all={{'rulesCommon',{'noMoveBraking','neutralization','majorIncidentTime','neutralizationHold'}},
   {'rulesNeutral',{'fcyDeltaPct','fcySpeedKmh','vscDeltaPct'}},

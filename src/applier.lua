@@ -453,11 +453,12 @@ end
 -- Drapeau natif libre : aucun, ou le drapeau de départ d'AC, qu'AC peut tenir longtemps (toute la session en hotlap) ;
 -- en 1.32, seul « aucun » l'était et un départ tenu bloquait les panneaux toute la course sans rien dire.
 local function nativeFree(f) return f==K.flagNone or f==K.flagStart end
-function M.flag(a,frame,wanted,reason,now)
+function M.flag(a,frame,wanted,reason,now,hold)
  if not a.allowed or frame.online or frame.replay or frame.paused then return end
  local value=wanted==true and K.flagCaution or type(wanted)=='number' and wanted or K.flagNone
  local lights=reason~=nil and reason~=''
- local held=now==nil or now-a.flagAt>=K.lightsHold
+ -- Tenue réglée dans la section Panneaux lumineux (Beta 1.37) ; K.lightsHold sans réglage.
+ local held=now==nil or now-a.flagAt>=(hold or K.lightsHold)
  local cap=a.caps.flag
  if value==K.flagStop and lights and not redHidden(a,now) then value=K.flagCaution end
  if value==K.flagNone then a.flagBlocked=nil end
