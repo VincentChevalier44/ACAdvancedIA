@@ -5128,7 +5128,7 @@ tests.LIGHTS_DECIDE_132=function()
  local v,r=at({playerYellow=true,neutral=true}); assert(v==K.flagCaution and r=='voiture de securite','safety car: yellow')
  v,r=at({neutral=false}); assert(v==K.flagCaution and r=='drapeau jaune','yellow zone')
  assert(at({red=true})==K.flagStop,'red above everything')
- assert(Lights.output(l,t,true,true)==K.flagStop and Lights.output(l,t,true,false)==K.flagCaution and Lights.output(l,t,true,nil)==K.flagCaution,'red only with the AC flags hidden')
+ assert(Lights.output(l,t,true)==K.flagStop,'red passed through: the applier reads the CSP setting when writing')
  t.playerFlag=false; assert(Lights.output(l,t,false,true)==K.flagNone,'option off: nothing'); t.playerFlag=true; assert(Lights.output(l,t,false,true)==K.flagCaution,'option off: HUD preference kept')
  at({red=false,playerYellow=false,slipperyUntil=-math.huge,greenUntil=-math.huge}); l.slowSlot=0
  f.sessionLaps=5; f.timedRace=false; f.cars[1].lap=4; l.slowSlot=2
@@ -5243,9 +5243,12 @@ tests.GRID_STANDING_START_134=function()
  -- Faux départ : le joueur avance de 2 m avant l'extinction.
  F.place(f,1,slotZ(3)+2,4); F.tick(e,f,1/60); assert(g.jump,'jump detected')
  F.place(f,1,slotZ(3)+2,0)
+ -- Règle de la reprise posée comme par la relance (dépassement interdit jusqu'à la ligne) : levée à l'extinction.
+ t.restart=true; t.restartSince=e.time; for i=1,5 do t.cars[i].restart=true; t.cars[i].restartLast=f.cars[i].spline end
  local count=e.penalties.count
  for _=1,400 do if t.standing=='go' then break end; F.tick(e,f,1/60) end
  assert(t.standing=='go' and t.greenUntil>e.time and not e.commands[2].stopHold,'lights out: holds released, green')
+ assert(not t.restart and not t.cars[2].restart and not t.playerRestart,'standing start: overtaking allowed from the lights out')
  F.tick(e,f,0.3)
  assert(e.penalties.count==count and e.jumpDue,'jump start: not served on the grid')
  f.cars[1].lap=f.cars[1].lap+1; F.place(f,1,K.jumpServeDistance+20,120); F.tick(e,f,0.3)
@@ -5586,7 +5589,11 @@ tests.GRID_PLAYER_SLOT_TEXT_135=function()
  assert(t.gridSlot==1 and t.gridGap==15 and not t.gridPlaced and not t.gridPassed,'metres below 20 m')
  F.place(f,1,slotZ(1)-120,20); F.tick(e,f,1/60); assert(t.gridGap==120,'rounded to 10 m beyond')
  F.place(f,1,slotZ(1),0); F.tick(e,f,1/60); assert(t.gridPlaced,'in position')
- F.place(f,1,slotZ(1)+12,0); F.tick(e,f,1/60); assert(t.gridPassed and not t.gridPlaced and t.gridGap==0,'slot passed')
+ F.place(f,1,slotZ(1)+12,0); F.tick(e,f,1/60); assert(t.gridPassed and not t.gridPlaced and t.gridGap==12,'slot passed, metres behind')
+ -- Beta 1.36 : au-delà de K.gridOvershoot m, toujours « place dépassée » avec la distance en arrière, jamais presque un tour.
+ F.place(f,1,slotZ(1)+60,0); F.tick(e,f,1/60); assert(t.gridPassed and t.gridGap==60,'60 m past the slot: passed, 60 m')
+ F.place(f,1,slotZ(1)+K.gridPassedShow+200,80); F.tick(e,f,1/60); assert(not t.gridPassed and t.gridGap>f.length*0.5,'far past: slot ahead again (next lap)')
+ F.place(f,1,slotZ(1)+12,0); F.tick(e,f,1/60)
  e.panel.at=-math.huge; require('src/panel').update(e.panel,t,f,e.run,'C',e.time,e.lights); assert(e.panel.slotPassed,'passed cue for the overlay')
  local e2,f2=standingScene(2); f2.cars[1].pit=true; F.place(f2,2,slotZ(1),0); F.tick(e2,f2,0.2); e2.incidents.standing='grid'; F.tick(e2,f2,1/60)
  f2.cars[1].pit=false; F.place(f2,1,-300,40); F.tick(e2,f2,1/60)
@@ -5668,5 +5675,46 @@ tests.AI_NO_SANCTION_DURING_FORMATION_135=function()
  end
  local t=Pe.new(); step(t,0,20,'grid'); assert(not step(t,30,20,'grid') and not t.ai.count[2],'formation: passing to reach the slot, no sanction')
  local t2=Pe.new(); step(t2,0,20,'none'); assert(step(t2,30,20,'none'),'restart regime outside the formation: sanctioned')
+end
+-- Beta 1.36 (3e relecture) : faux départ jamais sanctionné à l'arrêt sur la grille, même après un calage de 30 s.
+tests.GRID_JUMP_STALL_136=function()
+ local K=C.K
+ local e,f=standingScene(3); F.place(f,1,slotZ(1),0); F.place(f,2,slotZ(2),0); F.place(f,3,slotZ(3),0); F.tick(e,f,0.2)
+ local count=e.penalties.count
+ e.jumpDue=true; e.jumpGoAt=e.time; e.jumpLap=f.cars[1].lap or 0
+ F.tick(e,f,K.jumpServeMax+1)
+ assert(e.jumpDue and e.penalties.count==count,'stalled on the grid: never served while stationary')
+ F.place(f,1,slotZ(1)+8,20); F.tick(e,f,0.3)
+ assert(not e.jumpDue and e.penalties.count==count+1 and e.penalties.reason=='jump','served once the player moves off')
+end
+-- Beta 1.36 : rouge et neutralisation avant la pénalité du joueur ; disqualification seule rend le drapeau à AC.
+tests.LIGHTS_PRIORITY_136=function()
+ local K=C.K; local Lights=require('src/lights')
+ local e,f=F.scene('C',3); F.tick(e,f,0.2)
+ local l=e.lights; local t=e.incidents
+ t.red=false; t.neutral=true; t.neutralMode='sc'; t.playerYellow=true; l.playerPenalty=true; l.playerDisqualified=false
+ local v,r=Lights.decide(l,t,f,e.run,'C',e.time); assert(v==K.flagCaution and r=='voiture de securite','safety car above the app penalty')
+ t.neutral=false; assert(Lights.decide(l,t,f,e.run,'C',e.time)==K.flagNone,'local yellow: AC penalty kept')
+ t.red=true; assert(Lights.decide(l,t,f,e.run,'C',e.time)==K.flagStop,'red above the app penalty')
+ l.playerDisqualified=true; assert(Lights.decide(l,t,f,e.run,'C',e.time)==K.flagNone,'disqualified: AC black flag, even under red')
+ t.red=false; t.playerYellow=false
+ -- Engine : drapeau noir d'AC (4) = disqualification ; coupure des gaz (3) = pénalité seulement.
+ f.cars[1].penaltyType=3; F.tick(e,f,0.3); assert(e.lights.playerPenalty and not e.lights.playerDisqualified,'slow-down penalty: not a disqualification')
+ f.cars[1].penaltyType=K.penaltyBlackFlag; F.tick(e,f,0.3); assert(e.lights.playerDisqualified,'black flag: disqualified')
+ f.cars[1].penaltyType=0; F.tick(e,f,0.3); assert(not e.lights.playerDisqualified and not e.lights.playerPenalty,'lifted')
+end
+-- Beta 1.36 : à l'extinction, colonne seulement pour les IA retenues près de leur place (jamais pour une voiture lâchée
+-- par le délai maximal loin de sa place).
+tests.GRID_RELEASE_COLUMN_136=function()
+ local K=C.K
+ local e,f=standingScene(4); F.place(f,1,slotZ(1),0); F.place(f,2,slotZ(2),0); F.place(f,3,slotZ(3),0); F.place(f,4,-900,60)
+ F.tick(e,f,0.2); e.incidents.standing='grid'; F.tick(e,f,0.2)
+ local g=e.grid; local k4=g.slotOf[4]; assert(k4 and k4>0,'car 4 has a slot')
+ local lat=g.slots[k4].lateral; local o4=e.g.offsetSign<0 and -lat or lat
+ local s4=e.states[4]
+ g.since=e.time-K.gridMax-1
+ for _=1,900 do if e.incidents.standing=='go' then break end; F.place(f,4,-900,60); s4.offset=0.123; s4.filtered=0.123; F.tick(e,f,1/60) end
+ assert(e.incidents.standing=='go','lights out after the timeout')
+ assert(math.abs(s4.filtered-0.123)<0.05 and math.abs(o4-0.123)>0.1,'far car: no lateral jump to its column')
 end
 return tests

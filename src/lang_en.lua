@@ -223,7 +223,7 @@ return {
  
  -- Racing 26 redesign (Beta 1.35): header, home, grouped settings, rules, diagnostics, overlay.
  appLabel='APP',profileLabel='Profile',noSession='No session',headerCars='%d AI cars driven',headerNoCars='No AI driven',
- pillStates={ready='ACTIVE · ',paused='PAUSED · ',suspended='SUSPENDED',disabled='APP OFF',panic='PANIC',online='ONLINE',init='WAITING',native='NATIVE AI'},
+ pillStates={ready='ACTIVE · ',noai='NO AI · ',paused='PAUSED · ',suspended='SUSPENDED',disabled='APP OFF',panic='PANIC',online='ONLINE',init='WAITING',native='NATIVE AI'},
  banners={disabled={'App off','The AI drive with the native Assetto Corsa behaviour. Settings can still be changed.','Enable'},
   panic={'Panic','Commands stopped: the AI are handed back to the game. Nothing is applied until you resume.','Resume'},
   online={'Online','Online session: commands suspended. Settings apply to offline sessions.'},
@@ -297,5 +297,5 @@ return {
  calibrationShort={waiting='Waiting',running='Measuring',ready='Confirmed',waiting_reset='Postponed',inconclusive='Inconclusive',aborted='Aborted'},
  capShort={present='Ready',missing='Missing',ready='OK',failures='Cut'},capsCount='%d / %d',apiCount='%d functions',
  carsNote='%d · hover: reason',perfScope='AI loop, drawing excluded',perfLabels={'Mean','Maximum','Engine · API errors','Rejected data'},
- placeLabel='To %s',placeMeters='%d m',gridPlaced='IN POSITION',gridPassed='SLOT PASSED',
+ placeLabel='To %s',placeMeters='%d m',gridPlaced='IN POSITION',gridPassed='SLOT PASSED',gridPassedBy='SLOT PASSED · %d m',
 }

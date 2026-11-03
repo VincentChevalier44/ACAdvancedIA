@@ -1712,7 +1712,10 @@ return function(source)
    -- Beta 1.35 : lancement suivant (la version installée) : démarrage compté, puis confirmé à la première image.
    HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
    assert(loadstring(source))(); assert(files[WORK..'boot.txt']==ver(1)..'\n1\n'..ver(0),'boot counted at load')
-   H.tick(HOST,0.1); assert(files[WORK..'boot.txt']==nil,'boot confirmed at the first frame')
+   -- Beta 1.36 : confirmé seulement une fois l'interface (ici l'overlay) dessinée sans erreur.
+   H.tick(HOST,0.3); assert(files[WORK..'boot.txt']~=nil,'engine alone: not confirmed yet')
+   for _=1,3 do script.HUMANAI__HUD() end
+   H.tick(HOST,0.1); assert(files[WORK..'boot.txt']==nil,'boot confirmed once the engine and the overlay ran')
   end)
  end)
  check('Beta 1.33 : mise à jour refusée en conduite, information de l overlay aux stands une fois par lancement',function()
@@ -1927,7 +1930,8 @@ return function(source)
   panel.kind='standing'; panel.slotText='P4'; panel.slotDistance=7; panel.slotPlaced=false; panel.slotPassed=false
   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,string.format(L.placeMeters,7)),'exact metres below 20 m')
   panel.slotPlaced=true; HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.gridPlaced) and not has(HOST.panelTexts,string.format(L.placeMeters,7)),'in position')
-  panel.slotPlaced=false; panel.slotPassed=true; HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.gridPassed),'slot passed')
+  panel.slotPlaced=false; panel.slotPassed=true; HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,string.format(L.gridPassedBy,7)),'slot passed, metres behind')
+  panel.slotDistance=0; HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.gridPassed),'slot passed, no distance')
   HUMANAI.release()
  end)
  -- Beta 1.35 (relecture de l'interface) : sélecteur de profil jamais masqué (900 px, polices de secours, français),
@@ -2140,6 +2144,53 @@ return function(source)
    local serial=u.serial; press('update_rollback'); assert(u.phase=='downloading' and u.serial==serial,'greyed rollback does nothing')
    u.phase='current'; u.serial=u.serial+1
   end)
+ end)
+ -- Beta 1.36 (3e relecture).
+ check('Beta 1.36 : module de mise à jour illisible, app chargée sans mise à jour',function()
+  HUMANAI.release(); HOST=H.create(true)
+  local saved={}; for _,name in ipairs({'src/update','src/ui'}) do saved[name]=package.loaded[name]; package.loaded[name]=nil end
+  package.preload['src/update']=function() error('module abime') end
+  local ok,err=pcall(function()
+   assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+   for _,tab in ipairs({'home','settings','rules','diagnostic'}) do go(tab); redraw() end
+   HOST.transparent={}; script.HUMANAI__HUD(); assert(HOST.transparent.ACAdvancedIA_overlay,'overlay drawn')
+   local e=HUMANAI.engine; local found=false
+   for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; assert(not row.message:find('ui:',1,true),row.message); if row.message:find('mise a jour: module illisible',1,true) then found=true end end
+   assert(found,'unreadable updater logged')
+  end)
+  package.preload['src/update']=nil
+  HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
+  for name,mod in pairs(saved) do package.loaded[name]=mod end
+  assert(ok,err)
+ end)
+ check('Beta 1.36 : bouton de l onglet Règles après la réinitialisation d une section',function()
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  go('rules'); redraw()
+  section('general'); press('reset_general'); redraw()
+  local done=string.format(L.sectionResetDone,L.categories.general)
+  go('rules'); redraw()
+  assert(drawn('rules_reset') and not drawnText(done) and not drawnText(W.upper(done)),'rules button keeps its own label')
+ end)
+ check('Beta 1.36 : aucune puce de redémarrage après un retour arrière',function()
+  updated(function(F) F.files[WORK..'updated.txt']='rollback '..ver(1)..' -> '..ver(0) end,function()
+   local u=HUMANAI.updater
+   H.tick(HOST,0.5); halt(); go('home'); redraw()
+   assert(u.updated and u.updated.kind=='rollback' and Update.reported(u),'report read at launch')
+   assert(not drawnText(L.updateBusy.rolledback) and not drawnText(L.updateBusy.done),'no RESTARTING chip in the header')
+  end)
+ end)
+ check('Beta 1.36 : puce d état sans IA dans la session',function()
+  HUMANAI.release(); HOST=H.create(true)
+  HOST.sim.raceSessionType=3
+  for i=1,3 do HOST.cars[i].isAIControlled=false end
+  assert(loadstring(source))(); H.tick(HOST,0.5); local x=HUMANAI.engine; C.preset('Course','C',x.profiles.C); require('src/engine').changed(x); H.tick(HOST,0.3); HOST.sim.isInMainMenu=true; script.HUMANAI__MENU(); redraw()
+  local noai=W.upper(L.pillStates.noai); local found=false
+  for _,t in ipairs(HOST.drawnTexts) do if t:sub(1,#noai)==noai then found=true end end
+  assert(found,'NO AI chip, never ACTIVE')
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); H.tick(HOST,0.5); local x=HUMANAI.engine; C.preset('Course','C',x.profiles.C); require('src/engine').changed(x); H.tick(HOST,0.3); HOST.sim.isInMainMenu=true; script.HUMANAI__MENU(); redraw()
+  local ready=W.upper(L.pillStates.ready); found=false
+  for _,t in ipairs(HOST.drawnTexts) do if t:sub(1,#ready)==ready then found=true end end
+  assert(found,'ACTIVE chip with AI')
  end)
  return results
 end

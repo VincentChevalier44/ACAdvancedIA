@@ -1,5 +1,30 @@
 # Changelog
 
+## Beta 1.36 — 3 November 2026
+
+The fixes from the third adversarial review of Beta 1.35 (no blocker, no major finding), and the version that carries the **first real update from the app** (1.35 → 1.36).
+
+- **Standing start:**
+  - overtaking is allowed **from the lights out**, as at a real standing start (the "until the line" rule stays for rolling starts and Safety Car restarts), so the AI are no longer sanctioned for passing between the grid and the line;
+  - a jump-start penalty is never served while you are stopped on the grid, even after a stall: after 30 s it waits until you move off or cross the line;
+  - beyond 25 m past your slot, the overlay says **SLOT PASSED · 60 m** (up to 500 m behind) instead of almost a lap ahead;
+  - at the lights out, only the AI held near their slot start from its column; a car released far from its slot by the two-minute timeout, or a car in the pits, gets no sudden lateral step.
+- **Track light panels:** red and the neutralisations (VSC, FCY, Safety Car) now come before your own penalty, so the panels no longer go dark while the app cuts your throttle under the Safety Car. Only a disqualification hands the panels back to AC for the rest of the session. CSP's **Hide race flags** setting is read when red is written, so turning it on during a session takes effect at once.
+- **Update from the app:**
+  - if `src/update.lua` cannot be read, the app now loads without the updater (log: `mise a jour: module illisible`) instead of stopping;
+  - a freshly installed version is confirmed only once the engine **and** the window or the overlay have run without error, so a version whose interface fails on every frame is rolled back automatically at the next launch; an install finished by the launch-time recovery is watched the same way;
+  - no **RESTARTING** chip stays in the header after a roll back or a recovered install;
+  - empty folders are removed with their files, so the previous version is always kept by renaming its folder, never by the slower file-by-file copy, however many updates follow.
+- **Interface:**
+  - the Racing Rules reset button keeps its own label after a settings section was reset;
+  - the state chip says **NO AI · <profile>** when the session has no AI to drive, never **ACTIVE**;
+  - the overlay layout and position reuse their tables and points (Beta 1.35 still created about eight tables per frame there), and clip areas no longer create a table;
+  - the start lights follow the configured number of lights.
+- **Housekeeping:** a dead table removed from the journal; the slow-vehicle log timer follows the 24-hour clock wrap; README and API notes corrected (the backup copy happens at the final, stopped step; the file-watching pause is re-asserted before each changed file).
+- **Online:** the app drives nothing online; checking and installing an update while stopped at your pit box only replace files and restart the app, so they stay allowed.
+
+**Verification**: 444 checks; 113 integration cases; 1,052 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.35; 8-hour soak without errors (memory between 7.7 and 8.7 MB; memory and peak criteria still not met, as before), one hour of regulated racing at 0.24 ms on average; benchmark (median of five alternating runs) 30 AI 0.22 ms (Beta 1.35: 0.23), 60 AI 0.60 ms (Beta 1.35: 0.62).
+
 ## Beta 1.35 — 3 November 2026
 
 The **Racing 26** interface from Vincent's final mockup (*ACAdvancedIA — Refonte UI*), merged with Beta 1.34, a full review of the window and the overlay, and a safer update from the app.
@@ -14,7 +39,7 @@ The **Racing 26** interface from Vincent's final mockup (*ACAdvancedIA — Refon
 - **DIAGNOSTICS**: update block with all its states, the last headlight flash event (id / count) and the track light panels line again, capabilities on two columns, AI table, performance tiles, log level as a segment.
 - **Overlay**: cut-corner background, accent bar in the flag colour, letter badges (SC, VSC, RS, SS), the Beta 1.34 restart panels (rolling and standing start, five start lights, **GO**, **JUMP START**), and every text in the app fonts.
 - Switching language redraws every cached text (values, defaults, update messages) at once.
-- **Lighter drawing**: one font push per change of role instead of one per text, measured texts and control identifiers kept between frames, no table or point created per frame in the overlay, the rule set and preset signatures computed once per change. A drawing error now closes its fonts and clips in the same frame.
+- **Lighter drawing**: one font push per change of role instead of one per text, measured texts and control identifiers kept between frames, fewer tables and points created per frame in the overlay (none since Beta 1.36), the rule set and preset signatures computed once per change. A drawing error now closes its fonts and clips in the same frame.
 
 **Updating from the app, reworked**
 - Nothing is unpacked or staged in the app folder any more (CSP reloads an app whose files change): the package goes to CSP's state folder (`Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-update`), where the installed version is also copied before anything changes.

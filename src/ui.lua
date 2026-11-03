@@ -449,8 +449,8 @@ local function ruleBlock(v,e,x,y,w)
    v.closestEdits=v.edits; v.closestRevision=e.revision; v.closestTarget=target; v.closestName=C.closestRuleCategory(target,e.profiles[target],switchKeys)
   end
   local name=v.closestName
-  if v.resetFor~=name then v.resetFor=name; v.resetText=string.format(L.rulesResetTo,L.ruleNames[name]) end
-  if W.button('rules_reset',v.resetText,x+10,y,w-20,28,false,v.tips.ui.rulesReset,'outline') then
+  if v.rulesResetFor~=name then v.rulesResetFor=name; v.rulesResetText=string.format(L.rulesResetTo,L.ruleNames[name]) end
+  if W.button('rules_reset',v.rulesResetText,x+10,y,w-20,28,false,v.tips.ui.rulesReset,'outline') then
    C.applyRules(name,e.profiles); v.presetMessage=string.format(L.ruleApplied,L.ruleNames[name]); mark(v)
   end
  end
@@ -957,6 +957,16 @@ end
 -- Pause : commandes figées, état du moteur toujours valable (chiffres de l'accueil affichés) ; rediffusion, session
 -- finie, circuit sans spline, image anormale, accès refusé : commandes suspendues (ambre), jamais « actif ».
 local suspendedGuards={replay=true,finished=true,spline=true,dt=true,access=true}
+-- Voitures IA de la session (pilotables), comptées une fois par image du moteur.
+local aiEngine,aiFrame,aiValue=nil,-1,0
+local function aiCars(e)
+ if aiEngine~=e or aiFrame~=e.frames then
+  aiEngine=e; aiFrame=e.frames; aiValue=0
+  local frame=e.frame
+  if frame then for i=1,frame.count do local a=frame.cars[i]; if a.valid and a.control and not a.player then aiValue=aiValue+1 end end end
+ end
+ return aiValue
+end
 local function stateKey(e)
  if not e.g.enabled then return 'disabled' end
  if e.panic then return 'panic' end
@@ -965,11 +975,12 @@ local function stateKey(e)
  if e.guard=='nosections' then return 'native' end
  if e.guard=='paused' then return 'paused' end
  if suspendedGuards[e.guard] then return 'suspended' end
- return 'ready'
+ -- Beta 1.36 : moteur prêt mais aucune IA dans la session (seul en piste) : jamais « actif ».
+ return aiCars(e)>0 and 'ready' or 'noai'
 end
 -- Chiffres en direct : moteur prêt ou en pause.
 local function live(e) return e.guard=='ready' or e.guard=='paused' end
-local pillKinds={ready='g',paused='n',suspended='a',disabled='n',panic='r',online='a',init='n',native='n'}
+local pillKinds={ready='g',noai='n',paused='n',suspended='a',disabled='n',panic='r',online='a',init='n',native='n'}
 -- En-tête (84 px) : marque, version et mise à jour ; session et garde ; état, langue, activation, panique ; onglets et
 -- profil affiché ; filet cyan.
 local function headerBar(v,e)
@@ -994,7 +1005,7 @@ local function headerBar(v,e)
    local w=math.min(190,W.width(W.upper(v.updateHeaderText),12,'display')+30)
    if W.button('update_header',v.updateHeaderText,x,12,w,24,view=='available',view=='available' and v.tips.ui.updateInstall or v.tips.ui.updateDriving,view=='available' and 'primary' or 'disabled') then updateAct(v,'install') end
    x=x+w+8
-  elseif L.updateBusy[view] then
+  elseif L.updateBusy[view] and not Update.reported(u) then
    x=x+W.chip(L.updateBusy[view],x,15,'c')+8
   end
  end
@@ -1021,7 +1032,7 @@ local function headerBar(v,e)
  local key=stateKey(e)
  if v.pillFor~=key or v.pillProfile~=e.profile then
   v.pillFor=key; v.pillProfile=e.profile
-  v.pillText=(key=='ready' or key=='paused') and L.pillStates[key]..L.shortProfiles[e.profile] or L.pillStates[key]
+  v.pillText=(key=='ready' or key=='paused' or key=='noai') and L.pillStates[key]..L.shortProfiles[e.profile] or L.pillStates[key]
  end
  local cw=W.chipWidth(v.pillText)+12
  local sx=lx-10-cw
@@ -1854,7 +1865,7 @@ local function windowSetup(v)
  v.legendColors={c.ok,c.flagYellow,c.flagRed,c.flagWhite,c.orangeDot,c.flagBlue}
  v.legendTexts={}; for i,item in ipairs(L.lightLegend) do v.legendTexts[i]=item[1]..' · '..item[2] end
  v.capLabels={}; for _,name in ipairs(Caps.names) do v.capLabels[name]=L[name..'Label'] or L[name] or name end
- v.versionChip=nil; v.pillFor=nil; v.sessionFor=nil; v.guardFor=nil; v.navFor=nil; v.resetFor=nil; v.capsFor=nil; v.apiFor=nil; v.carsFor=nil
+ v.versionChip=nil; v.pillFor=nil; v.sessionFor=nil; v.guardFor=nil; v.navFor=nil; v.rulesResetFor=nil; v.capsFor=nil; v.apiFor=nil; v.carsFor=nil
  v.sectionsFor=nil; v.warnCountFor=nil; v.customCountFor=nil; v.bytesFor=nil; v.noteFor=nil; v.patternCountFor=nil; v.modFor=nil
  v.updateVersions=nil; v.updateHeaderFor=nil; v.updateAlertFor=nil; v.updateReportFor=nil; v.rollbackFor=nil; v.signFor=nil; v.flashFor=nil; v.cspFor=nil; v.perfFor=nil
  v.scaleFor=nil; v.opacityFor=nil; v.contentFor=nil; v.infoFor=nil; v.seedFor=nil
@@ -1977,18 +1988,22 @@ end
 -- ligne, delta à droite), la version en petit dans le coin haut droit ; la ligne des pastilles n'est réservée que si
 -- elles existent. Jamais de chevauchement, de 360 × 80 (taille minimale) à 900 × 220, quel que soit le haut du contenu.
 -- edge : haut de l'overlay (bande d'accent tout en haut, au-dessus de la ligne de session) ; thick : son épaisseur.
-function M.flagLayout(w,h,top,delta,pills,edge,thick)
+-- Rectangle {x1,y1,x2,y2} réécrit dans sa table (créée une seule fois).
+local function rect4(t,a,b,c,d) t=t or {}; t[1]=a; t[2]=b; t[3]=c; t[4]=d; return t end
+function M.flagLayout(w,h,top,delta,pills,edge,thick,out)
  local pad,gap,bar=6,10,4
- local l={}
+ -- Beta 1.36 : out, table gardée d'une image à l'autre (overlay) ; ses rectangles sont réécrits, jamais recréés.
+ local l=out or {}
+ l.delta=nil; l.detail=nil; l.pills=nil
  local pillH=pills and U.clamp((h-top)*0.24,14,22) or 0
  local bandBottom=h-(pills and pillH+6 or 2)
  local bandH=math.max(20,bandBottom-top)
  local at=edge or top
- l.accent={0,at,w,at+(thick or 3)}
- l.version={w-pad-70,top+1,w-pad,top+11}
+ l.accent=rect4(l.accent,0,at,w,at+(thick or 3))
+ l.version=rect4(l.version,w-pad-70,top+1,w-pad,top+11)
  local side=U.clamp(bandH-10,16,w*0.16)
  local fy=top+(bandH-side)*0.5
- l.flag={bar+pad,fy,bar+pad+side,fy+side}
+ l.flag=rect4(l.flag,bar+pad,fy,bar+pad+side,fy+side)
  local textX=l.flag[3]+gap; local right=w-pad
  -- Delta à droite, sous la version, sa largeur suivant la hauteur disponible ; trop bas pour être lisible, aucun.
  if delta then
@@ -1996,17 +2011,17 @@ function M.flagLayout(w,h,top,delta,pills,edge,thick)
   if boxH>=2*K.deltaBoxMin then
    local boxW=U.clamp(boxH*1.9,70,w*0.26)
    local by=top+12+(bandH-12-boxH)*0.5
-   l.delta={right-boxW,by,right,by+boxH}; right=right-boxW-gap
+   l.deltaBox=rect4(l.deltaBox,right-boxW,by,right,by+boxH); l.delta=l.deltaBox; right=right-boxW-gap
   end
  end
- if pills then l.pills={bar+pad,h-pillH-2,w-pad,h-2} end
+ if pills then l.pillsBox=rect4(l.pillsBox,bar+pad,h-pillH-2,w-pad,h-2); l.pills=l.pillsBox end
  -- Sans delta, le titre s'arrête avant la version (même hauteur) ; la consigne, dessous, va jusqu'au bord.
  local titleH=U.clamp(bandH*0.5,13,40)
  local ty=top+math.max(2,(bandH-titleH-math.max(11,bandH*0.32))*0.5)
- l.title={textX,ty,l.delta and right or math.min(right,l.version[1]-gap),ty+titleH}
+ l.title=rect4(l.title,textX,ty,l.delta and right or math.min(right,l.version[1]-gap),ty+titleH)
  l.fontTitle=math.max(12,titleH*0.82)
  local detailH=U.clamp(bandH*0.32,11,22)
- if bandBottom-l.title[4]>=detailH*0.8 then l.detail={textX,l.title[4],right,math.min(bandBottom,l.title[4]+detailH)}; l.fontDetail=U.clamp(detailH*0.82,10,17) end
+ if bandBottom-l.title[4]>=detailH*0.8 then l.detailBox=rect4(l.detailBox,textX,l.title[4],right,math.min(bandBottom,l.title[4]+detailH)); l.detail=l.detailBox; l.fontDetail=U.clamp(detailH*0.82,10,17) end
  l.fontPill=math.max(K.pillFontMin,pillH*0.62)
  return l
 end
@@ -2056,9 +2071,9 @@ local function stripes(colors,f)
  local n=K.slipperyStripes; local w=(f[3]-f[1])/n
  for k=0,n-1 do ui.drawRectFilled(pv(f[1]+k*w,f[2]),pv(f[1]+(k+1)*w,f[4]),k%2==0 and colors.yellow or colors.red,0) end
 end
--- Feux de départ (étape B, Beta 1.34) : cinq disques, allumés en rouge un par un, éteints au départ.
+-- Feux de départ (étape B, Beta 1.34) : K.gridLights disques, allumés en rouge un par un, éteints au départ.
 local function startLights(colors,r,lit)
- local n=5; local d=math.min((r[3]-r[1])/(n*1.5),(r[4]-r[2])*0.7)
+ local n=K.gridLights; local d=math.min((r[3]-r[1])/(n*1.5),(r[4]-r[2])*0.7)
  local gap=d*0.5; local total=n*d+(n-1)*gap
  local x=r[1]+((r[3]-r[1])-total)*0.5+d*0.5; local y=(r[2]+r[4])*0.5
  if not callable(ui.drawCircleFilled) then return end
@@ -2134,17 +2149,20 @@ local function blueText(v,gap)
 end
 -- Textes de l'étape B (feux, place à rejoindre), refaits seulement quand ils changent.
 local function lightsCode(v,lit)
- if v.lightsLit~=lit then v.lightsLit=lit; v.lightsCodeText=string.format('%d/5',lit) end
+ if v.lightsLit~=lit then v.lightsLit=lit; v.lightsCodeText=string.format('%d/%d',lit,K.gridLights) end
  return v.lightsCodeText
 end
 -- Départ arrêté (Beta 1.35) : distance telle que la grille la donne (au mètre sous 20 m, arrondie à 10 m au-delà) ;
--- à sa place (à l'arrêt) : « en place » ; au-delà de sa place : « place dépassée ». Textes refaits au changement.
+-- à sa place (à l'arrêt) : « en place » ; au-delà de sa place : « place dépassée » et sa distance. Textes refaits au
+-- changement.
 local function placeText(v,slot,distance,placed,passed)
- local meters=placed and -2 or passed and -3 or distance and math.floor(distance+0.5) or -1
- if v.placeSlot~=slot or v.placeMeters~=meters then
-  v.placeSlot=slot; v.placeMeters=meters
+ local meters=distance and math.floor(distance+0.5) or -1
+ local state=placed and 1 or passed and 2 or 0
+ if v.placeSlot~=slot or v.placeMeters~=meters or v.placeState~=state then
+  v.placeSlot=slot; v.placeMeters=meters; v.placeState=state
   v.placeLabel=string.format(L.placeLabel,slot)
-  v.placeValue=meters==-2 and L.gridPlaced or meters==-3 and L.gridPassed or meters>=0 and string.format(L.placeMeters,meters) or slot
+  -- Beta 1.36 : place dépassée avec sa distance en arrière quand la grille la donne.
+  v.placeValue=state==1 and L.gridPlaced or state==2 and (meters>0 and string.format(L.gridPassedBy,meters) or L.gridPassed) or meters>=0 and string.format(L.placeMeters,meters) or slot
  end
  return v.placeLabel,v.placeValue
 end
@@ -2248,7 +2266,8 @@ local function flags(v,force)
  local bandTop=y
  local place=not idle and kind=='standing' and panel.slotText~=nil
  local boxed=delta~=nil or place
- local l=M.flagLayout(w,y+K.hudBandH*u,y,boxed,false,top,3*u)
+ v.flagBoxes=v.flagBoxes or {}
+ local l=M.flagLayout(w,y+K.hudBandH*u,y,boxed,false,top,3*u,v.flagBoxes)
  -- Clignotement à 2 Hz : rouge et bleu tout le temps, tout nouveau drapeau quelques secondes.
  local blink=(now*2)%1<0.5
  local flashing=not idle and (kind=='red' or kind=='blue' or kind=='jump' or now-panel.changedAt<K.flagBlinkTime)
@@ -2396,6 +2415,8 @@ function M.hud(v)
  v.hudX=x; v.hudY=y; v.hudW=w; v.hudH=h
  -- Polices dépilées dans la fenêtre qui les a poussées, même après une erreur (renvoyée ensuite).
  if not v.hudDraw then v.hudDraw=function() local ok,err=pcall(hudContent,v); fontRelease(); if not ok then error(err,0) end end end
- ui.transparentWindow('ACAdvancedIA_overlay',vec2(x,y),vec2(w,h),true,unlocked or not g.overlayClickThrough,v.hudDraw)
+ -- Position et taille gardées d'une image à l'autre (Beta 1.36 : aucun point créé à chaque image).
+ if v.hudPos then v.hudPos.x=x; v.hudPos.y=y; v.hudSize.x=w; v.hudSize.y=h else v.hudPos=vec2(x,y); v.hudSize=vec2(w,h) end
+ ui.transparentWindow('ACAdvancedIA_overlay',v.hudPos,v.hudSize,true,unlocked or not g.overlayClickThrough,v.hudDraw)
 end
 return M

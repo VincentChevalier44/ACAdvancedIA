@@ -1,6 +1,6 @@
 -- Journal de session : lignes nouvelles du journal circulaire, horodatées ; l'écriture sur disque est faite par applier.
 local M={}
-function M.new() return {serial=0,lines={},count=0,flushAt=0,summaryAt=0,caps={}} end
+function M.new() return {serial=0,lines={},count=0,flushAt=0,summaryAt=0} end
 -- Lignes ajoutées depuis le dernier prélèvement, de la plus ancienne à la plus récente.
 function M.collect(j,log,stamp)
  for n=log.count-1,0,-1 do

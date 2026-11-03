@@ -75,6 +75,14 @@ local function restart(t,frame,now,p)
  end
  if p.yellowMessage then message(t,'restart') end
 end
+-- Extinction des feux d'un départ arrêté (Beta 1.36) : dépassement permis aussitôt pour toutes les voitures, joueur
+-- compris, comme à un vrai départ arrêté ; la règle « jusqu'à la ligne » ne vaut que pour un départ lancé.
+function M.lightsOut(t)
+ if not t.restart then return end
+ for i=1,#t.cars do t.cars[i].restart=false end
+ t.restart=false; t.playerRestart=false
+ note(t,'INFO','reprise: depassement permis a l extinction des feux',-1)
+end
 -- Fin du tour de relance d'un drapeau rouge en course (Beta 1.34) : départ arrêté si les règles le demandent et que
 -- tout est prêt (t.gridReady, décidé par le moteur : capacités, sens latéral, piste), sinon départ lancé (raison au
 -- journal). Dépassement interdit jusqu'à la ligne, juste devant la grille.

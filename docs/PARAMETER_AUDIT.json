@@ -1,5 +1,5 @@
 {
-  "version": "Beta 1.35",
+  "version": "Beta 1.36",
   "scope": "Static inventory + UI/storage checks and engine bounds; no physical certification.",
   "globalParameters": [
     {
@@ -158,17 +158,17 @@
         "src/director.lua:648",
         "src/director.lua:802",
         "src/engine.lua:93",
-        "src/engine.lua:167",
-        "src/engine.lua:337",
-        "src/engine.lua:433",
-        "src/engine.lua:662",
-        "src/engine.lua:682",
-        "src/engine.lua:722",
+        "src/engine.lua:168",
+        "src/engine.lua:338",
+        "src/engine.lua:434",
+        "src/engine.lua:665",
+        "src/engine.lua:685",
+        "src/engine.lua:725",
         "src/flash.lua:70",
-        "src/grid.lua:163",
-        "src/grid.lua:195",
-        "src/incidents.lua:155",
-        "src/incidents.lua:233",
+        "src/grid.lua:165",
+        "src/grid.lua:197",
+        "src/incidents.lua:163",
+        "src/incidents.lua:241",
         "src/lang_en.lua:61",
         "src/mistakes.lua:65",
         "src/mistakes.lua:74",
@@ -304,9 +304,9 @@
         "src/director.lua:867",
         "src/director.lua:870",
         "src/engine.lua:114",
-        "src/engine.lua:161",
-        "src/engine.lua:446",
-        "src/engine.lua:498",
+        "src/engine.lua:162",
+        "src/engine.lua:447",
+        "src/engine.lua:499",
         "src/groups.lua:8",
         "src/lang_en.lua:59",
         "src/lang_en.lua:62",
@@ -467,7 +467,7 @@
         "C": 10
       },
       "consumers": [
-        "src/engine.lua:234",
+        "src/engine.lua:235",
         "src/flood.lua:106",
         "src/groups.lua:10",
         "src/lang_en.lua:127",
@@ -532,9 +532,9 @@
         "C": 1
       },
       "consumers": [
-        "src/engine.lua:219",
-        "src/engine.lua:234",
+        "src/engine.lua:220",
         "src/engine.lua:235",
+        "src/engine.lua:236",
         "src/groups.lua:10",
         "src/lang_en.lua:127",
         "src/tips_en.lua:18"
@@ -999,8 +999,8 @@
         "src/director.lua:321",
         "src/director.lua:436",
         "src/director.lua:440",
-        "src/engine.lua:656",
-        "src/engine.lua:657",
+        "src/engine.lua:659",
+        "src/engine.lua:660",
         "src/flash.lua:58",
         "src/groups.lua:23",
         "src/lang_en.lua:132",
@@ -1124,8 +1124,8 @@
         "C": false
       },
       "consumers": [
-        "src/engine.lua:650",
-        "src/engine.lua:651",
+        "src/engine.lua:653",
+        "src/engine.lua:654",
         "src/groups.lua:24",
         "src/lang_en.lua:132",
         "src/tips_en.lua:48"
@@ -2075,10 +2075,10 @@
         "src/director.lua:791",
         "src/director.lua:792",
         "src/engine.lua:114",
-        "src/engine.lua:349",
-        "src/engine.lua:353",
-        "src/engine.lua:357",
-        "src/engine.lua:369",
+        "src/engine.lua:350",
+        "src/engine.lua:354",
+        "src/engine.lua:358",
+        "src/engine.lua:370",
         "src/groups.lua:17",
         "src/lang_en.lua:139",
         "src/mistakes.lua:47",
@@ -2149,7 +2149,7 @@
         "src/director.lua:742",
         "src/director.lua:791",
         "src/director.lua:792",
-        "src/engine.lua:357",
+        "src/engine.lua:358",
         "src/groups.lua:17",
         "src/lang_en.lua:139",
         "src/mistakes.lua:47",
@@ -2172,7 +2172,7 @@
       "consumers": [
         "src/director.lua:796",
         "src/engine.lua:41",
-        "src/engine.lua:357",
+        "src/engine.lua:358",
         "src/groups.lua:17",
         "src/lang_en.lua:139",
         "src/tips_en.lua:98"
@@ -2215,12 +2215,12 @@
         "src/director.lua:490",
         "src/director.lua:491",
         "src/director.lua:530",
-        "src/engine.lua:388",
+        "src/engine.lua:389",
         "src/groups.lua:29",
-        "src/incidents.lua:146",
-        "src/incidents.lua:188",
-        "src/incidents.lua:198",
-        "src/incidents.lua:231",
+        "src/incidents.lua:154",
+        "src/incidents.lua:196",
+        "src/incidents.lua:206",
+        "src/incidents.lua:239",
         "src/lang_en.lua:140",
         "src/lights.lua:54",
         "src/penalties.lua:39",
@@ -2343,7 +2343,7 @@
       },
       "consumers": [
         "src/groups.lua:30",
-        "src/incidents.lua:229",
+        "src/incidents.lua:237",
         "src/lang_en.lua:141",
         "src/tips_en.lua:110"
       ]
@@ -2363,7 +2363,7 @@
       },
       "consumers": [
         "src/groups.lua:30",
-        "src/incidents.lua:233",
+        "src/incidents.lua:241",
         "src/lang_en.lua:141",
         "src/tips_en.lua:111"
       ]
@@ -2383,7 +2383,7 @@
       },
       "consumers": [
         "src/groups.lua:30",
-        "src/incidents.lua:233",
+        "src/incidents.lua:241",
         "src/lang_en.lua:141",
         "src/tips_en.lua:112"
       ]
@@ -2403,7 +2403,7 @@
       },
       "consumers": [
         "src/groups.lua:30",
-        "src/incidents.lua:134",
+        "src/incidents.lua:142",
         "src/lang_en.lua:141",
         "src/tips_en.lua:113"
       ]
@@ -2423,8 +2423,8 @@
       },
       "consumers": [
         "src/groups.lua:31",
-        "src/incidents.lua:433",
-        "src/incidents.lua:491",
+        "src/incidents.lua:441",
+        "src/incidents.lua:499",
         "src/lang_en.lua:142",
         "src/lights.lua:46",
         "src/tips_en.lua:114"
@@ -2445,13 +2445,13 @@
       },
       "consumers": [
         "src/groups.lua:31",
-        "src/incidents.lua:423",
-        "src/incidents.lua:438",
-        "src/incidents.lua:441",
-        "src/incidents.lua:496",
-        "src/incidents.lua:497",
+        "src/incidents.lua:431",
+        "src/incidents.lua:446",
+        "src/incidents.lua:449",
+        "src/incidents.lua:504",
         "src/incidents.lua:505",
-        "src/incidents.lua:506",
+        "src/incidents.lua:513",
+        "src/incidents.lua:514",
         "src/lang_en.lua:142",
         "src/tips_en.lua:118"
       ]
@@ -2471,8 +2471,8 @@
       },
       "consumers": [
         "src/groups.lua:31",
-        "src/incidents.lua:438",
-        "src/incidents.lua:496",
+        "src/incidents.lua:446",
+        "src/incidents.lua:504",
         "src/lang_en.lua:142",
         "src/tips_en.lua:119"
       ]
@@ -2492,7 +2492,7 @@
       },
       "consumers": [
         "src/groups.lua:31",
-        "src/incidents.lua:220",
+        "src/incidents.lua:228",
         "src/lang_en.lua:142",
         "src/penalties.lua:39",
         "src/tips_en.lua:120"
@@ -2515,10 +2515,10 @@
         "src/delta.lua:146",
         "src/delta.lua:178",
         "src/director.lua:425",
-        "src/engine.lua:765",
+        "src/engine.lua:771",
         "src/groups.lua:31",
-        "src/incidents.lua:449",
-        "src/incidents.lua:488",
+        "src/incidents.lua:457",
+        "src/incidents.lua:496",
         "src/lang_en.lua:142",
         "src/tips_en.lua:121"
       ]
@@ -2581,7 +2581,7 @@
       "consumers": [
         "src/delta.lua:77",
         "src/groups.lua:32",
-        "src/incidents.lua:487",
+        "src/incidents.lua:495",
         "src/lang_en.lua:143",
         "src/lang_en.lua:268",
         "src/tips_en.lua:115"
@@ -2602,7 +2602,7 @@
       },
       "consumers": [
         "src/groups.lua:33",
-        "src/incidents.lua:517",
+        "src/incidents.lua:525",
         "src/lang_en.lua:144",
         "src/tips_en.lua:133"
       ]
@@ -2642,24 +2642,24 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:621",
-        "src/engine.lua:626",
-        "src/engine.lua:641",
+        "src/engine.lua:624",
+        "src/engine.lua:629",
+        "src/engine.lua:644",
         "src/groups.lua:33",
         "src/incidents.lua:76",
-        "src/incidents.lua:86",
-        "src/incidents.lua:90",
-        "src/incidents.lua:272",
-        "src/incidents.lua:287",
+        "src/incidents.lua:94",
+        "src/incidents.lua:98",
+        "src/incidents.lua:280",
         "src/incidents.lua:295",
         "src/incidents.lua:303",
-        "src/incidents.lua:321",
-        "src/incidents.lua:331",
-        "src/incidents.lua:368",
-        "src/incidents.lua:386",
-        "src/incidents.lua:392",
-        "src/incidents.lua:403",
-        "src/incidents.lua:506",
+        "src/incidents.lua:311",
+        "src/incidents.lua:329",
+        "src/incidents.lua:339",
+        "src/incidents.lua:376",
+        "src/incidents.lua:394",
+        "src/incidents.lua:400",
+        "src/incidents.lua:411",
+        "src/incidents.lua:514",
         "src/lang_en.lua:144",
         "src/tips_en.lua:135"
       ]
@@ -2678,7 +2678,7 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:519",
+        "src/engine.lua:520",
         "src/groups.lua:33",
         "src/lang_en.lua:144",
         "src/tips_en.lua:131"
@@ -2698,7 +2698,7 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:728",
+        "src/engine.lua:733",
         "src/groups.lua:34",
         "src/lang_en.lua:145",
         "src/penalties.lua:77",
@@ -2740,7 +2740,7 @@
         "C": 5
       },
       "consumers": [
-        "src/engine.lua:643",
+        "src/engine.lua:646",
         "src/groups.lua:34",
         "src/lang_en.lua:145",
         "src/penalties.lua:80",
@@ -2767,10 +2767,10 @@
         "C": 5
       },
       "consumers": [
-        "src/engine.lua:610",
-        "src/engine.lua:625",
-        "src/engine.lua:629",
-        "src/engine.lua:643",
+        "src/engine.lua:613",
+        "src/engine.lua:628",
+        "src/engine.lua:632",
+        "src/engine.lua:646",
         "src/groups.lua:34",
         "src/lang_en.lua:145",
         "src/penalties.lua:53",
@@ -2839,8 +2839,8 @@
       "consumers": [
         "src/engine.lua:59",
         "src/groups.lua:40",
-        "src/incidents.lua:257",
-        "src/incidents.lua:396",
+        "src/incidents.lua:265",
+        "src/incidents.lua:404",
         "src/lang_en.lua:146",
         "src/tips_en.lua:138"
       ]
@@ -2862,8 +2862,8 @@
         "src/engine.lua:58",
         "src/engine.lua:59",
         "src/groups.lua:40",
-        "src/incidents.lua:217",
-        "src/incidents.lua:267",
+        "src/incidents.lua:225",
+        "src/incidents.lua:275",
         "src/lang_en.lua:146",
         "src/tips_en.lua:139"
       ]
@@ -2886,8 +2886,8 @@
         "src/delta.lua:88",
         "src/delta.lua:90",
         "src/groups.lua:41",
-        "src/incidents.lua:400",
-        "src/incidents.lua:464",
+        "src/incidents.lua:408",
+        "src/incidents.lua:472",
         "src/lang_en.lua:146",
         "src/lang_en.lua:269",
         "src/tips_en.lua:140"
@@ -2910,8 +2910,8 @@
         "src/delta.lua:88",
         "src/delta.lua:90",
         "src/groups.lua:41",
-        "src/incidents.lua:287",
-        "src/incidents.lua:464",
+        "src/incidents.lua:295",
+        "src/incidents.lua:472",
         "src/lang_en.lua:146",
         "src/lang_en.lua:269",
         "src/panel.lua:168",
@@ -2934,8 +2934,8 @@
       "consumers": [
         "src/delta.lua:85",
         "src/groups.lua:41",
-        "src/incidents.lua:287",
-        "src/incidents.lua:464",
+        "src/incidents.lua:295",
+        "src/incidents.lua:472",
         "src/lang_en.lua:146",
         "src/lang_en.lua:270",
         "src/panel.lua:167",
@@ -2957,9 +2957,9 @@
       },
       "consumers": [
         "src/groups.lua:40",
-        "src/incidents.lua:269",
-        "src/incidents.lua:297",
-        "src/incidents.lua:400",
+        "src/incidents.lua:277",
+        "src/incidents.lua:305",
+        "src/incidents.lua:408",
         "src/lang_en.lua:147",
         "src/tips_en.lua:143"
       ]
@@ -2980,10 +2980,10 @@
       "consumers": [
         "src/delta.lua:145",
         "src/groups.lua:50",
-        "src/incidents.lua:354",
-        "src/incidents.lua:417",
-        "src/incidents.lua:462",
-        "src/incidents.lua:465",
+        "src/incidents.lua:362",
+        "src/incidents.lua:425",
+        "src/incidents.lua:470",
+        "src/incidents.lua:473",
         "src/lang_en.lua:147",
         "src/tips_en.lua:144"
       ]
@@ -3004,8 +3004,8 @@
       "consumers": [
         "src/engine.lua:52",
         "src/groups.lua:50",
-        "src/incidents.lua:265",
-        "src/incidents.lua:266",
+        "src/incidents.lua:273",
+        "src/incidents.lua:274",
         "src/lang_en.lua:147",
         "src/tips_en.lua:146"
       ]
@@ -3028,8 +3028,8 @@
       },
       "consumers": [
         "src/groups.lua:50",
-        "src/incidents.lua:90",
-        "src/incidents.lua:311",
+        "src/incidents.lua:98",
+        "src/incidents.lua:319",
         "src/lang_en.lua:148",
         "src/panel.lua:162",
         "src/tips_en.lua:145"
@@ -3051,7 +3051,7 @@
       "consumers": [
         "src/engine.lua:53",
         "src/groups.lua:42",
-        "src/incidents.lua:362",
+        "src/incidents.lua:370",
         "src/lang_en.lua:148",
         "src/lang_en.lua:270",
         "src/tips_en.lua:147"
@@ -3072,7 +3072,7 @@
       },
       "consumers": [
         "src/groups.lua:42",
-        "src/incidents.lua:363",
+        "src/incidents.lua:371",
         "src/lang_en.lua:148",
         "src/lang_en.lua:270",
         "src/tips_en.lua:148"
@@ -3094,8 +3094,8 @@
       "consumers": [
         "src/delta.lua:82",
         "src/groups.lua:42",
-        "src/incidents.lua:365",
-        "src/incidents.lua:469",
+        "src/incidents.lua:373",
+        "src/incidents.lua:477",
         "src/lang_en.lua:148",
         "src/lang_en.lua:271",
         "src/tips_en.lua:149"
@@ -3117,7 +3117,7 @@
       "consumers": [
         "src/delta.lua:82",
         "src/groups.lua:42",
-        "src/incidents.lua:469",
+        "src/incidents.lua:477",
         "src/lang_en.lua:148",
         "src/lang_en.lua:271",
         "src/tips_en.lua:150"
@@ -3138,8 +3138,8 @@
       },
       "consumers": [
         "src/groups.lua:42",
-        "src/incidents.lua:365",
-        "src/incidents.lua:381",
+        "src/incidents.lua:373",
+        "src/incidents.lua:389",
         "src/lang_en.lua:148",
         "src/lang_en.lua:271",
         "src/tips_en.lua:151"
@@ -3187,8 +3187,8 @@
       "consumers": [
         "src/groups.lua:39",
         "src/groups.lua:42",
-        "src/incidents.lua:82",
-        "src/incidents.lua:279",
+        "src/incidents.lua:90",
+        "src/incidents.lua:287",
         "src/lang_en.lua:148",
         "src/panel.lua:161",
         "src/tips_en.lua:152"
@@ -3208,8 +3208,8 @@
         "C": 0
       },
       "consumers": [
-        "src/engine.lua:686",
         "src/engine.lua:689",
+        "src/engine.lua:692",
         "src/groups.lua:47",
         "src/hudinfo.lua:106",
         "src/hudinfo.lua:107",
@@ -3418,12 +3418,12 @@
         "C": "open"
       },
       "consumers": [
-        "src/engine.lua:682",
+        "src/engine.lua:685",
         "src/groups.lua:49",
         "src/incidents.lua:20",
         "src/incidents.lua:31",
-        "src/incidents.lua:353",
-        "src/incidents.lua:356",
+        "src/incidents.lua:361",
+        "src/incidents.lua:364",
         "src/lang_en.lua:150",
         "src/tips_en.lua:163"
       ]
@@ -3527,9 +3527,9 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:377",
-        "src/engine.lua:583",
-        "src/engine.lua:649",
+        "src/engine.lua:378",
+        "src/engine.lua:584",
+        "src/engine.lua:652",
         "src/groups.lua:44",
         "src/lang_en.lua:152",
         "src/panel.lua:114",
@@ -3551,7 +3551,7 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:530",
+        "src/engine.lua:531",
         "src/groups.lua:44",
         "src/lang_en.lua:152",
         "src/lang_en.lua:260",
@@ -3573,7 +3573,7 @@
         "C": 1
       },
       "consumers": [
-        "src/engine.lua:554",
+        "src/engine.lua:555",
         "src/groups.lua:44",
         "src/lang_en.lua:152",
         "src/lang_en.lua:273",
@@ -3594,7 +3594,7 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:568",
+        "src/engine.lua:569",
         "src/groups.lua:44",
         "src/lang_en.lua:152",
         "src/tips_en.lua:125"
@@ -3614,9 +3614,9 @@
         "C": 200
       },
       "consumers": [
-        "src/engine.lua:377",
-        "src/engine.lua:523",
-        "src/engine.lua:649",
+        "src/engine.lua:378",
+        "src/engine.lua:524",
+        "src/engine.lua:652",
         "src/groups.lua:44",
         "src/lang_en.lua:152",
         "src/lang_en.lua:274",
@@ -3746,12 +3746,12 @@
         "src/delta.lua:122",
         "src/director.lua:74",
         "src/director.lua:895",
-        "src/engine.lua:243",
-        "src/engine.lua:435",
-        "src/engine.lua:594",
-        "src/engine.lua:660",
+        "src/engine.lua:244",
+        "src/engine.lua:436",
+        "src/engine.lua:597",
+        "src/engine.lua:663",
         "src/groups.lua:36",
-        "src/incidents.lua:430",
+        "src/incidents.lua:438",
         "src/lang_en.lua:154",
         "src/tips_en.lua:174"
       ]
@@ -3872,7 +3872,7 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:668",
+        "src/engine.lua:671",
         "src/groups.lua:37",
         "src/lang_en.lua:155",
         "src/tips_en.lua:181",
@@ -3893,7 +3893,7 @@
         "C": true
       },
       "consumers": [
-        "src/engine.lua:674",
+        "src/engine.lua:677",
         "src/groups.lua:38",
         "src/lang_en.lua:155",
         "src/lang_en.lua:269",
@@ -4035,182 +4035,182 @@
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 26,
+      "line": 30,
       "name": "(anonymous)"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 39,
-      "name": "restartOnly"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 40,
-      "name": "script.update"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 41,
-      "name": "script.HUMANAI__UPDATE"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 42,
-      "name": "script.HUMANAI__MAIN"
     },
     {
       "file": "ACAdvancedIA.lua",
       "line": 43,
-      "name": "script.HUMANAI__MENU"
+      "name": "restartOnly"
     },
     {
       "file": "ACAdvancedIA.lua",
       "line": 44,
-      "name": "script.HUMANAI__FLAGS"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 45,
-      "name": "script.HUMANAI__HUD"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 91,
-      "name": "announce"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 98,
-      "name": "dirty"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 106,
-      "name": "(anonymous)"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 118,
-      "name": "writeJournal"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 130,
-      "name": "cancelProbe"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 131,
-      "name": "syncRestored"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 141,
-      "name": "anyOwned"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 146,
-      "name": "step"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 152,
-      "name": "stop"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 158,
-      "name": "saveRace"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 164,
-      "name": "release"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 178,
-      "name": "updateLog"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 182,
-      "name": "(anonymous)"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 194,
-      "name": "(anonymous)"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 212,
-      "name": "session"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 219,
-      "name": "lightsCheck"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 226,
-      "name": "update"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 250,
-      "name": "(anonymous)"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 251,
-      "name": "(anonymous)"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 351,
-      "name": "updateTick"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 371,
-      "name": "protect"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 384,
-      "name": "script.HUMANAI__UPDATE"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 398,
       "name": "script.update"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 399,
-      "name": "script.HUMANAI__MENU"
+      "line": 45,
+      "name": "script.HUMANAI__UPDATE"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 402,
-      "name": "protectUI"
-    },
-    {
-      "file": "ACAdvancedIA.lua",
-      "line": 410,
+      "line": 46,
       "name": "script.HUMANAI__MAIN"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 422,
+      "line": 47,
+      "name": "script.HUMANAI__MENU"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 48,
       "name": "script.HUMANAI__FLAGS"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 424,
+      "line": 49,
+      "name": "script.HUMANAI__HUD"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 95,
+      "name": "announce"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 102,
+      "name": "dirty"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 110,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 122,
+      "name": "writeJournal"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 134,
+      "name": "cancelProbe"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 135,
+      "name": "syncRestored"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 145,
+      "name": "anyOwned"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 150,
+      "name": "step"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 156,
+      "name": "stop"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 162,
+      "name": "saveRace"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 168,
+      "name": "release"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 182,
+      "name": "updateLog"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 186,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 198,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 216,
+      "name": "session"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 223,
+      "name": "lightsCheck"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 230,
+      "name": "update"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 254,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 255,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 355,
+      "name": "updateTick"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 375,
+      "name": "protect"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 391,
+      "name": "script.HUMANAI__UPDATE"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 405,
+      "name": "script.update"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 406,
+      "name": "script.HUMANAI__MENU"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 409,
+      "name": "protectUI"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 419,
+      "name": "script.HUMANAI__MAIN"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 431,
+      "name": "script.HUMANAI__FLAGS"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 433,
       "name": "script.HUMANAI__HUD"
     },
     {
@@ -5255,42 +5255,42 @@
     },
     {
       "file": "src/engine.lua",
-      "line": 155,
+      "line": 156,
       "name": "M.configure"
     },
     {
       "file": "src/engine.lua",
-      "line": 172,
+      "line": 173,
       "name": "drsBeep"
     },
     {
       "file": "src/engine.lua",
-      "line": 178,
+      "line": 179,
       "name": "drive"
     },
     {
       "file": "src/engine.lua",
-      "line": 192,
+      "line": 193,
       "name": "M.message"
     },
     {
       "file": "src/engine.lua",
-      "line": 201,
+      "line": 202,
       "name": "M.floodInit"
     },
     {
       "file": "src/engine.lua",
-      "line": 210,
+      "line": 211,
       "name": "flood"
     },
     {
       "file": "src/engine.lua",
-      "line": 242,
+      "line": 243,
       "name": "slowCars"
     },
     {
       "file": "src/engine.lua",
-      "line": 275,
+      "line": 276,
       "name": "M.step"
     },
     {
@@ -5455,17 +5455,17 @@
     },
     {
       "file": "src/grid.lua",
-      "line": 147,
+      "line": 149,
       "name": "expected"
     },
     {
       "file": "src/grid.lua",
-      "line": 157,
+      "line": 159,
       "name": "placedPlayer"
     },
     {
       "file": "src/grid.lua",
-      "line": 163,
+      "line": 165,
       "name": "M.step"
     },
     {
@@ -5570,57 +5570,62 @@
     },
     {
       "file": "src/incidents.lua",
-      "line": 81,
+      "line": 80,
+      "name": "M.lightsOut"
+    },
+    {
+      "file": "src/incidents.lua",
+      "line": 89,
       "name": "standing"
     },
     {
       "file": "src/incidents.lua",
-      "line": 90,
+      "line": 98,
       "name": "restartRule"
     },
     {
       "file": "src/incidents.lua",
-      "line": 93,
+      "line": 101,
       "name": "leaderLap"
     },
     {
       "file": "src/incidents.lua",
-      "line": 116,
+      "line": 124,
       "name": "release"
     },
     {
       "file": "src/incidents.lua",
-      "line": 127,
+      "line": 135,
       "name": "traffic"
     },
     {
       "file": "src/incidents.lua",
-      "line": 141,
+      "line": 149,
       "name": "queued"
     },
     {
       "file": "src/incidents.lua",
-      "line": 155,
+      "line": 163,
       "name": "M.update"
     },
     {
       "file": "src/incidents.lua",
-      "line": 413,
+      "line": 421,
       "name": "M.safety"
     },
     {
       "file": "src/incidents.lua",
-      "line": 423,
+      "line": 431,
       "name": "position"
     },
     {
       "file": "src/incidents.lua",
-      "line": 428,
+      "line": 436,
       "name": "M.cap"
     },
     {
       "file": "src/incidents.lua",
-      "line": 475,
+      "line": 483,
       "name": "M.player"
     },
     {
@@ -5680,27 +5685,27 @@
     },
     {
       "file": "src/lights.lua",
-      "line": 107,
+      "line": 112,
       "name": "M.update"
     },
     {
       "file": "src/lights.lua",
-      "line": 118,
+      "line": 125,
       "name": "M.output"
     },
     {
       "file": "src/lights.lua",
-      "line": 128,
+      "line": 131,
       "name": "M.scan"
     },
     {
       "file": "src/lights.lua",
-      "line": 132,
+      "line": 135,
       "name": "close"
     },
     {
       "file": "src/lights.lua",
-      "line": 165,
+      "line": 168,
       "name": "M.equipped"
     },
     {
@@ -6086,246 +6091,256 @@
     {
       "file": "src/remote.lua",
       "line": 42,
+      "name": "folders"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 43,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/remote.lua",
+      "line": 50,
       "name": "rank"
     },
     {
       "file": "src/remote.lua",
-      "line": 46,
+      "line": 54,
       "name": "ordered"
     },
     {
       "file": "src/remote.lua",
-      "line": 47,
+      "line": 55,
       "name": "(anonymous)"
     },
     {
       "file": "src/remote.lua",
-      "line": 51,
+      "line": 59,
       "name": "parseList"
     },
     {
       "file": "src/remote.lua",
-      "line": 63,
+      "line": 71,
       "name": "lib"
     },
     {
       "file": "src/remote.lua",
-      "line": 68,
+      "line": 76,
       "name": "M.new"
     },
     {
       "file": "src/remote.lua",
-      "line": 83,
+      "line": 91,
       "name": "exists"
     },
     {
       "file": "src/remote.lua",
-      "line": 84,
+      "line": 92,
       "name": "load"
     },
     {
       "file": "src/remote.lua",
-      "line": 85,
+      "line": 93,
       "name": "save"
     },
     {
       "file": "src/remote.lua",
-      "line": 86,
+      "line": 94,
       "name": "delete"
     },
     {
       "file": "src/remote.lua",
-      "line": 87,
+      "line": 95,
       "name": "clock"
     },
     {
       "file": "src/remote.lua",
-      "line": 90,
+      "line": 98,
       "name": "watch"
     },
     {
       "file": "src/remote.lua",
-      "line": 91,
+      "line": 99,
       "name": "list"
     },
     {
       "file": "src/remote.lua",
-      "line": 92,
+      "line": 102,
       "name": "clear"
     },
     {
       "file": "src/remote.lua",
-      "line": 93,
+      "line": 110,
       "name": "copy"
     },
     {
       "file": "src/remote.lua",
-      "line": 96,
+      "line": 113,
       "name": "swap"
     },
     {
       "file": "src/remote.lua",
-      "line": 104,
+      "line": 121,
       "name": "listOf"
     },
     {
       "file": "src/remote.lua",
-      "line": 105,
+      "line": 122,
       "name": "complete"
     },
     {
       "file": "src/remote.lua",
-      "line": 111,
+      "line": 128,
       "name": "p.get"
     },
     {
       "file": "src/remote.lua",
-      "line": 113,
+      "line": 130,
       "name": "(anonymous)"
     },
     {
       "file": "src/remote.lua",
-      "line": 118,
+      "line": 135,
       "name": "p.json"
     },
     {
       "file": "src/remote.lua",
-      "line": 119,
+      "line": 136,
       "name": "p.sha256"
     },
     {
       "file": "src/remote.lua",
-      "line": 120,
+      "line": 137,
       "name": "p.entries"
     },
     {
       "file": "src/remote.lua",
-      "line": 121,
+      "line": 138,
       "name": "p.entry"
     },
     {
       "file": "src/remote.lua",
-      "line": 122,
+      "line": 139,
       "name": "p.installedVersion"
     },
     {
       "file": "src/remote.lua",
-      "line": 124,
+      "line": 141,
       "name": "p.sourceVersion"
     },
     {
       "file": "src/remote.lua",
-      "line": 125,
+      "line": 142,
       "name": "p.sourceComplete"
     },
     {
       "file": "src/remote.lua",
-      "line": 126,
+      "line": 143,
       "name": "p.sourceHas"
     },
     {
       "file": "src/remote.lua",
-      "line": 131,
+      "line": 148,
       "name": "p.markerFile"
     },
     {
       "file": "src/remote.lua",
-      "line": 132,
+      "line": 149,
       "name": "p.marker"
     },
     {
       "file": "src/remote.lua",
-      "line": 134,
+      "line": 151,
       "name": "p.mark"
     },
     {
       "file": "src/remote.lua",
-      "line": 136,
+      "line": 153,
       "name": "p.clearMarker"
     },
     {
       "file": "src/remote.lua",
-      "line": 141,
+      "line": 158,
       "name": "p.report"
     },
     {
       "file": "src/remote.lua",
-      "line": 142,
+      "line": 159,
       "name": "p.takeReport"
     },
     {
       "file": "src/remote.lua",
-      "line": 149,
+      "line": 166,
       "name": "p.boot"
     },
     {
       "file": "src/remote.lua",
-      "line": 154,
+      "line": 171,
       "name": "p.bootSet"
     },
     {
       "file": "src/remote.lua",
-      "line": 155,
+      "line": 172,
       "name": "p.bootClear"
     },
     {
       "file": "src/remote.lua",
-      "line": 157,
+      "line": 174,
       "name": "p.bootOk"
     },
     {
       "file": "src/remote.lua",
-      "line": 158,
+      "line": 175,
       "name": "p.failedNote"
     },
     {
       "file": "src/remote.lua",
-      "line": 159,
+      "line": 176,
       "name": "p.failed"
     },
     {
       "file": "src/remote.lua",
-      "line": 160,
+      "line": 177,
       "name": "p.clearFailed"
     },
     {
       "file": "src/remote.lua",
-      "line": 162,
+      "line": 179,
       "name": "p.log"
     },
     {
       "file": "src/remote.lua",
-      "line": 163,
+      "line": 180,
       "name": "p.open"
     },
     {
       "file": "src/remote.lua",
-      "line": 166,
+      "line": 183,
       "name": "p.stage"
     },
     {
       "file": "src/remote.lua",
-      "line": 169,
+      "line": 186,
       "name": "(anonymous)"
     },
     {
       "file": "src/remote.lua",
-      "line": 182,
+      "line": 199,
       "name": "p.snapshot"
     },
     {
       "file": "src/remote.lua",
-      "line": 203,
+      "line": 220,
       "name": "p.place"
     },
     {
       "file": "src/remote.lua",
-      "line": 226,
+      "line": 243,
       "name": "p.promote"
     },
     {
       "file": "src/remote.lua",
-      "line": 246,
+      "line": 263,
       "name": "p.restart"
     },
     {
@@ -6775,292 +6790,302 @@
     },
     {
       "file": "src/ui.lua",
-      "line": 960,
+      "line": 962,
+      "name": "aiCars"
+    },
+    {
+      "file": "src/ui.lua",
+      "line": 970,
       "name": "stateKey"
     },
     {
       "file": "src/ui.lua",
-      "line": 971,
+      "line": 982,
       "name": "live"
     },
     {
       "file": "src/ui.lua",
-      "line": 975,
+      "line": 986,
       "name": "headerBar"
     },
     {
       "file": "src/ui.lua",
-      "line": 1107,
+      "line": 1118,
       "name": "banner"
     },
     {
       "file": "src/ui.lua",
-      "line": 1126,
+      "line": 1137,
       "name": "addWarning"
     },
     {
       "file": "src/ui.lua",
-      "line": 1129,
+      "line": 1140,
       "name": "currentSignature"
     },
     {
       "file": "src/ui.lua",
-      "line": 1135,
+      "line": 1146,
       "name": "entrySignature"
     },
     {
       "file": "src/ui.lua",
-      "line": 1142,
+      "line": 1153,
       "name": "openTarget"
     },
     {
       "file": "src/ui.lua",
-      "line": 1148,
+      "line": 1159,
       "name": "kpi"
     },
     {
       "file": "src/ui.lua",
-      "line": 1160,
+      "line": 1171,
       "name": "homeTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 1424,
+      "line": 1435,
       "name": "sectionPane"
     },
     {
       "file": "src/ui.lua",
-      "line": 1476,
+      "line": 1487,
       "name": "settingsTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 1524,
+      "line": 1535,
       "name": "ruleRow"
     },
     {
       "file": "src/ui.lua",
-      "line": 1533,
+      "line": 1544,
       "name": "rulesTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 1596,
+      "line": 1607,
       "name": "diagnosticTab"
     },
     {
       "file": "src/ui.lua",
-      "line": 1827,
+      "line": 1838,
       "name": "M.compactSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 1830,
+      "line": 1841,
       "name": "windowSetup"
     },
     {
       "file": "src/ui.lua",
-      "line": 1862,
+      "line": 1873,
       "name": "drawWindow"
     },
     {
       "file": "src/ui.lua",
-      "line": 1870,
+      "line": 1881,
       "name": "M.main"
     },
     {
       "file": "src/ui.lua",
-      "line": 1901,
+      "line": 1912,
       "name": "faded"
     },
     {
       "file": "src/ui.lua",
-      "line": 1902,
+      "line": 1913,
       "name": "panelPalette"
     },
     {
       "file": "src/ui.lua",
-      "line": 1931,
+      "line": 1942,
       "name": "box"
     },
     {
       "file": "src/ui.lua",
-      "line": 1935,
+      "line": 1946,
       "name": "write"
     },
     {
       "file": "src/ui.lua",
-      "line": 1945,
+      "line": 1956,
       "name": "font"
     },
     {
       "file": "src/ui.lua",
-      "line": 1953,
+      "line": 1964,
       "name": "fontRelease"
     },
     {
       "file": "src/ui.lua",
-      "line": 1956,
+      "line": 1967,
       "name": "textWidth"
     },
     {
       "file": "src/ui.lua",
-      "line": 1972,
+      "line": 1983,
       "name": "fitSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 1980,
+      "line": 1992,
+      "name": "rect4"
+    },
+    {
+      "file": "src/ui.lua",
+      "line": 1993,
       "name": "M.flagLayout"
     },
     {
       "file": "src/ui.lua",
-      "line": 2014,
+      "line": 2029,
       "name": "quad"
     },
     {
       "file": "src/ui.lua",
-      "line": 2019,
+      "line": 2034,
       "name": "cutBack"
     },
     {
       "file": "src/ui.lua",
-      "line": 2025,
+      "line": 2040,
       "name": "drsBadge"
     },
     {
       "file": "src/ui.lua",
-      "line": 2032,
+      "line": 2047,
       "name": "badge"
     },
     {
       "file": "src/ui.lua",
-      "line": 2039,
+      "line": 2054,
       "name": "checker"
     },
     {
       "file": "src/ui.lua",
-      "line": 2043,
+      "line": 2058,
       "name": "diagonal"
     },
     {
       "file": "src/ui.lua",
-      "line": 2049,
+      "line": 2064,
       "name": "meatball"
     },
     {
       "file": "src/ui.lua",
-      "line": 2055,
+      "line": 2070,
       "name": "stripes"
     },
     {
       "file": "src/ui.lua",
-      "line": 2060,
+      "line": 2075,
       "name": "startLights"
     },
     {
       "file": "src/ui.lua",
-      "line": 2068,
+      "line": 2083,
       "name": "deltaText"
     },
     {
       "file": "src/ui.lua",
-      "line": 2078,
+      "line": 2093,
       "name": "deltaBox"
     },
     {
       "file": "src/ui.lua",
-      "line": 2089,
+      "line": 2104,
       "name": "placeBox"
     },
     {
       "file": "src/ui.lua",
-      "line": 2099,
+      "line": 2114,
       "name": "pillsWidth"
     },
     {
       "file": "src/ui.lua",
-      "line": 2101,
+      "line": 2116,
       "name": "pillRow"
     },
     {
       "file": "src/ui.lua",
-      "line": 2119,
+      "line": 2134,
       "name": "pill"
     },
     {
       "file": "src/ui.lua",
-      "line": 2126,
+      "line": 2141,
       "name": "giveBackText"
     },
     {
       "file": "src/ui.lua",
-      "line": 2130,
+      "line": 2145,
       "name": "blueText"
     },
     {
       "file": "src/ui.lua",
-      "line": 2136,
+      "line": 2151,
       "name": "lightsCode"
     },
     {
       "file": "src/ui.lua",
-      "line": 2142,
+      "line": 2158,
       "name": "placeText"
     },
     {
       "file": "src/ui.lua",
-      "line": 2155,
+      "line": 2173,
       "name": "M.overlayParts"
     },
     {
       "file": "src/ui.lua",
-      "line": 2174,
+      "line": 2192,
       "name": "M.overlayHeight"
     },
     {
       "file": "src/ui.lua",
-      "line": 2184,
+      "line": 2202,
       "name": "sessionStrip"
     },
     {
       "file": "src/ui.lua",
-      "line": 2223,
+      "line": 2241,
       "name": "flags"
     },
     {
       "file": "src/ui.lua",
-      "line": 2330,
+      "line": 2349,
       "name": "M.flags"
     },
     {
       "file": "src/ui.lua",
-      "line": 2338,
+      "line": 2357,
       "name": "nativeBox"
     },
     {
       "file": "src/ui.lua",
-      "line": 2342,
+      "line": 2361,
       "name": "M.restoreNative"
     },
     {
       "file": "src/ui.lua",
-      "line": 2343,
+      "line": 2362,
       "name": "screenSize"
     },
     {
       "file": "src/ui.lua",
-      "line": 2346,
+      "line": 2365,
       "name": "hudContent"
     },
     {
       "file": "src/ui.lua",
-      "line": 2381,
+      "line": 2400,
       "name": "M.hud"
     },
     {
       "file": "src/ui.lua",
-      "line": 2398,
+      "line": 2417,
       "name": "(anonymous)"
     },
     {
@@ -7185,127 +7210,132 @@
     },
     {
       "file": "src/update.lua",
-      "line": 277,
+      "line": 286,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 278,
+      "line": 287,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 279,
+      "line": 288,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 280,
+      "line": 289,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 281,
+      "line": 290,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 282,
+      "line": 291,
       "name": "(anonymous)"
-    },
-    {
-      "file": "src/update.lua",
-      "line": 283,
-      "name": "(anonymous)"
-    },
-    {
-      "file": "src/update.lua",
-      "line": 284,
-      "name": "(anonymous)"
-    },
-    {
-      "file": "src/update.lua",
-      "line": 285,
-      "name": "M.recoverText"
     },
     {
       "file": "src/update.lua",
       "line": 292,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 293,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 294,
+      "name": "M.recoverText"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 301,
       "name": "M.start"
     },
     {
       "file": "src/update.lua",
-      "line": 320,
+      "line": 329,
       "name": "live"
     },
     {
       "file": "src/update.lua",
-      "line": 322,
+      "line": 331,
       "name": "M.check"
     },
     {
       "file": "src/update.lua",
-      "line": 326,
+      "line": 335,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 340,
+      "line": 349,
       "name": "M.cancel"
     },
     {
       "file": "src/update.lua",
-      "line": 348,
+      "line": 357,
       "name": "place"
     },
     {
       "file": "src/update.lua",
-      "line": 378,
+      "line": 387,
       "name": "M.install"
     },
     {
       "file": "src/update.lua",
-      "line": 390,
+      "line": 399,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 395,
+      "line": 404,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 403,
+      "line": 412,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 406,
+      "line": 415,
       "name": "(anonymous)"
     },
     {
       "file": "src/update.lua",
-      "line": 419,
+      "line": 428,
       "name": "M.rollback"
     },
     {
       "file": "src/update.lua",
-      "line": 429,
+      "line": 438,
       "name": "M.tick"
     },
     {
       "file": "src/update.lua",
-      "line": 453,
+      "line": 465,
+      "name": "M.reported"
+    },
+    {
+      "file": "src/update.lua",
+      "line": 466,
       "name": "M.view"
     },
     {
       "file": "src/update.lua",
-      "line": 472,
+      "line": 485,
       "name": "M.fresh"
     },
     {
       "file": "src/update.lua",
-      "line": 479,
+      "line": 492,
       "name": "M.offered"
     },
     {
@@ -7750,27 +7780,27 @@
     },
     {
       "file": "src/widgets.lua",
-      "line": 570,
+      "line": 571,
       "name": "W.clip"
     },
     {
       "file": "src/widgets.lua",
-      "line": 574,
+      "line": 578,
       "name": "W.visible"
     },
     {
       "file": "src/widgets.lua",
-      "line": 580,
+      "line": 584,
       "name": "tipColors"
     },
     {
       "file": "src/widgets.lua",
-      "line": 591,
+      "line": 595,
       "name": "W.finish"
     },
     {
       "file": "src/widgets.lua",
-      "line": 603,
+      "line": 607,
       "name": "W.step"
     },
     {
@@ -7805,25 +7835,25 @@
     }
   ],
   "sources": {
-    "ACAdvancedIA.lua": "f9ebc5669c6547ff5b2e1d49bc165a6684416a5871bd4403a666d91ed8affd55",
+    "ACAdvancedIA.lua": "f045e34a562927f58683cb8dd6fdcf97d33871f524c43085b03dd3494cd9d3ac",
     "src/applier.lua": "432bddeb538c8b9cd57e47fff4f0d3980869a0cece6881b7348415fe9c09dc3f",
     "src/calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
     "src/caps.lua": "c37fd9f1f9983a40c1f540a37d27165c690aa9546b5bebfbf8d313082d5113b9",
     "src/classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-    "src/config.lua": "98d6c79ca22ee9b54e0ece86ad545697c4ba71d9ef116737e41711c3791666fc",
+    "src/config.lua": "34c20154fc22f316c67df24495a41b4cc4b37263f7a8f79394ede99d26795e4a",
     "src/delta.lua": "cebd950b028cb380e2d410bade1ddfcde57cbe0e3317aa569918b9a8110096f8",
     "src/director.lua": "bc9decaa417fc2acbedba131bcc90d89677e3465a40fa6a9f8d9d75db68697f4",
-    "src/engine.lua": "0cbec9388f70a088f54ba543d495b6a94e8b919a4ad302785c81637ef894c689",
+    "src/engine.lua": "f4717f6c8dbf0260e94bd5f0ad624023dc09b6315dbbc7b19ccfb5e7c6caf08c",
     "src/flash.lua": "a52a5aa06d6649ba2f967400eea288e266b8956a954ec43c5a5cd929a376b0af",
     "src/flood.lua": "0527562daed5d283c2474666b3d5d584fb36bc57964990a7807db3188c49f31d",
-    "src/grid.lua": "77235d35ed5aea12ca96addbdaba7f4b285e51b71a6e7d1012dbe8a064cfab0a",
+    "src/grid.lua": "5f1979643f9d8218fc17d78492a3a55125f8780f6f45959cf6b472629b48be14",
     "src/groups.lua": "c344917ed0c2bebb11524a20e979ffa2bbcab98c7c8ec62f5391c3375dcb269f",
     "src/hudinfo.lua": "370714b976b9a0ea94f38d582e6ac8954701660a33e6b2e8c649924ebfa9dbe4",
-    "src/incidents.lua": "cd02942bbf509b61a5fdbfa8cf2d1d78e7a145d70e5b0bdde5a5cd3180236559",
-    "src/journal.lua": "2d6ef004a113659554dfbfa17efd4f9cf08fc596a51d06c9b5bd6b2ce5ee2b4f",
-    "src/lang.lua": "c9a059aa2a77568a55cb1a13279c384838acf7cf13b21d9d52c2a1dce965d85c",
-    "src/lang_en.lua": "4541ad2f4a54bf4e420bf1b958645c5717a9297ba0684e0aef740366a5dd0e43",
-    "src/lights.lua": "59d854413cf676ca9dcfb30f8c8591d6b0d8bddab437f0a9286a579ccd0216af",
+    "src/incidents.lua": "362e4990e7b442e9ad3332386768d4633f8ce082c507b5a32f8320ff944d67d1",
+    "src/journal.lua": "b57fab9044694cabb1c5f782389b645e3e4d4643e576daeabced232ed70ff104",
+    "src/lang.lua": "e393b5cc5465a0e6cd632e5be3c18af8c41508e9ffcea706c2bd41e13671ee41",
+    "src/lang_en.lua": "d1c43e4a115b0f695e311f1e3a0fbd6d34bd71c32b9a69a0e9bba8112f308712",
+    "src/lights.lua": "64533fd524ddf3082abf84dbbaec51c687d69a1aab125ccccfbc4eca011247c4",
     "src/locale.lua": "02b406dc86cc1a5548877d8e897fd5d28764ae71d2296fe78547649c947e9bbd",
     "src/mistakes.lua": "654f42f62b5da427996680a30a6ad12246bcf4cc6e8b7f77c7f71b7a91f0fe9a",
     "src/panel.lua": "c64064b45c3aefcb265593f3b22a1297f5d15e8192cce5495005671b9ad206fc",
@@ -7832,16 +7862,16 @@
     "src/persona.lua": "fc995df594e4e17ef0dc0a30bda8d3f14bd217fae46a9adc9ee3d87618c392c2",
     "src/pits.lua": "aaabf723c4a6412f4bb7f10e490bd1c9302fd44143cdf089ecc6fb8a675519d7",
     "src/presets.lua": "d1b4786e0c544a8c8b66a18ee9cad7d85e6bf71c7bcef698a3142714237e91b2",
-    "src/remote.lua": "a9041201ea35c98b3ac03c868d6cf030affa87df7d3606efd292db31a3d94961",
+    "src/remote.lua": "4a67addc77df8eb04b7cc6596e10e3ef6a0bf8d676e760d04bb71d162ef685dc",
     "src/snapshot.lua": "178427adbb169696fb9555d87c6109defebd7b082536dd12824557c13b59ab8c",
     "src/tips.lua": "33de54f449acba08effcae4ba9e0d1c123ef2b6c9183e93e9d337d8f8181d6a9",
     "src/tips_en.lua": "c83df0c58607e774c56b9e4170ffcac0df7b056812abdcd8a3a15e16c44a5341",
     "src/traffic.lua": "af75adf73ab13cf0c19552fdf83d00044efdd542b06ccdbdc4667728e8c47ed4",
-    "src/ui.lua": "d3fe4577f84c0be36393de36dfc3d20dedcc2027412a510b7865106c6affc4fa",
-    "src/update.lua": "5050c3eeb2746e1e59095ea9b1eaf1b93213705934aef5fbf63ba96a934a3223",
+    "src/ui.lua": "2434ada19b2aa3c99137e20cdfa65556bf8b2788cf9cecca574d53fa8b020629",
+    "src/update.lua": "11649c5101175cef719ce145f486a3b5a9bde8ed9092c85a412a9d0666446d86",
     "src/util.lua": "533d16b986fc80b7d27d6754e4e36c8e984ae16b1dbbab925341a56ca0bc624d",
     "src/weather.lua": "574e6c04dd73cded2d96dcdd8386c35991827c5c3ac59ed4ac7d1d17f48f13f5",
-    "src/widgets.lua": "07c2f1f22174401727f6c1a78eccafb6e415fc82580a645d23e4d5cddb6ee3de",
+    "src/widgets.lua": "836a79ff920875cd34177813bf5e71739b0bc9c174af197975ca35322f24e80b",
     "src/zones.lua": "0ef2b144ec13d660a2bfd47cba5f213514c07d833976f78dbdbb599a43848a33"
   }
 }

@@ -19,6 +19,10 @@ if not port then
  if not okUpdate or type(Update)~='table' then
   Update=setmetatable({new=function(version) return {phase='idle',installed=version,events={},serial=0,askedAt=0} end,
    view=function() return 'unchecked' end,take=function(_,out) return out end,checkGap=60,page=''},{__index=function() return none end})
+  -- Beta 1.36 : le remplaçant est aussi celui que rend require('src/update') (interface) ; un second require d'un module
+  -- en échec lèverait « loop or previous error loading module » et arrêterait le chargement de l'app.
+  local loaded=_G.package and _G.package.loaded
+  if loaded then loaded['src/update']=Update end
  end
 end
 local recovered
@@ -334,7 +338,7 @@ local function update(dt)
  Applier.apply(host,frame,engine.commands,engine.runtimeG,engine.time)
  -- Drapeau du joueur : panneaux lumineux du circuit (option, circuit équipé) ; sinon jaune natif du HUD sur demande.
  local lightsOn=globals.trackLights==true and host.trackLights==true
- local flagValue,flagReason=Lights.output(engine.lights,engine.incidents,lightsOn,host.raceFlagsHidden)
+ local flagValue,flagReason=Lights.output(engine.lights,engine.incidents,lightsOn)
  Applier.flag(host,frame,flagValue,flagReason,lightsOn and engine.time or nil)
  Applier.penalty(host,frame,engine.penalties)
  Applier.beep(host,frame,engine.drs)
@@ -377,14 +381,17 @@ local function protect(fn,arg)
  end
  return ok
 end
--- Démarrage surveillé (mise à jour) : la première image passée sans erreur, la version installée est confirmée.
+-- Démarrage surveillé (mise à jour) : la version installée est confirmée après K.bootFrames images où le moteur a tourné
+-- sans erreur et K.bootUIFrames dessins sans erreur protégée de la fenêtre ou de l'overlay (Beta 1.36 : une interface en
+-- échec à chaque image n'est jamais confirmée ; la version est défaite au lancement suivant).
 local booted=false
+local bootEngine,bootUI=0,0
 if port.unreadable then U.log(engine.log,0,'ERROR','mise a jour: module illisible, app chargee sans mise a jour ('..port.unreadable..')',-1) end
 HUMANAI={engine=engine,host=host,release=release,updater=updater,port=port,panel=panel}
 function script.HUMANAI__UPDATE(dt)
  local before=Applier.clock(host)
  local ran=protect(update,dt)
- if ran and not booted then booted=true; pcall(port.bootOk) end
+ if ran and not booted then bootEngine=bootEngine+1; if bootEngine>=K.bootFrames and bootUI>=K.bootUIFrames then booted=true; pcall(port.bootOk) end end
  local ok,err=pcall(updateTick,dt)
  if not ok then host.errors=host.errors+1; U.log(engine.log,engine.time,'ERROR','mise a jour: '..tostring(err):sub(1,200),-1) end
  local after=before and Applier.clock(host)
@@ -401,7 +408,9 @@ function script.HUMANAI__MENU() if not released then Applier.menu(host,Snapshot.
 local lastUIError=''
 local function protectUI(fn,arg)
  local ok,err=pcall(fn,arg)
- if not ok then
+ if ok then
+  if not booted then bootUI=bootUI+1 end
+ else
   host.errors=host.errors+1
   local text=tostring(err):sub(1,200)
   if text~=lastUIError then lastUIError=text; U.log(engine.log,engine.time,'ERROR','ui:'..text,-1) end

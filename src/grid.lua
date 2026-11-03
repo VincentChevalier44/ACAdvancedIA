@@ -135,7 +135,9 @@ local function release(g,frame,commands,offsetSign,states)
  for i=1,frame.count do
   if g.slotOf[i]>0 or g.pit[i] then commands[i].gridWake=true; g.woke=true end
   local k=g.slotOf[i]; local s=states and states[i]
-  if k>0 and s and not frame.cars[i].player and g.slots[k] then
+  -- Beta 1.36 : seulement une IA retenue près de sa place (jamais une voiture lâchée par le délai loin de sa place, ni
+  -- une voiture aux stands) : aucun saut latéral au départ ni à la sortie des stands.
+  if k>0 and s and not frame.cars[i].player and g.slots[k] and g.held[i] and not frame.cars[i].pit and gap(g,frame,i)<K.gridColumnFrom then
    local lat=g.slots[k].lateral; local o=offsetSign<0 and -lat or lat
    s.offset=o; s.filtered=o; s.velocity=0; commands[i].offset=o
   end
@@ -229,9 +231,13 @@ function M.step(g,t,frame,now,commands,offsetSign,seed,log,states,dq)
   local k=g.slotOf[player]
   t.gridSlot=k; t.gridPit=k==0 or g.pit[player] or frame.cars[player].pit==true
   local d=k>0 and gap(g,frame,player) or 0
+  -- Beta 1.36 : au-delà de sa place, distance en arrière (jusqu'à K.gridPassedShow m), jamais « presque un tour ».
+  local back=d<0 and -d or 0
+  if k>0 and d>0 and frame.length-d<=K.gridPassedShow then back=frame.length-d end
   t.gridPlaced=k>0 and not t.gridPit and placedPlayer(g,frame,player)
-  t.gridPassed=k>0 and not t.gridPit and d<-K.gridSlotRadius
-  t.gridGap=d<=0 and 0 or d<20 and math.floor(d) or math.floor(d/10+0.5)*10
+  t.gridPassed=k>0 and not t.gridPit and back>K.gridSlotRadius
+  local shown=t.gridPassed and back or math.max(0,d)
+  t.gridGap=shown<20 and math.floor(shown) or math.floor(shown/10+0.5)*10
  end
  return nil
 end

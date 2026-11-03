@@ -128,6 +128,7 @@ function M.rebase(e,amount)
  if e.panel.noticeUntil>-math.huge then e.panel.noticeUntil=e.panel.noticeUntil-amount end
  if e.panel.warnUntil>-math.huge then e.panel.warnUntil=e.panel.warnUntil-amount end
  Lights.rebase(e.lights,amount); Grid.rebase(e.grid,amount)
+ if e.slowLoggedAt then e.slowLoggedAt=e.slowLoggedAt-amount end
  if e.panel.changedAt>-math.huge then e.panel.changedAt=e.panel.changedAt-amount end
  e.classes.nextAt=e.classes.nextAt-amount; e.classes.bopAt=e.classes.bopAt-amount
  e.traffic.nextAt=e.traffic.nextAt-amount
@@ -590,7 +591,9 @@ function M.step(e,frame,dt)
  -- Beta 1.32 : véhicule lent devant le joueur (drapeau blanc), dégâts du joueur (drapeau noir à disque orange), valeur
  -- des panneaux lumineux du circuit ; place à rendre (avertissement).
  local l=e.lights
- l.playerPenalty=e.penalties.disqualified==true or frame.player>0 and (frame.cars[frame.player].penaltyType or 0)>0
+ local penaltyType=frame.player>0 and (frame.cars[frame.player].penaltyType or 0) or 0
+ l.playerDisqualified=e.penalties.disqualified==true or penaltyType==K.penaltyBlackFlag
+ l.playerPenalty=penaltyType>0
  if Lights.update(l,e.incidents,frame,e.run,e.profile,e.delta,e.states,e.run.multiClass==true,now) then
   U.log(e.log,now,'INFO',string.format('voiture du joueur endommagee: suspension %.2f, moteur %.0f, boite %.2f, carrosserie %.0f km/h, pneu eclate %s',
    frame.playerSuspension,frame.playerEngine,frame.playerGearbox,frame.playerBody,frame.playerBlown and 'oui' or 'non'),frame.player)
@@ -723,6 +726,8 @@ function M.step(e,frame,dt)
  if launched then
   -- Beta 1.35 : protections et prudence de départ de la course aussi à l'extinction d'un départ arrêté.
   e.launchAt=now
+  -- Beta 1.36 : départ arrêté, dépassement permis dès l'extinction (la règle « jusqu'à la ligne » reste aux départs lancés).
+  Incidents.lightsOut(e.incidents)
   if launched=='jump' then
    local a=frame.player>0 and frame.cars[frame.player] or nil
    if e.run.playerPenalties and not C.solo(e.profile) and a then e.incidents.jumpUntil=now+K.jumpShow; e.jumpDue=true; e.jumpGoAt=now; e.jumpLap=a.lap or 0
@@ -730,11 +735,12 @@ function M.step(e,frame,dt)
   end
  end
  -- Faux départ : sanction servie une fois le joueur passé la ligne et à K.jumpServeDistance m (jamais à l'arrêt sur la
- -- grille au milieu des voitures qui partent), au plus tard K.jumpServeMax s après l'extinction.
+ -- grille au milieu des voitures qui partent) ; au plus tard K.jumpServeMax s après l'extinction, mais seulement en roulant
+-- ou la ligne passée (Beta 1.36 : jamais à l'arrêt sur la grille, même après un calage).
  if e.jumpDue then
   local a=frame.player>0 and frame.cars[frame.player] or nil
   if not a or not a.valid then e.jumpDue=false
-  elseif (a.lap or 0)>e.jumpLap and a.spline*frame.length>=K.jumpServeDistance or now-e.jumpGoAt>=K.jumpServeMax then e.jumpDue=false; e.penalties.jumpPending=true end
+  elseif (a.lap or 0)>e.jumpLap and a.spline*frame.length>=K.jumpServeDistance or now-e.jumpGoAt>=K.jumpServeMax and ((a.lap or 0)>e.jumpLap or a.kmh>K.gridStillKmh) then e.jumpDue=false; e.penalties.jumpPending=true end
  end
  -- Formation de la grille et feux : aucun arrêt aux stands demandé (la voie des stands longe la grille).
  if e.incidents.standing=='grid' or e.incidents.standing=='lights' then

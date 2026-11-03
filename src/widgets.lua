@@ -567,8 +567,12 @@ function W.scroll(state,key,x,y,w,h,content)
  end
  return offset
 end
+-- Zone de découpe : sa table est gardée (Beta 1.36 : aucune table créée par découpe).
 function W.clip(x,y,w,h)
- if x then ui.pushClipRect(point(x,y),point(x+w,y+h),true); f.clip={x,y,w,h}
+ if x then
+  ui.pushClipRect(point(x,y),point(x+w,y+h),true)
+  local c=f.clipBox; if not c then c={}; f.clipBox=c end
+  c[1]=x; c[2]=y; c[3]=w; c[4]=h; f.clip=c
  else ui.popClipRect(); f.clip=nil end
 end
 function W.visible(y,h)

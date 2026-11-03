@@ -109,6 +109,10 @@
     "Beta 1.35 UI/updater fixes : interface à 900 px, en-têtes, choix, tuiles, logo, polices",
     "Beta 1.35 UI/updater fixes : confirmation, portée, comptes, clic droit, langue, mémorisation, overlay",
     "Beta 1.35 UI/updater fixes : saisie native tenue dans son cadre à petite échelle",
-    "Beta 1.35 UI/updater fixes : notes à jour, retour arrière grisé pendant une opération"
+    "Beta 1.35 UI/updater fixes : notes à jour, retour arrière grisé pendant une opération",
+    "Beta 1.36 : module de mise à jour illisible, app chargée sans mise à jour",
+    "Beta 1.36 : bouton de l onglet Règles après la réinitialisation d une section",
+    "Beta 1.36 : aucune puce de redémarrage après un retour arrière",
+    "Beta 1.36 : puce d état sans IA dans la session"
   ]
 }

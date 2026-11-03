@@ -192,7 +192,7 @@ return {
  
  -- Refonte Racing 26 (Beta 1.35) : en-tête, accueil, réglages en sous-groupes, règles, diagnostic, overlay.
  appLabel='APP',profileLabel='Profil',noSession='Aucune session',headerCars='%d IA pilotées',headerNoCars='Aucune IA pilotée',
- pillStates={ready='ACTIF · ',paused='PAUSE · ',suspended='SUSPENDU',disabled='APP COUPÉE',panic='PANIQUE',online='EN LIGNE',init='EN ATTENTE',native='IA NATIVES'},
+ pillStates={ready='ACTIF · ',noai='SANS IA · ',paused='PAUSE · ',suspended='SUSPENDU',disabled='APP COUPÉE',panic='PANIQUE',online='EN LIGNE',init='EN ATTENTE',native='IA NATIVES'},
  banners={disabled={'App coupée','Les IA roulent avec leur comportement natif d’Assetto Corsa. Les réglages restent modifiables.','Activer'},
   panic={'Panique','Commandes arrêtées : les IA sont rendues au jeu. Rien n’est appliqué jusqu’à la reprise.','Reprendre'},
   online={'En ligne','Session en ligne : commandes suspendues. Les réglages s’appliquent aux sessions hors ligne.'},
@@ -266,5 +266,5 @@ return {
  calibrationShort={waiting='En attente',running='Mesure',ready='Confirmés',waiting_reset='Différée',inconclusive='Non concluant',aborted='Interrompue'},
  capShort={present='Prête',missing='Absente',ready='OK',failures='Coupée'},capsCount='%d / %d',apiCount='%d fonctions',
  carsNote='%d · survol : raison',perfScope='boucle IA hors dessin',perfLabels={'Moyenne','Maximum','Erreurs moteur · API','Données rejetées'},
- placeLabel='Jusqu’à %s',placeMeters='%d m',gridPlaced='EN PLACE',gridPassed='PLACE DÉPASSÉE',
+ placeLabel='Jusqu’à %s',placeMeters='%d m',gridPlaced='EN PLACE',gridPassed='PLACE DÉPASSÉE',gridPassedBy='PLACE DÉPASSÉE · %d m',
 }

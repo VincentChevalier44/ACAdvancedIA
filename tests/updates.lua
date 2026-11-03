@@ -549,4 +549,41 @@ tests.UPDATE_REMOTE_RECOVERY=function()
   assert(u.updated and u.updated.kind=='update' and u.updated.to=='Beta 1.33' and f.files[f.root..'/backup/updated.txt']==nil and f.files[f.root..'/backup/installing.txt']==nil)
  end)
 end
+-- Beta 1.36 (3e relecture) : dossiers vides effacés avec leurs fichiers ; trois mises à jour de suite, la version
+-- précédente est chaque fois renommée d'un bloc (jamais la copie de repli).
+tests.UPDATE_REMOTE_REPEATED_136=function()
+ local f=Fake.install({})
+ local ok,err=pcall(function()
+  f.app('Beta 1.33')
+  for round,v in ipairs({'Beta 1.34','Beta 1.35','Beta 1.36'}) do
+   f.release(v)
+   local installed=Up.manifestVersion(f.files[f.root..'/manifest.ini'])
+   local p=Remote.new(function() end)
+   local u=Up.new(installed); Up.start(u,p,Up.recover(p)); p.bootOk()
+   Up.check(u,p,0); f.flush(); assert(u.phase=='available','round '..round..': '..tostring(u.phase))
+   f.watch(); assert(Up.install(u,p,true)); f.flush(); assert(u.phase=='ready','round '..round..' install: '..tostring(u.phase)..' '..tostring(u.detail))
+   local before=#f.calls
+   Up.tick(u,p,true,10); assert(u.phase=='restarting','round '..round..' tick: '..tostring(u.phase)..' '..tostring(u.detail))
+   local renamed,copied=false,false
+   for k=before+1,#f.calls do
+    local c=f.calls[k]
+    if c=='movedir state:ACAdvancedIA-update/backup' then renamed=true end
+    if c:find('^copy state:ACAdvancedIA%-update/backup/') then copied=true end
+   end
+   assert(renamed and not copied,'round '..round..': previous version renamed in one go, never copied')
+   assert(Up.manifestVersion(f.files[f.root..'/manifest.ini'])==v,'round '..round..': installed '..v)
+   for path in pairs(f.dirs) do assert(not path:find('/backup.old',1,true),'round '..round..': backup.old left: '..path) end
+  end
+ end)
+ f.restore(); assert(ok,err)
+end
+-- Beta 1.36 : copie finie (ou refaite) par la reprise du lancement : version installée surveillée à son démarrage.
+tests.UPDATE_RECOVER_BOOT_136=function()
+ local p=port({marked='update Beta 1.33 -> Beta 1.34',installed='Beta 1.34'})
+ local r=Up.recover(p); assert(r.outcome=='finished' and p.boots and p.boots[1]=='Beta 1.34' and p.boots[2]==1 and p.boots[3]=='Beta 1.33','finished: watched, this launch counted')
+ p=port({marked='update Beta 1.33 -> Beta 1.34',installed='Beta 1.33'})
+ r=Up.recover(p); assert(r.outcome=='completed' and r.restart and p.boots and p.boots[1]=='Beta 1.34' and p.boots[2]==0,'completed: watched from its first start')
+ p=port({marked='rollback Beta 1.34 -> Beta 1.33',installed='Beta 1.33',boot={'Beta 1.34',1,'Beta 1.33'}})
+ r=Up.recover(p); assert(r.outcome=='finished' and p.boots==nil,'rollback finished: watch cleared')
+end
 return tests

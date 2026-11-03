@@ -79,18 +79,23 @@ local function damage(l,frame,now)
  if fresh and not a.pit then l.meatballUntil=now+K.meatballShow; return true end
  return false
 end
--- Valeur des panneaux (ac.FlagType) et sa raison au journal. Rouge (5) décidé tel quel : M.output le ramène au jaune
--- tant que les drapeaux d'AC ne sont pas masqués (5 est le drapeau noir de leur affichage).
+-- Valeur des panneaux (ac.FlagType) et sa raison au journal. Rouge (5) décidé tel quel : Applier.flag le ramène au jaune
+-- tant que les drapeaux d'AC ne sont pas masqués (5 est le drapeau noir de leur affichage ; réglage relu à l'écriture).
 function M.decide(l,inc,frame,p,profile,now)
  local i=frame.player
  if i==0 then return K.flagNone,'' end
  local a=frame.cars[i]
  -- Arrivée : damier d'AC rendu.
  if not a.valid or a.finished or frame.finished then return K.flagNone,'arrivee' end
- -- Beta 1.35 : pénalité d'AC ou disqualification du joueur, drapeau d'AC rendu (jamais couvert par les panneaux).
- if l.playerPenalty then return K.flagNone,'penalite' end
+ -- Disqualification du joueur : drapeau noir d'AC rendu, jamais couvert, jusqu'à la fin de la session.
+ if l.playerDisqualified then return K.flagNone,'disqualification' end
  if inc.red then return K.flagStop,'drapeau rouge' end
- if inc.playerYellow then return K.flagCaution,inc.neutral and (neutralNames[inc.neutralMode] or 'neutralisation') or 'drapeau jaune' end
+ -- Beta 1.36 : neutralisation avant la pénalité du joueur (la coupure des gaz de l'app ne rend pas les panneaux à AC sous
+ -- VSC, FCY ou voiture de sécurité).
+ if inc.playerYellow and inc.neutral then return K.flagCaution,neutralNames[inc.neutralMode] or 'neutralisation' end
+ -- Beta 1.35 : pénalité d'AC du joueur, drapeau d'AC rendu (jamais couvert par les panneaux).
+ if l.playerPenalty then return K.flagNone,'penalite' end
+ if inc.playerYellow then return K.flagCaution,'drapeau jaune' end
  -- Départ arrêté (Beta 1.34) : jaune pendant la formation et les feux ; vert à l'extinction, avant toute autre
  -- information (Beta 1.35).
  if inc.standing=='grid' or inc.standing=='lights' then return K.flagCaution,'depart arrete' end
@@ -115,12 +120,10 @@ function M.update(l,inc,frame,p,profile,d,states,multi,now)
 end
 -- Valeur écrite : panneaux du circuit (option, circuit équipé) ; sinon le jaune natif du HUD que le pilote a demandé
 -- (préférence d'origine, inchangée). hidden : drapeaux d'AC masqués (CSP), seul cas où le rouge est écrit.
-function M.output(l,inc,on,hidden)
- if on then
-  local value=l.value
-  if value==K.flagStop and hidden~=true then value=K.flagCaution end
-  return value,l.reason
- end
+-- Beta 1.36 : rouge rendu tel quel ; Applier.flag relit le réglage « drapeaux d'AC masqués » de CSP au moment de l'écrire
+-- (un réglage changé en cours de session compte aussitôt, sans attendre l'ouverture du menu).
+function M.output(l,inc,on)
+ if on then return l.value,l.reason end
  return inc.playerFlag and K.flagCaution or K.flagNone,''
 end
 -- Lecture d'une configuration de circuit : conditions lues sur FLAG_TYPE (sections [CONDITION_...]), conditions dont

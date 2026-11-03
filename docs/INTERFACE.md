@@ -28,7 +28,7 @@ DWrite weight names are CSP's (`ui.DWriteFont.Weight`): Regular is 400 and Ultra
 - One font is pushed per change of role, not per text; every font and clip is closed at the end of the frame, also when a drawing error interrupts it.
 - Measured widths, cut texts and wrapped lines are cached per role, size and width (cleared beyond 6,000 entries and on a scale change); control identifiers, value texts and preset signatures are built once per change; the language switch clears them.
 - The overlay reuses its points and text boxes: no table or point is created per frame.
-- Standing-start box: the slot and the distance given by the grid (to the metre below 20 m, rounded to 10 m beyond), replaced by **IN POSITION** when you are stopped in your slot and **SLOT PASSED** beyond it; with no slot, the panel says *Start from the pit lane*.
+- Standing-start box: the slot and the distance given by the grid (to the metre below 20 m, rounded to 10 m beyond), replaced by **IN POSITION** when you are stopped in your slot and **SLOT PASSED** beyond it (with the distance behind, up to 500 m, since Beta 1.36); with no slot, the panel says *Start from the pit lane*.
 
 ## Differences from the mockup (CSP limits and safety)
 
@@ -36,7 +36,7 @@ DWrite weight names are CSP's (`ui.DWriteFont.Weight`): Regular is 400 and Ultra
 - **Text inputs** are native ImGui inputs on a drawn frame (their own font, no DWrite).
 - **An unticked section** shows its warning instead of its dimmed settings, as before: its settings do not apply, and the controls stay out of reach. Since the review, **Global options** follow the same rule.
 - **Profile selector**: in a window too narrow for the names next to the tabs, the profiles show as their first letter; the selector is never hidden.
-- **State chip**: two states the mockup did not have, **PAUSED · <profile>** (neutral) and **SUSPENDED** (amber: replay, finished session, no AI line, abnormal frames, refused access).
+- **State chip**: states the mockup did not have, **PAUSED · <profile>** (neutral), **NO AI · <profile>** (neutral, no AI in the session, since Beta 1.36) and **SUSPENDED** (amber: replay, finished session, no AI line, abnormal frames, refused access).
 - **Updates**: the block adds three states to the mockup's, *ready* (copy when stopped), *GitHub request limit* and *recovery impossible* (with the marker file).
 - **Minimum size**: the manifest keeps 640 × 520 (small screens); below 900 px the window scales down instead of cropping.
 - **Pattern editor**: the eight rows open with **Edit row by row**; closed, the free-text field stays (as before).

@@ -241,7 +241,11 @@ function M.recover(port)
  local result={kind=kind,from=from,to=to,file=port.markerFile()}
  if installed==to then
   port.promote(kind)
-  if port.clearMarker() then port.report(kind..' '..from..' -> '..to); result.outcome='finished' else result.outcome='failed'; result.failed='repere' end
+  if port.clearMarker() then
+   port.report(kind..' '..from..' -> '..to); result.outcome='finished'
+   -- Beta 1.36 : version installée par une copie finie ici, surveillée dès ce lancement (compté comme le premier).
+   if kind=='update' then port.bootSet(to,from,1) else port.bootClear() end
+  else result.outcome='failed'; result.failed='repere' end
   return result
  end
  if installed~=from and installed~=nil then
@@ -257,7 +261,12 @@ function M.recover(port)
   local ok,failed=port.place(source)
   if ok then
    port.promote(kind)
-   if port.clearMarker() then port.report(kind..' '..from..' -> '..to); result.outcome='completed'; result.restart=true; return result end
+   if port.clearMarker() then
+    port.report(kind..' '..from..' -> '..to); result.outcome='completed'; result.restart=true
+    -- Beta 1.36 : copie refaite au lancement, version surveillée à son premier démarrage (comme après un clic).
+    if kind=='update' then port.bootSet(to,from,0) else port.bootClear() end
+    return result
+   end
    result.outcome='failed'; result.failed='repere'; return result
   end
   result.failed=failed
@@ -450,10 +459,14 @@ end
 local errorViews={network='errNet',rate='errRate',format='errFormat',integrity='errHash',content='errHash',write='errWrite'}
 local reportViews={update='success',rollback='rolledback',recovered='interrupted'}
 local busyViews={staging='installing',saving='installing',placing='installing',restoring='installing',rollbackReady='installing'}
+-- Compte rendu d'une opération faite au lancement précédent (mise à jour, retour arrière, reprise) : affiché à la place de
+-- l'état tant que rien d'autre n'est en cours.
+local reportPhases={idle=true,current=true,checking=true,none=true}
+function M.reported(u) return u.updated~=nil and reportPhases[u.phase]==true end
 function M.view(u,stopped)
  local phase=u.phase
  if phase=='broken' then return 'broken' end
- if u.updated and (phase=='idle' or phase=='current' or phase=='checking' or phase=='none') then return reportViews[u.updated.kind] end
+ if M.reported(u) then return reportViews[u.updated.kind] end
  if phase=='failed' then
   if u.error=='driving' then
    if not M.fresh(u) then return u.previous and 'driving' or 'unchecked' end

@@ -14,12 +14,15 @@
 -- ni effacés, ni remplacés), source illisible (f.unreadable[chemin] : copie refusée ; f.locked : ouvert en lecture par
 -- l'app, copiable mais jamais remplacé), suppression refusée
 -- (f.failDelete, motif du chemin).
+-- Beta 1.36 : dossiers gardés une fois vides (f.dirs), comme sous Windows : créés par createDir/createFileDir ou par
+-- l'écriture d'un fichier, effacés seulement par io.deleteDir (vides) ; un dossier déplacé d'un bloc refuse une
+-- destination qui existe déjà, même vide.
 local M={}
 M.prefix='apps/lua/ACAdvancedIA/'
 function M.install(o)
  o=o or {}
  local f={files=o.files or {},zips={},count=0,calls={},responses={},json={},sha={},restarts=0,opened={},root=o.root or 'D:/app',
-  state=o.state or 'C:/state',saved={},pending={},reloads=0,watching=true,locked={},readonly={},unreadable={},pausedWrites=0}
+  state=o.state or 'C:/state',saved={},pending={},reloads=0,watching=true,locked={},readonly={},unreadable={},pausedWrites=0,dirs={}}
  local function log(x) f.calls[#f.calls+1]=x end
  local function keep(t,k) f.saved[#f.saved+1]={t,k,t[k]} end
  local appRoot,stateRoot=f.root..'/',f.state..'/'
@@ -33,6 +36,18 @@ function M.install(o)
   if not f.watching and f.autoResume then f.pausedWrites=f.pausedWrites+1; if f.pausedWrites>f.autoResume then f.watching=true end end
   if f.watching then f.reloads=f.reloads+1; log('reload '..rel(path)) end
  end
+ -- Dossiers parents d'un chemin (hors racines), créés au besoin.
+ local function parents(path)
+  local d=type(path)=='string' and path:match('^(.*)/[^/]*$')
+  while d and under(d) and d~=f.root and d~=f.state do f.dirs[d]=true; d=d:match('^(.*)/[^/]*$') end
+ end
+ local function inside(dir,skip)
+  local prefix=dir..'/'
+  for path in pairs(f.files) do if path:sub(1,#prefix)==prefix then return true end end
+  for path in pairs(f.dirs) do if path~=skip and path:sub(1,#prefix)==prefix then return true end end
+  return false
+ end
+ local function dirExists(path) return f.dirs[path]==true or inside(path) end
  local function later(fn) if f.async then f.pending[#f.pending+1]=fn else fn() end end
  function f.zip(entries) f.count=f.count+1; local id='ZIP#'..f.count; f.zips[id]=entries; return id end
  local function zipOf(source) return f.zips[source] or f.zips[f.files[source] or ''] end
@@ -65,13 +80,13 @@ function M.install(o)
   return getFolder and getFolder(id) or nil
  end
  keep(os,'openURL'); os.openURL=function(url) f.opened[#f.opened+1]=url end
- for _,name in ipairs({'load','save','fileExists','deleteFile','copyFile','move','createDir','createFileDir','scanDir','scanZip','loadFromZip','extractFromZipAsync'}) do keep(io,name) end
+ for _,name in ipairs({'load','save','fileExists','deleteFile','copyFile','move','createDir','createFileDir','scanDir','scanZip','loadFromZip','extractFromZipAsync','deleteDir','dirExists'}) do keep(io,name) end
  local orig={}; for _,s in ipairs(f.saved) do if s[1]==io then orig[s[2]]=s[3] end end
  io.load=function(path,...) if under(path) then return f.files[path] end; return orig.load(path,...) end
  io.save=function(path,data,...)
   if under(path) then
    if f.failSave and path:find(f.failSave,1,true) or f.readonly[path] then return false end
-   touched(path); f.files[path]=data; log('save '..rel(path)); return true
+   touched(path); parents(path); f.files[path]=data; log('save '..rel(path)); return true
   end
   return orig.save(path,data,...)
  end
@@ -89,7 +104,7 @@ function M.install(o)
    if f.files[a]==nil then return false end
    if failIfExists~=false and f.files[b]~=nil then return false end
    if f.unreadable[a] or f.locked[b] or f.readonly[b] or f.failCopy and b:find(f.failCopy,1,true) then return false end
-   touched(b); f.files[b]=f.files[a]; log('copy '..rel(b)); return true
+   touched(b); parents(b); f.files[b]=f.files[a]; log('copy '..rel(b)); return true
   end
   return orig.copyFile and orig.copyFile(a,b,failIfExists)
  end
@@ -101,19 +116,30 @@ function M.install(o)
     local from,to=a..'/',b..'/'
     local moved={}
     for path in pairs(f.files) do if path:sub(1,#from)==from then moved[#moved+1]=path end end
-    if #moved==0 or f.failDirMove then return false end
-    for path in pairs(f.files) do if path:sub(1,#to)==to then return false end end
+    if (#moved==0 and not f.dirs[a]) or f.failDirMove then return false end
+    if dirExists(b) then return false end
     for _,path in ipairs(moved) do f.files[to..path:sub(#from+1)]=f.files[path]; f.files[path]=nil end
+    local dirs={}; for path in pairs(f.dirs) do if path==a or path:sub(1,#from)==from then dirs[#dirs+1]=path end end
+    for _,path in ipairs(dirs) do f.dirs[path]=nil; f.dirs[b..path:sub(#a+1)]=true end
+    parents(b..'/x'); f.dirs[b]=true
     log('movedir '..rel(b)); return true
    end
    if f.locked[a] or f.locked[b] or f.readonly[b] then return false end
    if f.files[b]~=nil and not replace then return false end
-   touched(a); touched(b); f.files[b]=f.files[a]; f.files[a]=nil; log('move '..rel(b)); return true
+   touched(a); touched(b); parents(b); f.files[b]=f.files[a]; f.files[a]=nil; log('move '..rel(b)); return true
   end
   return orig.move(a,b,replace,...)
  end
- io.createDir=function(path) if under(path) then return true end; return orig.createDir and orig.createDir(path) end
- io.createFileDir=function(path) if under(path) then return true end; return orig.createFileDir and orig.createFileDir(path) end
+ io.createDir=function(path) if under(path) then parents(path..'/x'); return true end; return orig.createDir and orig.createDir(path) end
+ io.createFileDir=function(path) if under(path) then parents(path); return true end; return orig.createFileDir and orig.createFileDir(path) end
+ io.deleteDir=function(path)
+  if under(path) then
+   if not f.dirs[path] or inside(path,path) then return false end
+   f.dirs[path]=nil; log('rmdir '..rel(path)); return true
+  end
+  return orig.deleteDir and orig.deleteDir(path)
+ end
+ io.dirExists=function(path) if under(path) then return dirExists(path) end; return orig.dirExists and orig.dirExists(path) end
  io.scanDir=function(dir,mask,cb,...)
   if not under(dir) then return orig.scanDir(dir,mask,cb,...) end
   local prefix=dir..'/'; local seen={}; local names={}
@@ -121,6 +147,13 @@ function M.install(o)
    if path:sub(1,#prefix)==prefix then
     local rest=path:sub(#prefix+1); local name=rest:match('^[^/]+'); local folder=rest:find('/',1,true)~=nil
     if not seen[name] then seen[name]=folder; names[#names+1]=name elseif folder then seen[name]=true end
+   end
+  end
+  -- Dossiers vides aussi listés (Beta 1.36).
+  for path in pairs(f.dirs) do
+   if path:sub(1,#prefix)==prefix then
+    local name=path:sub(#prefix+1):match('^[^/]+')
+    if name and seen[name]==nil then seen[name]=true; names[#names+1]=name elseif name then seen[name]=true end
    end
   end
   table.sort(names)
@@ -136,7 +169,7 @@ function M.install(o)
   later(function()
    if not z or f.failExtract then cb('disk'); return end
    if type(filter)=='table' and filter.crucial and z[filter.crucial]==nil then cb('crucial'); return end
-   for name,content in pairs(z) do f.files[dest..'/'..name]=content end
+   for name,content in pairs(z) do f.files[dest..'/'..name]=content; parents(dest..'/'..name) end
    -- Fichier abîmé à l'extraction (disque) : f.corruptExtract, chemin de l'entrée.
    if f.corruptExtract then f.files[dest..'/'..f.corruptExtract]='abime' end
    log('extract '..rel(dest)); cb(nil)

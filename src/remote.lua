@@ -38,6 +38,14 @@ local function files(dir,rel,out)
  end)
  return out
 end
+-- Sous-dossiers d'un dossier, les plus profonds d'abord (pour les effacer une fois vides).
+local function folders(dir,rel,out)
+ io.scanDir(dir,'*',function(name,attr)
+  if name=='.' or name=='..' or name=='' then return end
+  if attr and attr.isDirectory then local path=rel=='' and name or rel..'/'..name; folders(dir..'/'..name,path,out); out[#out+1]=path end
+ end)
+ return out
+end
 -- Ordre de la copie finale : src/ d'abord, les autres fichiers, puis ACAdvancedIA.lua, le manifeste en dernier.
 local function rank(path)
  if path=='manifest.ini' then return 4 elseif path=='ACAdvancedIA.lua' then return 3 elseif path:sub(1,4)=='src/' then return 1 end
@@ -89,7 +97,16 @@ function M.new(onRelease)
  -- rétablie.
  local function watch(paused) if ac and callable(ac.pauseFilesWatching) then pcall(ac.pauseFilesWatching,paused) end end
  local function list(dir) local ok,out=pcall(files,dir,'',{}); return ok and type(out)=='table' and out or nil end
- local function clear(dir) local all=list(dir); if all then for _,rel in ipairs(all) do pcall(io.deleteFile,dir..'/'..rel) end end end
+ -- Beta 1.36 : dossiers vides effacés aussi (les plus profonds d'abord, puis le dossier lui-même) ; sinon le renommage
+ -- de la sauvegarde trouverait sa destination déjà là et passerait à la copie dès la troisième mise à jour.
+ local function clear(dir)
+  local all=list(dir); if all then for _,rel in ipairs(all) do pcall(io.deleteFile,dir..'/'..rel) end end
+  if callable(io.deleteDir) then
+   local ok,subs=pcall(folders,dir,'',{})
+   if ok and type(subs)=='table' then for _,rel in ipairs(subs) do pcall(io.deleteDir,dir..'/'..rel) end end
+   pcall(io.deleteDir,dir)
+  end
+ end
  local function copy(a,b) pcall(io.createFileDir,b); local ok,r=pcall(io.copyFile,a,b,false); return ok and r~=false and exists(b) end
  -- Remplacement d'un fichier de l'app d'un seul coup : copie à côté (.new, même dossier, même disque), puis déplacement
  -- qui remplace ; une coupure laisse l'ancien fichier entier ou le nouveau, jamais un fichier à moitié écrit.
