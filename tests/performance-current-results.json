@@ -3,34 +3,34 @@
   "profiling": false,
   "results": [
     {
-      "p99Ms": 0.11850000009872019,
-      "peakMs": 0.34020000020973384,
+      "peakMs": 0.9947000071406364,
       "vmstates": {},
       "errors": 0,
       "frames": 30000,
       "stacks": {},
       "ai": 9,
-      "meanMs": 0.042688823407903934
+      "meanMs": 0.049301816666654,
+      "p99Ms": 0.1534000039100647
     },
     {
-      "p99Ms": 0.45659998431801796,
-      "peakMs": 2.2387999924831092,
+      "peakMs": 5.329800012987107,
       "vmstates": {},
       "errors": 0,
       "frames": 30000,
       "stacks": {},
       "ai": 30,
-      "meanMs": 0.215198593303406
+      "meanMs": 0.21998615005868488,
+      "p99Ms": 0.5419999943114817
     },
     {
-      "p99Ms": 1.1829000141005963,
-      "peakMs": 4.977500007953495,
+      "peakMs": 21.63439997821115,
       "vmstates": {},
       "errors": 0,
       "frames": 30000,
       "stacks": {},
       "ai": 60,
-      "meanMs": 0.5637932766830394
+      "meanMs": 0.5928227066537753,
+      "p99Ms": 1.3920000055804849
     }
   ],
   "sources": {
@@ -65,7 +65,7 @@
     "tips.lua": "886df09617f89dd3367d30466884e605f844bfb5ad54ceaf3c8c889c0ea60439",
     "tips_en.lua": "bfe5fc560865cf317d684691715f162ccb4d201f7828f734b84b9af0cf2e06e0",
     "traffic.lua": "af75adf73ab13cf0c19552fdf83d00044efdd542b06ccdbdc4667728e8c47ed4",
-    "ui.lua": "c04773f07b777ad9884a960f78e2409043904378de1cb15d04ffd13d89fe1b23",
+    "ui.lua": "ca45c3622accc5156be480b6fcaec4988cbe73aa51719356f4fdd0e0981028f1",
     "update.lua": "f3c83c4b9c04d438629f2146da836736a3ced0169c345c44e290a980660cc45a",
     "util.lua": "533d16b986fc80b7d27d6754e4e36c8e984ae16b1dbbab925341a56ca0bc624d",
     "weather.lua": "574e6c04dd73cded2d96dcdd8386c35991827c5c3ac59ed4ac7d1d17f48f13f5",
