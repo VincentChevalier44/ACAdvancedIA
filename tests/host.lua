@@ -69,7 +69,9 @@ function M.create(native110,options)
  ac.findNodes=function(query) assert(type(query)=='string'); return {applySkin=function(self,skin) assert(type(skin)=='string'); h.appliedSkins=h.appliedSkins or {}; h.appliedSkins[query]=skin; return self end} end
  io.load=function(path) assert(type(path)=='string'); return h.files[path] end
  -- Réglage d'AI flood de CSP (Beta 1.26) : seule écriture permise hors du dossier des journaux.
- io.save=function(path,data,ensure) assert(path=='cfgext\\new_behaviour.ini' and type(data)=='string' and ensure==true,'write outside the CSP user config: '..tostring(path)); h.files[path]=data; h.cfgWrites=(h.cfgWrites or 0)+1; return true end
+ io.save=function(path,data,ensure) assert(path=='cfgext\\new_behaviour.ini' and type(data)=='string' and ensure==true,'write outside the CSP user config: '..tostring(path)); if ensure and h.files[path]~=nil then h.files[path..'.bak']=h.files[path] end; h.files[path]=data; h.cfgWrites=(h.cfgWrites or 0)+1; return true end
+ -- Comme io.replaceFile de CSP : l'ancien contenu reste en .bak ; seul ce reste peut être effacé (Beta 1.38).
+ io.deleteFile=function(path) assert(path=='cfgext\\new_behaviour.ini.bak','delete outside the CSP user config: '..tostring(path)); h.files[path]=nil; h.bakDeleted=(h.bakDeleted or 0)+1; return true end
  -- Journal de session : fichiers en mémoire, seulement dans le dossier des journaux.
  io.open=function(path,mode)
   assert(type(path)=='string' and path:sub(1,5)=='logs/','journal outside the logs folder: '..tostring(path))

@@ -1,6 +1,6 @@
 # Settings window and overlay (Racing 26)
 
-Beta 1.35 redraws the window and the overlay from the final mockup *ACAdvancedIA — Refonte UI* (artifact version 1793649588-c9be). This page records how the mockup maps to the code.
+Beta 1.35 redraws the window and the overlay from the final mockup *ACAdvancedIA — Refonte UI* (artifact version 1793649588-c9be). This page records how the mockup maps to the code. Beta 1.38 brings the details to the final mockup (version 1793693617-17ad) after a fidelity review of Beta 1.37.
 
 ## Files
 
@@ -34,12 +34,23 @@ DWrite weight names are CSP's (`ui.DWriteFont.Weight`): Regular is 400 and Ultra
 
 - **Tooltips** are CSP's native ones (kit colours when CSP exposes the style colours), not the drawn `.tip` box: a drawn box would be clipped by the window edge.
 - **Text inputs** are native ImGui inputs on a drawn frame (their own font, no DWrite).
-- **An unticked section** shows its warning instead of its dimmed settings, as before: its settings do not apply, and the controls stay out of reach. Since the review, **Global options** follow the same rule.
+- **An unticked section** (since Beta 1.38, as in the mockup) shows its warning at the top of the pane and its settings dimmed underneath (a veil of the panel colour at 58 %, the mockup's 42 % opacity). They stay adjustable and apply once the section is ticked; **Global options** and **Racing rules** follow the same rule. Beta 1.37 showed the warning alone.
 - **Profile selector**: in a window too narrow for the names next to the tabs, the profiles show as their first letter; the selector is never hidden.
 - **State chip**: states the mockup did not have, **PAUSED · <profile>** (neutral), **NO AI · <profile>** (neutral, no AI in the session, since Beta 1.36) and **SUSPENDED** (amber: replay, finished session, no AI line, abnormal frames, refused access).
 - **Updates**: the block adds three states to the mockup's, *ready* (copy when stopped), *GitHub request limit* and *recovery impossible* (with the marker file).
 - **Minimum size**: the manifest keeps 640 × 520 (small screens); below 900 px the window scales down instead of cropping.
-- **Pattern editor**: the eight rows open with **Edit row by row**; closed, the free-text field stays (as before).
+- **Pattern editor**: the rows open with **Edit row by row**; closed, the free-text field stays (as before). Open, they show the rows in use (at least one) plus those added with **+ Add a row**, up to eight, under the **Class number** column.
 - **Native AC yellow on the HUD** is greyed out only on an equipped track (detected panels) with the **Track light panels** section ticked for the profile shown; elsewhere it still works and stays settable.
-- **Track light panels** (Beta 1.37, mockup version 1793693617-17ad): the section follows the app's rule for an unticked section (its warning instead of dimmed settings); its circuit status and **Active for** chips stay visible so it can be ticked again. Two defaults differ from the mockup's example on purpose: red is on (as in Beta 1.36) and the section is ticked for every profile, Hotlap included. The colour rows draw a 14 px swatch with the kit's flag colours; the yellow row is a switch drawn on and greyed. The English link line says *Race & safety*, the sidebar's real name (the mockup's English texts say *Racing & safety*).
+- **Track light panels** (Beta 1.37, mockup version 1793693617-17ad): the section follows the app's rule for an unticked section (since Beta 1.38: its warning above its dimmed settings); its circuit status and **Active for** chips stay visible so it can be ticked again, and since Beta 1.38 its title row carries the section switch. Two defaults differ from the mockup's example on purpose: red is on (as in Beta 1.36) and the section is ticked for every profile, Hotlap included. The colour rows draw a 14 px swatch with the kit's flag colours; the yellow row is a switch drawn on and greyed. The English link line says *Race & safety*, the sidebar's real name (the mockup's English texts say *Racing & safety*).
 - **Download progress** is not shown (CSP gives none), as agreed in the mockup.
+
+## Beta 1.38 fidelity pass: what still differs on purpose
+
+- **Long texts cut with an ellipsis**, as the mockup does: the rule-set lines (*… · relance RS*) in the 252 px column, the header guard line in a narrow window, a capability name in a narrow Diagnostics column. The tooltips keep the full text.
+- **Default texts** (*default: …*) are lower-cased like the mockup's; a label starting with an accented capital (*À la ligne…*) keeps it, since Lua only lower-cases ASCII.
+- **Safety Car base**: eight rows at most, then *N more cars: refine the filter* (the mockup shows three examples; drawing hundreds of rows every frame would cost too much).
+- **Overlay layout**: the version text is gone from the top right, but the title still stops where it was (the tested layout, which never overlaps, is kept).
+- **Overlay instructions kept**, because they carry live values or a state the mockup's examples do not show: the double yellow (*Double yellow in 300 m*), the local yellow zone and AC's own yellow, the red-flag variants (pit lane, sessions), the Safety Car called and coming in, the standing-start slot with its distance, the relaunch laps, the penalty variants, the lap line and the race summary. The rolling and standing restart explanations keep the procedure in full (two lines).
+- **Scroll bars** are dragged by their 6 px rail (only when the content overflows); clicking the rail does not jump.
+- **Built-in presets** aimed at another profile keep the profile shown (the driver's choice for Beta 1.38); custom presets still show the profile they were saved for. After such a click the built-in line reads *Last preset loaded: … — modified, or another profile selected*, which is accurate; the mockup's board leaves the line as it was.
+- **English texts** follow MainEN and TextesEN, except on purpose: the circuit status lines keep the Settings board's wording (TextesEN predates it); the colour legend uses ' · ' in both languages, like the French board; the link line says *Race & safety*, the sidebar's real name; the applied message is the short *Applied to the Race profile*; the warning's offence count is in its pill (*OFFENCES: 1 / 5*), not in the instruction.

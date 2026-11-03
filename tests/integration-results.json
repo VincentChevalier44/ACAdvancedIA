@@ -115,6 +115,8 @@
     "Beta 1.36 : bouton de l onglet Règles après la réinitialisation d une section",
     "Beta 1.36 : aucune puce de redémarrage après un retour arrière",
     "Beta 1.36 : puce d état sans IA dans la session",
-    "Beta 1.37 : section Panneaux lumineux, accueil et diagnostic"
+    "Beta 1.37 : section Panneaux lumineux, accueil et diagnostic",
+    "Beta 1.38 : reste new_behaviour.ini.bak effacé après chaque écriture du réglage d AI flood",
+    "Beta 1.38 : interface au niveau de la maquette"
   ]
 }

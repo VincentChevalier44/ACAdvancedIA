@@ -372,7 +372,7 @@ function M.step(e,frame,dt)
   e.incidents.playerFlag=false; e.incidents.playerYellow=false
   -- Pause : valeur des panneaux gardée (l'applicateur n'écrit rien en pause) ; sinon rendue à AC et recalculée dès la
   -- reprise (jamais un quart de seconde rendu à AC à chaque sortie de pause, Beta 1.35).
-  if reason~='paused' then e.lights.value=K.flagNone; e.lights.reason=''; e.lights.at=-math.huge end; Panel.native(e.panel,frame,now,e.p)
+  if reason~='paused' then e.lights.value=K.flagNone; e.lights.reason=''; e.lights.at=-math.huge end; Panel.native(e.panel,frame,now,e.p,e.profile)
   -- Aucun onglet coché (hotlap, journée circuit sans commande) : le bip du DRS du joueur reste actif ; app coupée,
   -- panique, pause : aucun bip.
   if reason=='nosections' then drsBeep(e,frame,frame.flag==K.flagCaution and not frame.flagOwned,e.p.drsAssist~=false,e.p.drsBeepVolume or 100) else e.drs.was=false end

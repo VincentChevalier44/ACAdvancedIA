@@ -31,7 +31,9 @@ function W.colors()
    orange=hex('#FF9A4D'),orangeDot=hex('#FF7A1A'),orangeBack=hex('#2E1A0C'),neutralBack=hex('#1A1D23'),
    switchOff=hex('#2C3038'),switchOffHover=hex('#363B45'),knobOff=hex('#8D94A0'),knobDisabled=hex('#3F444D'),
    thumb=hex('#EEF0F3'),thumbHover=hex('#FFFFFF'),marker=hex('#5C626C'),
-   flagYellow=hex('#FFD21F'),flagRed=hex('#E10A1E'),flagBlue=hex('#2F7BFF'),flagWhite=hex('#F2F3F5')}
+   flagYellow=hex('#FFD21F'),flagRed=hex('#E10A1E'),flagBlue=hex('#2F7BFF'),flagWhite=hex('#F2F3F5'),
+   -- Beta 1.38 : violet du meilleur tour ; voile d'une section décochée (fond du panneau, contenu grisé à 42 %).
+   best=hex('#B26CFF'),veil=hex('#111318',0.58)}
   local c=palette
   c.blue=c.cyan; c.light=c.text; c.grey=c.label; c.field=c.control; c.hover=c.controlHover; c.line=c.rule; c.red=c.danger; c.green=c.ok; c.dark=c.ink
  end
@@ -309,7 +311,8 @@ local function buttonStyle(style,active,hover,pressed)
  return pressed and s[3] or hover and s[2] or s[1],s[4],s[5]
 end
 -- Bouton en parallélogramme (.b) : libellé condensé extra-gras italique en capitales, réduit s'il est trop long.
-function W.button(id,label,x,y,w,h,active,tip,style)
+-- icon (Beta 1.38, facultatif) : 'warn', triangle d'alerte devant le libellé (bouton PANIQUE de la maquette).
+function W.button(id,label,x,y,w,h,active,tip,style,icon)
  local clicked,hover,pressed,right=W.hit(id,x,y,w,h)
  f.active[id]=active==true
  if style=='disabled' then clicked=false end
@@ -319,8 +322,15 @@ function W.button(id,label,x,y,w,h,active,tip,style)
  local text=W.upper(label)
  local size=h>=28 and 13 or 12
  size=W.shrink(text,w-18,size,9,'display')
- local tw=math.min(width(text,size,'display'),w-18)
- W.text(fitted(text,w-18,size,'display'),x+(w-tw)/2,y+(h-size*1.2)/2,size,ink,'display')
+ local iw=icon and 16 or 0
+ local tw=math.min(width(text,size,'display'),w-18-iw)
+ local tx=x+(w-tw-iw)/2+iw
+ if icon then
+  local ix,iy=tx-iw,y+(h-12)/2
+  W.line(ix+6,iy+1.2,ix+11,iy+10.4,ink,1.6); W.line(ix+11,iy+10.4,ix+1,iy+10.4,ink,1.6); W.line(ix+1,iy+10.4,ix+6,iy+1.2,ink,1.6)
+  W.line(ix+6,iy+5,ix+6,iy+7.6,ink,1.6)
+ end
+ W.text(fitted(text,w-18-iw,size,'display'),tx,y+(h-size*1.2)/2,size,ink,'display')
  W.help(tip,x,y,w,h,5)
  return clicked,right
 end
@@ -397,6 +407,13 @@ function W.chip(str,x,y,kind)
  return w
 end
 function W.chipRight(str,right,y,kind) local w=W.chipWidth(str); W.chip(str,right-w,y,kind); return w end
+-- Puce d'état à point de couleur (en-tête, Beta 1.38) : point de 7 px puis le texte, aux couleurs de la puce.
+function W.dotChipWidth(str) return width(W.upper(str),11,'cond')+22 end
+function W.dotChip(str,x,y,kind)
+ local s=chipStyle(kind); local text=W.upper(str); local w=width(text,11,'cond')+22
+ W.rect(x,y,w,18,s[1]); W.circle(x+9.5,y+9,3.5,s[2]); W.text(text,x+16,y+2.5,11,s[2],'cond')
+ return w
+end
 -- Segment (.seg) : cases égales, celle choisie en cyan. ids : un identifiant par case (profils, langues) ; sinon un seul
 -- identifiant pour tout le segment : le clic choisit la case sous la souris, ou la suivante (clic sans souris).
 -- Renvoie l'indice cliqué ou nil, puis le clic droit (segment à un seul identifiant).
@@ -558,7 +575,9 @@ function W.message(str,x,y,w,kind,size)
  return W.paragraph(str,x+13,y,w-13,size,s[1])
 end
 -- Zone qui défile : contenu dessiné entre y et y+h, décalé de offset ; la molette au-dessus la fait défiler. Rail de
--- 4 px à droite, poignée plus claire au survol, visible seulement si le contenu dépasse.
+-- 4 px à droite, poignée plus claire au survol, visible seulement si le contenu dépasse. Beta 1.38 : rail saisissable
+-- (bande de 6 px, seulement quand le contenu dépasse) : glisser déplace la poignée, cyan pendant le glisser.
+local scrollIds={}
 function W.scroll(state,key,x,y,w,h,content)
  local offset=state[key] or 0
  local maximum=math.max(0,content-h)
@@ -567,10 +586,20 @@ function W.scroll(state,key,x,y,w,h,content)
   local wheel=ui.mouseWheel()
   if wheel~=0 then offset=offset-wheel*60 end
  end
+ local dragging=false
+ if maximum>0 then
+  local thumb=math.max(30,h*h/content)
+  local id=scrollIds[key]; if not id then id='scroll_'..tostring(key); scrollIds[key]=id end
+  local _,_,pressed=W.hit(id,x+w-6,y,6,h)
+  if pressed and ui.mouseDelta then
+   local d=ui.mouseDelta(); dragging=true
+   offset=offset+(d and d.y or 0)/f.s*maximum/math.max(1,h-thumb)
+  end
+ end
  offset=math.max(0,math.min(maximum,offset)); state[key]=offset
  if maximum>0 then
   local c=W.colors(); local thumb=math.max(30,h*h/content)
-  W.rect(x+w-4,y,4,h,c.block); W.rect(x+w-4,y+(h-thumb)*offset/maximum,4,thumb,over and c.marker or c.ruleHover)
+  W.rect(x+w-4,y,4,h,c.block); W.rect(x+w-4,y+(h-thumb)*offset/maximum,4,thumb,dragging and c.cyan or over and c.marker or c.ruleHover)
  end
  return offset
 end

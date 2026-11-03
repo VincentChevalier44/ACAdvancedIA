@@ -87,18 +87,21 @@ local function texts(v)
    local body=wrap(T.settings[s.key] or s.label)
    local range=s.min and string.format(L.tipRange,number(s.min),number(s.max)) or ''
    for _,p in ipairs(C.profiles) do control.hint[p]=body..'\n\n'..wrap(string.format(L.tipDefault,L.profiles[p],shown(s,s.defaults[p]))..range) end
-   if s.choices then for j,x in ipairs(s.choices) do control.labels[j]=L.choices[x] or x end end
+   -- Beta 1.38 : libellés courts de la maquette (L.choiceShort) dans les cases ; les infobulles gardent les longs.
+   local short=L.choiceShort[s.key]
+   if s.choices then for j,x in ipairs(s.choices) do control.labels[j]=short and short[x] or L.choices[x] or x end end
   end
  end
- v.descriptions={}; for _,group in ipairs(C.sections) do v.descriptions[group]=T.tabs[group] or '' end
- v.descriptions.overlay=T.tabs.overlay or ''
+ -- Descriptions des sections (Beta 1.38 : celles de la maquette ; les infobulles de la liste gardent les longues).
+ v.descriptions={}; for _,group in ipairs(C.sections) do v.descriptions[group]=L.sectionDescs[group] or T.tabs[group] or '' end
+ v.descriptions.overlay=L.sectionDescs.overlay or T.tabs.overlay or ''
  local function same(profile) return function() return profile end end
  v.builtinList={{L.presetJ,'Nordschleife','J',same('J')},{L.presetP,'Essais','P',same('P')},{L.presetQ,'Qualifications','Q',same('Q')},{L.presetC,'Course','C',same('C')},
   {L.presetE,'Endurance','E',function(view) return (view=='Q' or view=='P') and 'C' or view=='H' and 'J' or view end}}
  v.builtinNames={Nordschleife=L.presetJ,Essais=L.presetP,Qualifications=L.presetQ,Course=L.presetC,Endurance=L.presetE}
  -- Textes mémorisés (préréglage chargé, liste des voitures, version, delta, pastilles, message) : refaits à la
  -- prochaine image.
- v.updateLine=nil; v.loadedFor=nil; v.carFilterBuilt=nil; v.panelVersion=nil; v.deltaHundredths=nil; v.giveBackName=nil; v.blueTenths=nil; v.presetMessage=''
+ v.updateLine=nil; v.loadedFor=nil; v.carFilterBuilt=nil; v.panelVersion=nil; v.infrFor=nil; v.updateCodeFor=nil; v.deltaHundredths=nil; v.giveBackName=nil; v.blueTenths=nil; v.presetMessage=''
  -- Textes et mesures de la fenêtre refaits à la prochaine image (Beta 1.35) : textes mémorisés (v.memo), ligne des
  -- panneaux lumineux du diagnostic, place à rejoindre de l'overlay.
  v.setupFor=nil; v.memo={}; v.lightsFor=nil; v.lightsValue=nil; v.lightsSection=nil; v.placeSlot=nil; v.placeMeters=nil; v.lightOpts={}; v.activeFor=nil
@@ -162,7 +165,10 @@ local function loadBuiltin(v,name,profile)
  for key,value in pairs(kept) do p[key]=value end
  C.validate(profile,p,p)
  if name=='Endurance' and profile=='C' then C.applyRules('Endurance',e.profiles) else C.spreadRules(profile,e.profiles) end
- presetTarget(v,profile); v.presetName=''
+ -- Beta 1.38 (demande du pilote) : préréglage visant un autre profil (Endurance depuis les essais, Course depuis les
+ -- qualifications...) : appliqué à ce profil, le profil affiché reste et aucune tuile ne s'allume.
+ if profile==v.view then presetTarget(v,profile) else v.presetMessage=string.format(L.presetAppliedTo,L.profiles[profile]) end
+ v.presetName=''
  e.g.loadedPreset='builtin:'..name; e.g.presetsUsed=true; C.setMark(e.g,profile,name); mark(v)
 end
 -- Allumé quand le profil visé par le bouton porte ce préréglage (préférences du pilote et motifs de classes exclus ;
@@ -194,7 +200,12 @@ end
 local function carDatabase(v)
  if not v.carList then
   v.carList=Snapshot.carDatabase(); v.carNames={}
-  for _,car in ipairs(v.carList) do v.carNames[car.id]=car.label end
+  for _,car in ipairs(v.carList) do
+   -- Nom affiché sans le dossier entre parenthèses (Beta 1.38 : lignes de la base, nom puis dossier).
+   local suffix=' ('..car.id..')'
+   car.name=car.label:sub(-#suffix)==suffix and car.label:sub(1,#car.label-#suffix) or car.label
+   v.carNames[car.id]=car.name
+  end
  end
  return v.carList
 end
@@ -272,12 +283,14 @@ end
 -- défaut du profil affiché.
 -- Pastilles des couleurs de la section Panneaux lumineux (valeur ac.FlagType de chaque réglage).
 local lightSwatch={lightsYellow=2,lightsRed=5,lightsBlue=12,lightsWhite=6,lightsOrange=3,lightsGreen=1}
-local function toggleOpts(v,key)
+local function toggleOpts(v,key,value)
  local sw=lightSwatch[key]
  if not sw then return nil end
  local o=v.lightOpts[key]
  if not o then o={}; v.lightOpts[key]=o end
- o.swatch=v.lightColors and v.lightColors[sw]; o.note=L.lightNotes[key]; o.forced=key=='lightsYellow'
+ o.swatch=v.lightColors and v.lightColors[sw]; o.forced=key=='lightsYellow'
+ -- Beta 1.38 (maquette) : note du jaune toujours, celle du rouge seulement quand il est coupé.
+ o.note=(key=='lightsYellow' or value==false) and L.lightNotes[key] or nil
  return o
 end
 local function settingControl(v,control,view,p,x,y,w,locked)
@@ -315,7 +328,8 @@ local function settingControl(v,control,view,p,x,y,w,locked)
    if mod then W.marker(lx,y+9); lx=lx+12 end
    if control.defaultFor~=view then
     control.defaultFor=view; local d=1; for i,x0 in ipairs(s.choices) do if x0==s.defaults[view] then d=i end end
-    control.defaultText=string.format(L.defaultValue,control.labels[d] or '')
+    -- En minuscules, comme la maquette (« défaut : gauche ») ; refait seulement au changement de profil ou de langue.
+    control.defaultText=string.format(L.defaultValue,(control.labels[d] or ''):lower())
    end
    -- Texte du défaut à droite seulement s'il laisse sa place au libellé ; sinon il reste dans l'infobulle.
    local dw=W.labelWidth(control.defaultText)
@@ -338,7 +352,7 @@ local function settingControl(v,control,view,p,x,y,w,locked)
   if changed then p[s.key]=value; C.validate(view,p,p); touch(v,p) end
   return h
  end
- local opts=toggleOpts(v,s.key)
+ local opts=toggleOpts(v,s.key,value)
  -- Jaune des panneaux : toujours actif (allumé, grisé, sans effet).
  if opts and opts.forced then locked=true end
  local h=W.toggleHeight(opts)
@@ -373,6 +387,8 @@ local function groupHeight(group,view)
  end
  return h
 end
+-- Réglages qui dépendent d'un interrupteur (Beta 1.38, maquette) : grisés tant qu'il est coupé.
+local dependsOn={overtakeModeGap='overtakeMode',overtakeModeBoostPct='overtakeMode',bopStrengthPct='bopEnabled'}
 -- Sous-groupe : intertitre (titre et sous-titre), puis ses réglages ; renvoie la hauteur dessinée.
 local function drawGroup(v,group,view,p,x,y,w,shown,lockedKey)
  local c=W.colors(); local top=y
@@ -392,7 +408,12 @@ local function drawGroup(v,group,view,p,x,y,w,shown,lockedKey)
     y=y+h
    end
   else
-   y=y+settingControl(v,control,view,p,x,y,w,lockedKey==s.key)
+   local h=settingControl(v,control,view,p,x,y,w,lockedKey==s.key)
+   local parent=dependsOn[s.key]
+   if parent and p[parent]~=true and W.visible(y,h) then W.rect(x,y,w,h,c.veil) end
+   y=y+h
+   -- Jaune natif du HUD remplacé par les panneaux lumineux : note sous sa ligne (maquette).
+   if lockedKey==s.key then y=y+W.paragraph(L.yellowHudLocked,x+2,y+3,w-4,11,c.label)+8 end
   end
  end
  return y-top
@@ -414,8 +435,9 @@ local function split(v,key,list,view)
  return memo.cols
 end
 -- Réglages d'une section en sous-groupes, sur deux colonnes si la largeur le permet ; renvoie le bas du contenu.
-local function groupColumns(v,key,list,view,p,x,y,w,lockedKey)
- local two=w>=560
+-- single (Beta 1.38) : une seule colonne (couleurs et durées des panneaux lumineux, maquette).
+local function groupColumns(v,key,list,view,p,x,y,w,lockedKey,single)
+ local two=w>=560 and not single
  local cw=two and (w-18)/2 or w
  local cols=split(v,key,list,view)
  local yl,yr=y,y
@@ -475,6 +497,9 @@ local function ruleBlock(v,e,x,y,w)
 end
 -- Voiture de sécurité : modèle choisi et sa présence sur la grille, étapes de sa sortie, saisie du dossier, filtre et
 -- liste de la base des voitures.
+-- Phases de la bande (maquette) : garée, appelée, en piste, rentre ce tour, aux stands ; lignes de la base montrées.
+local safetyStrip={parked=1,call=2,out=3,['in']=4,parking=5}
+local SAFETY_ROWS=8
 local function safetyBlock(v,e,x,y,w)
  local c=W.colors(); local g=e.g
  local list=carDatabase(v)
@@ -493,6 +518,17 @@ local function safetyBlock(v,e,x,y,w)
    if W.button('safety_clear',L.safetyClearShort,x+w-112,y+14,100,28,false,v.tips.ui.safetyClear) then g.safetyCarModel=''; v.dirty() end
   end
   y=y+64
+  -- Phase de la voiture de sécurité (Beta 1.38, maquette) : cinq barres, la phase en cours en cyan.
+  if W.visible(y,26) then
+   local current=found and safetyStrip[e.incidents.safetyPhase] or 0
+   local bw=(w-12)/5
+   for i=1,5 do
+    local bx=x+(i-1)*(bw+3)
+    W.para(bx,y,bw,5,i==current and c.cyan or c.rule,1.5)
+    W.cell(W.upper(L.safetyPhaseStrip[i]),bx,y+10,bw,11,i==current and c.cyanText or c.label,'label')
+   end
+  end
+  y=y+30
   if e.safetyAmbiguous then y=y+W.message(L.safetyAmbiguous,x,y,w,'wn')+6 end
   if e.safetyOneMake then y=y+W.message(L.safetyOneMake,x,y,w,'wn')+6 end
  else
@@ -504,35 +540,45 @@ local function safetyBlock(v,e,x,y,w)
  for i,step in ipairs(L.safetySteps) do
   local h=#W.lines(step,w-30,12)*W.lineHeight(12)+6
   if W.visible(y,h) then
-   W.rect(x,y,20,18,c.select); W.text(intText(i),x+6,y+2,11,c.cyanText,'mono')
+   -- Étapes 1 et 2 (incident, aggravation) en ambre, 3 et 4 (voiture en piste, relance) en cyan (maquette).
+   W.rect(x,y,20,18,i<=2 and c.warnBack or c.select); W.text(intText(i),x+6,y+2,11,i<=2 and c.warn or c.cyanText,'mono')
    W.paragraph(step,x+30,y+1,w-30,12,c.body)
   end
   y=y+math.max(h,24)
  end
  y=y+4
  y=y+W.paragraph(L.safetyHelp,x,y,w,12,c.label)+8
- if W.visible(y,28) then W.label(L.safetyModel,x,y+8) end
- local value,changed=input('safety_model',x+230,y,w-230,g.safetyCarModel,v.tips.ui.safetyModel)
+ -- Filtre puis modèle, côte à côte, libellés au-dessus (Beta 1.38, maquette).
+ local half=(w-10)/2
+ if W.visible(y,14) then W.label(L.safetyFilter,x,y); W.label(L.safetyModel,x+half+10,y) end
+ y=y+18
+ v.carFilter=input('safety_filter',x,y,half,v.carFilter or '',v.tips.ui.safetyFilter) or ''
+ local value,changed=input('safety_model',x+half+10,y,half,g.safetyCarModel,v.tips.ui.safetyModel)
  if changed and type(value)=='string' and #value<=K.metadataLength and value:match('^[%w_%-%.]*$') then g.safetyCarModel=value; g.safetyCarPicked=true; v.dirty() end
  y=y+36
- if W.visible(y,28) then W.label(L.safetyFilter,x,y+8) end
- v.carFilter=input('safety_filter',x+230,y,w-230,v.carFilter or '',v.tips.ui.safetyFilter) or ''
- y=y+36
- -- Liste filtrée par une partie du nom affiché ou du dossier, refaite seulement quand le filtre change.
- local filter=v.carFilter:lower(); local labels=v.carLabels or {}; local ids=v.carIds or {}; v.carLabels=labels; v.carIds=ids
- if v.carFilterBuilt~=filter or labels[1]==nil then
-  v.carFilterBuilt=filter; labels[1]=L.safetyPickPrompt; local n=1
-  for _,car in ipairs(list) do if filter=='' or car.key:find(filter,1,true) then n=n+1; labels[n]=car.label; ids[n]=car.id end end
-  for j=#labels,n+1,-1 do labels[j]=nil; ids[j]=nil end
+ -- Base des voitures en lignes (nom, puis dossier en chiffres alignés), filtrée par une partie du nom affiché ou du
+ -- dossier, refaite seulement quand le filtre change ; au plus SAFETY_ROWS lignes, les autres comptées.
+ if v.carFilterRaw~=v.carFilter then v.carFilterRaw=v.carFilter; v.carFilterLower=v.carFilter:lower() end
+ local filter=v.carFilterLower; local rows=v.carRows or {}; v.carRows=rows
+ if v.carFilterBuilt~=filter or v.carRowsFor~=list then
+  v.carFilterBuilt=filter; v.carRowsFor=list; local n=0
+  for _,car in ipairs(list) do if filter=='' or car.key:find(filter,1,true) then n=n+1; rows[n]=car end end
+  for j=#rows,n+1,-1 do rows[j]=nil end
+  v.carMoreText=n>SAFETY_ROWS and string.format(L.safetyMore,n-SAFETY_ROWS) or nil
  end
- if #labels>1 and callable(ui.combo) and W.visible(y,28) then
-  W.label(L.safetyPick,x,y+8)
-  ui.setCursor(W.point(x+230,y)); ui.setNextItemWidth((w-230)*W.frame().s)
-  local selected,picked=ui.combo('##aai_safety_pick',1,0,labels)
-  W.help(v.tips.ui.safetyPick,x+230,y,w-230,28,5)
-  if picked and selected and selected>1 and ids[selected] then g.safetyCarModel=ids[selected]; g.safetyCarPicked=true; v.dirty() end
+ for i=1,math.min(#rows,SAFETY_ROWS) do
+  local car=rows[i]
+  if W.visible(y,28) then
+   local picked=car.id==g.safetyCarModel
+   if W.row(idOf('safety_pick_',i),x,y,w,28,picked,v.tips.ui.safetyPick) then g.safetyCarModel=car.id; g.safetyCarPicked=true; v.dirty() end
+   local iw=W.width(car.id,11,'mono')
+   W.cell(car.name or car.label,x+10,y+8,w-iw-30,12,picked and c.cyanText or c.text)
+   W.right(car.id,x+w-10,y+9,11,c.label,'mono')
+  end
+  y=y+31
  end
- y=y+36
+ if v.carMoreText then y=y+W.message(v.carMoreText,x,y,w,'mut')+4 end
+ y=y+4
  return y+W.message(L.safetyGridNote,x,y,w,'mut')+8
 end
 -- Motifs de classes : saisie libre, ou les huit associations motif → classe (segment des classes, effacement).
@@ -541,7 +587,7 @@ local function patternBlock(v,p,x,y,w)
  if v.patternSource~=p.classPatterns or v.patternProfile~=v.view then
   local rows=C.patterns(p.classPatterns)
   for i=1,K.maxPatterns do local r=v.patternRows[i]; r.pattern=rows[i] and rows[i].pattern or ''; r.class=rows[i] and rows[i].class or 1 end
-  v.patternSource=p.classPatterns; v.patternProfile=v.view
+  v.patternSource=p.classPatterns; v.patternProfile=v.view; v.patternAdded=nil
  end
  local used=0; for i=1,K.maxPatterns do if v.patternRows[i].pattern~='' then used=used+1 end end
  if v.patternCountFor~=used then v.patternCountFor=used; v.patternCountText=string.format(L.patternCount,used,K.maxPatterns) end
@@ -560,7 +606,10 @@ local function patternBlock(v,p,x,y,w)
  if W.visible(y,20) then W.label(L.patternColumn,x+28,y+4); W.label(L.classColumn,x+w-186,y+4) end
  y=y+22
  local edited=false
- for i=1,K.maxPatterns do
+ -- Lignes montrées (Beta 1.38, maquette) : celles remplies, au moins une, plus celles ajoutées par « + Ajouter une ligne ».
+ local lastUsed=0; for i=1,K.maxPatterns do if v.patternRows[i].pattern~='' then lastUsed=i end end
+ local shownRows=math.min(K.maxPatterns,math.max(1,lastUsed,v.patternAdded or 0))
+ for i=1,shownRows do
   local row=v.patternRows[i]
   if W.visible(y,28) then W.text(intText(i),x,y+7,11,c.label,'mono') end
   local text,textChanged=input(v.patternIds[i],x+28,y,w-28-196,row.pattern,v.tips.ui.patternRow)
@@ -572,6 +621,11 @@ local function patternBlock(v,p,x,y,w)
   end
   y=y+32
  end
+ if W.visible(y,26) then
+  local bw=math.max(150,W.width(W.upper(L.patternAdd),12,'display')+30)
+  if W.button('pattern_add',L.patternAdd,x,y,bw,26,false,v.tips.ui.patternRows,shownRows>=K.maxPatterns and 'disabled' or 'outline') then v.patternAdded=shownRows+1 end
+ end
+ y=y+32
  if edited then
   local count=0; local valid=true
   for i=1,K.maxPatterns do
@@ -621,17 +675,25 @@ local function globalSlider(v,g,id,key,label,valueLabel,x,y,w,step,tip)
  end
  return 44
 end
+-- Libellé d'un choix global et « défaut : … » à droite, s'il laisse sa place au libellé (comme les choix des sections ;
+-- Beta 1.38, maquette).
+local function choiceHead(label,default,x,y,w)
+ local c=W.colors()
+ local dw=default and W.labelWidth(default) or 0
+ local room=default~=nil and dw<=w*DEFAULT_SHARE
+ W.cell(label,x,y+5,room and w-dw-12 or w,12,c.body)
+ if room then W.label(default,x+w-dw,y+6) end
+end
 -- Options globales (toutes les sessions) : niveau et aides, occupation latérale, personnalités.
 local function globalBlock(v,e,x,y,w)
  local c=W.colors(); local g=e.g; local tips=v.globalTips
- y=y+W.paragraph(L.globalHelp,x,y,w,12,c.label)+10
  local two=w>=560; local cw=two and (w-18)/2 or w
  local yl,yr=y,y
  -- Niveau et aides.
  if W.visible(yl,24) then W.heading(L.subgroups.globalsLevel[1],x,yl,cw,L.subgroups.globalsLevel[2]) end
  yl=yl+30
  if W.visible(yl,46) then
-  W.cell(L.levelRequested,x,yl+5,cw,12,c.body); W.help(tips.levelMode,x,yl,cw,20,4)
+  choiceHead(L.levelRequested,v.levelDefault,x,yl,cw); W.help(tips.levelMode,x,yl,cw,20,4)
   local at=1; for j,x0 in ipairs(C.globalChoices.levelMode) do if x0==g.levelMode then at=j end end
   local clicked,right=W.cycle('global_levelMode',L.levelModeLabels[at],x,yl+22,cw,22,tips.levelMode)
   if clicked then g.levelMode=C.globalChoices.levelMode[at%#C.globalChoices.levelMode+1]; v.dirty()
@@ -643,8 +705,12 @@ local function globalBlock(v,e,x,y,w)
   local key=item[1]
   if W.visible(yl,28) then globalSwitch(v,g,idOf('global_',key),key,item[2],x,yl,cw,tips[key]) end
   yl=yl+28
+  -- Bonus de grip par point de niveau : juste sous son interrupteur (Beta 1.38, maquette).
+  if key=='useGripBoost' then
+   if v.gripFor~=g.gripPerLevelPct then v.gripFor=g.gripPerLevelPct; v.gripText=number(g.gripPerLevelPct) end
+   yl=yl+globalSlider(v,g,'global_gripPerLevelPct','gripPerLevelPct',L.globalLabels.gripPerLevelPct,v.gripText,x,yl,cw,W.step(C.globalBounds.gripPerLevelPct[1],C.globalBounds.gripPerLevelPct[2]),tips.gripPerLevelPct)
+  end
  end
- yl=yl+globalSlider(v,g,'global_gripPerLevelPct','gripPerLevelPct',L.globalLabels.gripPerLevelPct,number(g.gripPerLevelPct),x,yl,cw,W.step(C.globalBounds.gripPerLevelPct[1],C.globalBounds.gripPerLevelPct[2]),tips.gripPerLevelPct)
  -- Occupation latérale et personnalités (seconde colonne).
  local rx=two and x+cw+18 or x
  if not two then yr=yl+8 end
@@ -720,10 +786,10 @@ local function overlayBlock(v,e,x,y,w)
  -- Taille et fond.
  if W.visible(yl,24) then W.heading(L.subgroups.overlaySize[1],x,yl,cw,L.subgroups.overlaySize[2]) end
  yl=yl+30
- if v.scaleFor~=g.overlayScale then v.scaleFor=g.overlayScale; v.scaleText=(string.format('%.2f×',g.overlayScale):gsub('%.',L.decimalMark)) end
+ if v.scaleFor~=g.overlayScale then v.scaleFor=g.overlayScale; v.scaleText=number(g.overlayScale)..'×' end
  yl=yl+globalSlider(v,g,'overlay_scale','overlayScale',L.overlayScale,v.scaleText,x,yl,cw,0.05,tips.overlayScale)
  if W.visible(yl,46) then
-  W.cell(L.overlayBackground,x,yl+5,cw,12,c.body); W.help(tips.overlayBackground,x,yl,cw,20,4)
+  choiceHead(L.overlayBackground,v.backgroundDefault,x,yl,cw); W.help(tips.overlayBackground,x,yl,cw,20,4)
   local at=1; for i,k in ipairs(backgroundKeys) do if k==g.overlayBackground then at=i end end
   local picked,right=globalChoice('overlay_background',v.backgroundLabels,x,yl+22,cw,at,tips.overlayBackground)
   if picked and picked~=at then g.overlayBackground=backgroundKeys[picked]; v.dirty()
@@ -734,12 +800,12 @@ local function overlayBlock(v,e,x,y,w)
  -- Apparence.
  if W.visible(yl,24) then W.heading(L.subgroups.overlayLook[1],x,yl,cw,L.subgroups.overlayLook[2]) end
  yl=yl+30
- if v.opacityFor~=g.panelOpacity then v.opacityFor=g.panelOpacity; v.opacityText=string.format(L.percentValue,g.panelOpacity) end
+ if v.opacityFor~=g.panelOpacity then v.opacityFor=g.panelOpacity; v.opacityText=string.format('%.0f',g.panelOpacity) end
  yl=yl+globalSlider(v,g,'panel_opacity','panelOpacity',L.overlayOpacity,v.opacityText,x,yl,cw,5,tips.panelOpacity)
- if v.contentFor~=g.overlayContent then v.contentFor=g.overlayContent; v.contentText=string.format(L.percentValue,g.overlayContent) end
+ if v.contentFor~=g.overlayContent then v.contentFor=g.overlayContent; v.contentText=string.format('%.0f',g.overlayContent) end
  yl=yl+globalSlider(v,g,'overlay_content','overlayContent',L.overlayContent,v.contentText,x,yl,cw,5,tips.overlayContent)
  if W.visible(yl,46) then
-  W.cell(L.overlayShow,x,yl+5,cw,12,c.body); W.help(tips.panelShow,x,yl,cw,20,4)
+  choiceHead(L.overlayShow,v.showDefault,x,yl,cw); W.help(tips.panelShow,x,yl,cw,20,4)
   local at=g.panelShow=='always' and 2 or 1
   local picked,right=globalChoice('panel_show',v.showLabels,x,yl+22,cw,at,tips.panelShow)
   if picked and picked~=at then g.panelShow=picked==2 and 'always' or 'info'; v.dirty()
@@ -747,7 +813,7 @@ local function overlayBlock(v,e,x,y,w)
   W.rect(x,yl+45,cw,1,c.ruleSoft)
  end
  yl=yl+46
- if v.infoFor~=g.panelInfoTime then v.infoFor=g.panelInfoTime; v.infoText=g.panelInfoTime>0 and string.format('%.0f s',g.panelInfoTime) or L.overlayInfoAlways end
+ if v.infoFor~=g.panelInfoTime then v.infoFor=g.panelInfoTime; v.infoText=g.panelInfoTime>0 and string.format('%.0f',g.panelInfoTime) or L.overlayInfoAlways end
  yl=yl+globalSlider(v,g,'panel_info_time','panelInfoTime',L.overlayInfoTime,v.infoText,x,yl,cw,1,tips.panelInfoTime)
  -- Contenu, affichages d'AC, comportement (seconde colonne).
  local rx=two and x+cw+18 or x
@@ -766,6 +832,13 @@ local function overlayBlock(v,e,x,y,w)
  end
  return y+30
 end
+-- Neutralisation affichée avec le jaune des panneaux (« · VSC », Beta 1.38) ; texte vide sinon.
+local phaseTexts={vsc='lightsPhaseVsc',fcy='lightsPhaseFcy',sc='lightsPhaseSc'}
+local function lightsPhase(e,value)
+ local t=e.incidents
+ local key=value==2 and t.neutral and phaseTexts[t.neutralMode]
+ return key and L[key] or ''
+end
 -- Section Panneaux lumineux (Beta 1.37) : état du circuit en tête (lecture de sa configuration, couleur en cours).
 local function lightsStatus(v,p,x,y,w)
  local c=W.colors(); local host=v.host
@@ -778,27 +851,55 @@ local function lightsStatus(v,p,x,y,w)
   local value=host.flagOverride and host.flagValue or 0
   if W.visible(y,18) then
    W.circle(x+7,y+8,7,v.lightColors[value] or c.rule)
-   W.cell(fmt(v,'lightsState',L.trackLightsState,L.lightNames[value] or ''),x+22,y+1,w-22,12,c.body)
+   -- Couleur et neutralisation en cours (« jaune · VSC », maquette).
+   W.cell(fmt(v,'lightsState2','%s%s',fmt(v,'lightsState',L.trackLightsState,L.lightNames[value] or ''),lightsPhase(v.e,value)),x+22,y+1,w-22,12,c.body)
   end
   y=y+24
  end
  return y
 end
--- Section Panneaux lumineux : légende des six couleurs, note et avertissement du rouge, en bas.
+-- Section Panneaux lumineux (Beta 1.38, maquette) : légende des six couleurs (nom en demi-gras, texte replié, durée du
+-- vert), puis l'avertissement du rouge. Lignes coupées une fois par largeur, langue et durée du vert.
+local function legendRows(v,p,lw)
+ local green=p.lightsGreenTime or 0
+ local m=v.legendMemo
+ if m and m.w==lw and m.green==green and m.lang==Locale.current then return m end
+ m={w=lw,green=green,lang=Locale.current}; v.legendMemo=m
+ for i,item in ipairs(L.lightLegend) do
+  local desc=item[2]
+  if i==1 and green>0 then desc=desc..string.format(L.lightsGreenFor,number(green)) end
+  local lines=W.lines(item[1]..' · '..desc,lw-26,12)
+  local row={name=item[1],first=(lines[1] or ''):sub(#item[1]+1),rest={},nameW=W.width(item[1],12,'sb')}
+  for k=2,#lines do row.rest[k-1]=lines[k] end
+  m[i]=row
+ end
+ return m
+end
 local function lightsLegend(v,p,x,y,w)
  local c=W.colors(); local host=v.host; local two=w>=560
  local lw=two and (w-18)/2 or w
- for i in ipairs(L.lightLegend) do
-  local cx=two and x+((i-1)%2)*(lw+18) or x
-  local cy=y+(two and math.floor((i-1)/2) or (i-1))*20
-  if W.visible(cy,18) then
-   W.circle(cx+7,cy+8,7,v.legendColors[i])
-   W.cell(v.legendTexts[i],cx+22,cy+1,lw-22,12,c.muted)
+ if W.visible(y,24) then W.heading(L.lightsLegendTitle[1],x,y,w,L.lightsLegendTitle[2]) end
+ y=y+32
+ local rows=legendRows(v,p,lw)
+ local lh=W.lineHeight(12); local n=#L.lightLegend; local step=two and 2 or 1
+ for i=1,n,step do
+  local h=0
+  for k=i,math.min(n,i+step-1) do
+   local row=rows[k]
+   local cx=two and x+(k-i)*(lw+18) or x
+   local rh=(1+#row.rest)*lh
+   if W.visible(y,rh) then
+    W.circle(cx+7,y+8,7,v.legendColors[k])
+    W.text(row.name,cx+22,y+1,12,c.text,'sb')
+    W.text(row.first,cx+22+row.nameW,y+1,12,c.muted)
+    for j,line in ipairs(row.rest) do W.text(line,cx+22,y+1+j*lh,12,c.muted) end
+   end
+   h=math.max(h,rh)
   end
+  y=y+h+7
  end
- y=y+(two and math.ceil(#L.lightLegend/2) or #L.lightLegend)*20+6
- y=y+W.paragraph(L.trackLightsLegend,x,y,w,12,c.label)+6
- if host.trackLights==true and C.on(p,'lights') and host.raceFlagsHidden~=true then y=y+W.message(L.trackLightsRed,x,y,w,'wn')+6 end
+ y=y+2
+ if host.trackLights==true and C.on(p,'lights') and p.lightsRed~=false and host.raceFlagsHidden~=true then y=y+W.message(L.trackLightsRed,x,y,w,'wn')+6 end
  return y
 end
 -- « Active pour : » et une puce par profil (cyan : section cochée dans ce profil) ; un clic coche ou décoche la section
@@ -816,7 +917,8 @@ local function activeFor(v,e,x,y,w)
    local id=idOf('lights_on_',profile)
    if W.hit(id,lx,y+1,cw,17) then target.section_lights=not on; on=not on; touch(v,target) end
    W.frame().active[id]=on
-   W.chip(L.shortProfiles[profile],lx,y+1,on and 'c' or 'n'); W.help(v.tips.sections.lights,lx,y+1,cw,17,5)
+   -- Cochée : puce cyan pleine (maquette).
+   W.chip(L.shortProfiles[profile],lx,y+1,on and 'C' or 'n'); W.help(v.tips.sections.lights,lx,y+1,cw,17,5)
    lx=lx+cw+4
   end
  end
@@ -856,22 +958,25 @@ local function sectionContent(v,e,group,view,p,x,top,w,listKey,controls)
  for i=#status,1,-1 do y=y+W.message(status[i],x,y,w,'ok')+4; status[i]=nil end
  if #v.statusLines==0 and y>top then y=y+4 end
  if group=='overlay' then return overlayBlock(v,e,x,y,w)-top end
+ -- Beta 1.38 (maquette) : section décochée pour ce profil : contenu montré grisé (voile du fond, 42 %), toujours
+ -- réglable ; son message est en tête du volet.
+ local from=y
  if group=='lights' then y=lightsStatus(v,p,x,y,w)+8 end
- if not C.on(p,group) then
-  y=y+W.message(group=='rules' and L.rulesOff or L.sectionOff,x,y,w,'wn')+6
-  return y-top
+ local bottom
+ if group=='globals' then bottom=globalBlock(v,e,x,y,w)
+ else
+  local list=Groups.build(listKey,controls)
+  -- Jaune natif du HUD remplacé par les panneaux lumineux seulement sur un circuit équipé, section Panneaux lumineux
+  -- cochée pour le profil affiché (ailleurs il sert encore) ; sa note est sous sa ligne.
+  local locked=group=='accidents' and C.on(p,'lights') and v.host.trackLights==true and 'yellowHud' or nil
+  y=groupColumns(v,idOf(listKey,view),list,view,p,x,y,w,locked,group=='lights')
+  if group=='rules' and v.rulesView=='safety' then y=safetyBlock(v,e,x,y+12,w) end
+  if group=='endurance' then y=patternBlock(v,p,x,y+12,w) end
+  if group=='lights' then y=lightsLegend(v,p,x,y+12,w) end
+  bottom=y+8
  end
- if group=='globals' then return globalBlock(v,e,x,y,w)-top end
- local list=Groups.build(listKey,controls)
- -- Jaune natif du HUD remplacé par les panneaux lumineux seulement sur un circuit équipé, section Panneaux lumineux
- -- cochée pour le profil affiché (ailleurs il sert encore).
- local locked=group=='accidents' and C.on(p,'lights') and v.host.trackLights==true and 'yellowHud' or nil
- y=groupColumns(v,idOf(listKey,view),list,view,p,x,y,w,locked)
- if locked and W.visible(y,16) then y=y+4+W.message(L.yellowHudLocked,x,y+4,w,'mut') end
- if group=='rules' and v.rulesView=='safety' then y=safetyBlock(v,e,x,y+12,w) end
- if group=='endurance' then y=patternBlock(v,p,x,y+12,w) end
- if group=='lights' then y=lightsLegend(v,p,x,y+12,w) end
- return y-top+8
+ if not C.on(p,group) then W.rect(x-2,from,w+4,bottom-from,W.colors().veil) end
+ return bottom-top
 end
 -- Langue de l'interface : textes de la fenêtre et du panneau de drapeaux refaits aussitôt ; choix enregistré.
 local function language(v,code)
@@ -923,6 +1028,8 @@ local updateChips={uptodate={'chipUpToDate','g'},checking={'chipChecking','c'},a
  none={'chipNone','n'},interrupted={'chipRestored','o'},success={'chipUpToDate','g'},rolledback={'chipRolledBack','g'},unchecked={'chipUnchecked','n'}}
 local updateKinds={uptodate='ok',success='ok',done='ok',rolledback='ok',checking='mut',downloading='mut',verifying='mut',installing='mut',ready='mut',
  none='mut',unchecked='mut',driving='mut',interrupted='wo',errNet='er',errHash='er',errWrite='er',errFormat='er',errRate='er',broken='er'}
+-- États où les notes de version sont masquées (vérification, installation : maquette, Beta 1.38).
+local updateBusyViews={checking=true,downloading=true,verifying=true,installing=true,ready=true,done=true}
 -- Bloc « Mises à jour » du diagnostic (MajBloc) : versions, état, notes de la version publiée et lien, commande
 -- principale (annuler, installer, réessayer), option du lancement, puis « Vérifier maintenant » et retour arrière.
 local function updateBlock(v,e,host,x,y,w)
@@ -935,7 +1042,7 @@ local function updateBlock(v,e,host,x,y,w)
  local newer=Update.fresh(u)
  local stopped=host.updateStopped
  -- Hauteur connue d'avance (fond du panneau) : notes et lien, message, boutons.
- local notes=r and (newer or view=='success') and math.min(K.updateNotes,#r.notes) or 0
+ local notes=r and (newer or view=='success') and not updateBusyViews[view] and math.min(K.updateNotes,#r.notes) or 0
  local message=port.ready and updateText(v,u,view) or L.updateUnavailable
  local mh=#W.lines(message,w-33,12)*W.lineHeight(12)
  local kh=#W.lines(L.updateKept,w-20,12)*W.lineHeight(12)
@@ -995,7 +1102,8 @@ local function updateBlock(v,e,host,x,y,w)
    local back=u.previous~=nil
    local half=(w-26)/2
    local bw=back and half or w-20
-   if not checkShown and W.button('update_check',L.updateCheckNow,x+10,y,bw,24,false,tips.updateCheck,cooling and 'disabled' or nil) then updateAct(v,'check') end
+   -- Aucune version publiée : « Vérifier maintenant » en bouton principal (maquette).
+   if not checkShown and W.button('update_check',L.updateCheckNow,x+10,y,bw,24,false,tips.updateCheck,cooling and 'disabled' or view=='none' and 'primary' or nil) then updateAct(v,'check') end
    if back then
     if v.rollbackFor~=u.previous then v.rollbackFor=u.previous; v.rollbackText=string.format(L.updateRollback,u.previous) end
     local bx=checkShown and x+10 or x+16+half
@@ -1035,10 +1143,19 @@ end
 -- Chiffres en direct : moteur prêt ou en pause.
 local function live(e) return e.guard=='ready' or e.guard=='paused' end
 local pillKinds={ready='g',noai='n',paused='n',suspended='a',disabled='n',panic='r',online='a',init='n',native='n'}
+-- Session détectée (accueil, en-tête) : genre (déclaré par race.ini, sinon lu par CSP) et source ; textes de la langue.
+local function sessionKind(frame)
+ if not frame then return nil,nil end
+ local declared=frame.configType>=1
+ local kind=declared and frame.configType or frame.type
+ return declared and frame.configTrackDay and L.trackDaySession or L.sessionTypes[kind] or L.sessionTypes[0],declared and L.sourceRace or L.sourceCSP
+end
 -- En-tête (84 px) : marque, version et mise à jour ; session et garde ; état, langue, activation, panique ; onglets et
 -- profil affiché ; filet cyan.
 local function headerBar(v,e)
  local c=W.colors(); local fw=W.frame().w; local host=v.host
+ -- Bandeau « en ligne » masqué par « Compris » : de nouveau montré dès que la garde change (tous les onglets).
+ if v.bannerHide and v.bannerHide~=e.guard then v.bannerHide=nil end
  local x=14
  if v.logo and callable(ui.drawImage) then pcall(ui.drawImage,v.logo,W.point(10,2),W.point(54,46)); x=58 end
  W.text('ACADVANCED',x,10,23,c.text,'display')
@@ -1066,9 +1183,9 @@ local function headerBar(v,e)
  -- Partie droite, de droite à gauche : panique, activation, langue, état.
  local right=fw-12
  local panic=e.panic
- local pw=math.max(98,W.width(W.upper(panic and L.resumeShort or L.panicShort),13,'display')+40)
+ local pw=math.max(98,W.width(W.upper(panic and L.resumeShort or L.panicShort),13,'display')+56)
  local px=right-pw
- if W.button('panic',panic and L.resumeShort or L.panicShort,px,12,pw,24,panic,panic and v.tips.ui.resume or v.tips.ui.panic,panic and 'resume' or 'danger') then
+ if W.button('panic',panic and L.resumeShort or L.panicShort,px,12,pw,24,panic,panic and v.tips.ui.resume or v.tips.ui.panic,panic and 'resume' or 'danger','warn') then
   e.panic=not e.panic; if not e.panic then Engine.reset(e,e.time,true) end
  end
  local ax=px-8-62
@@ -1088,10 +1205,11 @@ local function headerBar(v,e)
   v.pillFor=key; v.pillProfile=e.profile
   v.pillText=(key=='ready' or key=='paused' or key=='noai') and L.pillStates[key]..L.shortProfiles[e.profile] or L.pillStates[key]
  end
- local cw=W.chipWidth(v.pillText)+12
+ -- Puce d'état à point de couleur (Beta 1.38, maquette).
+ local cw=W.dotChipWidth(v.pillText)
  local sx=lx-10-cw
  local s=pillKinds[key]
- W.chip(v.pillText,sx,15,s)
+ W.dotChip(v.pillText,sx,15,s)
  W.help(v.tips.ui.status,sx,15,cw,18,3)
  -- Milieu : session (circuit / profil) et garde (IA pilotées · état).
  local mx=x+6
@@ -1103,10 +1221,13 @@ local function headerBar(v,e)
   if v.sessionFor~=track or v.sessionProfile~=e.profile then v.sessionFor=track; v.sessionProfile=e.profile; v.sessionLine=frame and (frame.track~='' and frame.track or L.noSession)..' / '..L.profiles[e.profile] or L.noSession end
   W.cell(W.upper(v.sessionLine),mx+12,9,mw-12,14,c.text,'cond')
   local ready=live(e)
-  if v.guardFor~=e.guard or v.guardCount~=e.activeCount then
-   v.guardFor=e.guard; v.guardCount=e.activeCount
+  -- Garde (Beta 1.38, maquette) : prête, la session détectée, sa source et le profil en cours (« Prêt · course
+  -- (race.ini) → profil Course (auto) ») ; sinon le texte de la garde. Refait seulement quand l'un d'eux change.
+  local kind,source=sessionKind(frame)
+  if v.guardFor~=e.guard or v.guardCount~=e.activeCount or v.guardKind~=kind or v.guardProfile~=e.profile or v.guardAuto~=e.g.autoProfile then
+   v.guardFor=e.guard; v.guardCount=e.activeCount; v.guardKind=kind; v.guardProfile=e.profile; v.guardAuto=e.g.autoProfile
    v.carsLine=ready and string.format(L.headerCars,e.activeCount) or L.headerNoCars
-   v.guardLine=' · '..(L.guards[e.guard] or e.guard)
+   v.guardLine=' · '..(e.guard=='ready' and kind and string.format(L.guardReady,kind,source,L.profiles[e.profile],e.g.autoProfile and L.guardAuto or L.guardManual) or L.guards[e.guard] or e.guard)
   end
   local cwid=math.min(W.width(v.carsLine,12,'sb'),mw-12)
   W.cell(v.carsLine,mx+12,27,mw-12,12,ready and c.cyanText or c.muted,'sb')
@@ -1172,7 +1293,8 @@ local bannerStyles={disabled={'neutralBack','muted','ruleHover'},panic={'dangerB
 local function banner(v,e,x,y,w)
  local key=stateKey(e)
  local style=bannerStyles[key]
- if not style then return 0 end
+ -- « Compris » (en ligne, Beta 1.38) : bandeau masqué jusqu'au prochain changement de garde (vu par l'en-tête).
+ if not style or key=='online' and v.bannerHide==e.guard then return 0 end
  local c=W.colors(); local texts=L.banners[key]
  local tw=W.width(W.upper(texts[1]),13,'cond')
  local bw=texts[3] and math.max(110,W.width(W.upper(texts[3]),12,'display')+34) or 0
@@ -1180,10 +1302,11 @@ local function banner(v,e,x,y,w)
  W.rect(x,y,w,h,c[style[1]]); W.frameRect(x,y,w,h,c[style[3]])
  W.text(W.upper(texts[1]),x+10,y+(h-15)/2,13,c[style[2]],'cond')
  W.paragraph(texts[2],x+tw+24,y+7,w-tw-bw-44,12,c.body)
- if texts[3] and W.button('banner_action',texts[3],x+w-bw-10,y+(h-26)/2,bw,26,false,v.tips.ui.bannerAction,key=='disabled' and 'primary' or key=='panic' and 'resume' or 'outline') then
+ if texts[3] and W.button('banner_action',texts[3],x+w-bw-10,y+(h-26)/2,bw,26,false,v.tips.ui.bannerAction,key=='disabled' and 'primary' or key=='panic' and 'resume' or key=='online' and 'default' or 'outline') then
   if key=='disabled' then e.g.enabled=true; v.dirty()
   elseif key=='panic' then e.panic=false; Engine.reset(e,e.time,true)
-  elseif key=='init' then v.tab='diagnostic' end
+  elseif key=='init' then v.tab='diagnostic'
+  elseif key=='online' then v.bannerHide=e.guard end
  end
  return h+8
 end
@@ -1247,10 +1370,8 @@ local function homeTab(v,e,host)
  local frame=e.frame
  local detected
  if frame then
-  local declared=frame.configType>=1
-  local kind=declared and frame.configType or frame.type
-  local label=declared and frame.configTrackDay and L.trackDaySession or L.sessionTypes[kind] or L.sessionTypes[0]
-  detected=fmt(v,'detected',L.sessionDetected,label,declared and L.sourceRace or L.sourceCSP,L.profiles[C.autoProfile(frame)])
+  local label,source=sessionKind(frame)
+  detected=fmt(v,'detected',L.sessionDetected,label,source)
   if not e.g.autoProfile then detected=fmt(v,'detectedManual','%s%s',detected,L.manualOverride) end
  else detected=L.noSessionYet end
  local hint=e.g.autoProfile and L.autoHintOn or L.autoHintOff
@@ -1340,7 +1461,7 @@ local function homeTab(v,e,host)
   local neutral=t.neutral and t.neutralMode or nil
   kpi(x+12,ky,unit*3+10,L.kpiNeutral,neutral and W.upper(L.neutralNames[neutral]) or (liveNow and L.neutralNames.none or '—'),neutral~=nil,nil,false,liveNow)
   local value=host.flagOverride and host.flagValue or 0
-  local lightText=host.trackLights==false and L.kpiLightsNone or not C.on(e.p,'lights') and L.kpiLightsOff or host.trackLights==nil and L.kpiLightsUnknown or value~=0 and (L.lightShort[value] or '') or L.kpiLightsIdle
+  local lightText=host.trackLights==false and L.kpiLightsNone or not C.on(e.p,'lights') and L.kpiLightsOff or host.trackLights==nil and L.kpiLightsUnknown or value~=0 and fmt(v,'kpiLights','%s%s',L.lightShort[value] or '',lightsPhase(e,value)) or L.kpiLightsIdle
   kpi(x+12+3*(unit+5)+5,ky,unit*3+5,L.kpiLights,lightText,false,value~=0 and v.lightColors[value] or c.rule,false,liveNow)
  end
  y=y+8+24+8+2*59+8+GAP
@@ -1368,7 +1489,7 @@ local function homeTab(v,e,host)
  local textW=w-24-18-90
  local wh=0
  for _,text in ipairs(warnings) do wh=wh+#W.lines(text,textW,12)*W.lineHeight(12)+14 end
- if offered then wh=wh+W.lineHeight(12)+14+32 end
+ if offered then wh=wh+W.lineHeight(12)+14+4 end
  if report then wh=wh+#W.lines(v.updateReportText or '',textW,12)*W.lineHeight(12)+14 end
  if count==0 then wh=W.lineHeight(12)+14 end
  local warnH=8+24+4+wh+6
@@ -1395,20 +1516,25 @@ local function homeTab(v,e,host)
  end
  if offered then
   if v.updateAlertFor~=u.release.version then v.updateAlertFor=u.release.version; v.updateAlertText=string.format(L.updateAlert,u.release.version) end
-  if W.visible(wy,W.lineHeight(12)+46) then
+  if W.visible(wy,W.lineHeight(12)+18) then
    W.quad(x+15.6,wy+8,x+19.6,wy+8,x+16,wy+21,x+12,wy+21,c.cyan)
-   W.paragraph(v.updateAlertText,x+30,wy+7,textW,12,c.cyanText)
-   local lw=W.linkWidth(L.notesLink)
-   if W.link('update_home_notes',L.notesLink,x+w-12-lw,wy+8,v.tips.ui.updateNotes) then updateAct(v,'notes') end
+   -- Une ligne (maquette) : texte, lien des notes, puis le bouton à droite.
    local stopped=host.updateStopped
-   if W.button('update_home',L.updateButton,x+30,wy+W.lineHeight(12)+12,180,26,stopped,stopped and v.tips.ui.updateInstall or v.tips.ui.updateDriving,stopped and 'primary' or 'disabled') then updateAct(v,'install') end
+   local bw=math.max(110,W.width(W.upper(L.updateButton),12,'display')+26)
+   local lw=W.linkWidth(L.notesLink)
+   W.cell(v.updateAlertText,x+30,wy+7,w-24-18-bw-lw-24,12,c.body)
+   if W.link('update_home_notes',L.notesLink,x+w-12-bw-10-lw,wy+8,v.tips.ui.updateNotes) then updateAct(v,'notes') end
+   if W.button('update_home',L.updateButton,x+w-12-bw,wy+3,bw,24,stopped,stopped and v.tips.ui.updateInstall or v.tips.ui.updateDriving,stopped and 'primary' or 'disabled') then updateAct(v,'install') end
   end
-  wy=wy+W.lineHeight(12)+14+32
+  wy=wy+W.lineHeight(12)+14+4
  elseif report then
   local hgt=#W.lines(v.updateReportText,textW,12)*W.lineHeight(12)+14
   if W.visible(wy,hgt) then
    W.quad(x+15.6,wy+8,x+19.6,wy+8,x+16,wy+21,x+12,wy+21,c.ok)
-   W.paragraph(v.updateReportText,x+30,wy+7,textW,12,c.ok)
+   local rh=W.paragraph(v.updateReportText,x+30,wy+7,textW,12,c.body)
+   -- « Affichée une seule fois » (maquette) : à la suite, en gris, si elle tient sur la dernière ligne.
+   local lines=W.lines(v.updateReportText,textW,12); local lw2=W.width(lines[#lines] or '',12)
+   if lw2+W.width(L.updateOnce,12)<=textW then W.text(L.updateOnce,x+30+lw2,wy+7+rh-W.lineHeight(12),12,c.label) end
    local lw=W.linkWidth(L.notesLink)
    if W.link('update_home_notes',L.notesLink,x+w-12-lw,wy+8,v.tips.ui.updateNotes) then updateAct(v,'notes') end
   end
@@ -1423,7 +1549,8 @@ local function homeTab(v,e,host)
  if W.visible(py+8,24) then W.heading(L.customPresets,x+12,py+8,w-24,v.customCountText,'mono') end
  y=py+40
  local sw=110
- v.presetName=input('preset_name',x+12,y,w-24-sw-6,v.presetName,v.tips.ui.presetName) or v.presetName
+ -- Nom refusé : cadre rouge (Beta 1.38, maquette).
+ v.presetName=input('preset_name',x+12,y,w-24-sw-6,v.presetName,v.tips.ui.presetName,v.presetMessage==L.invalidPresetName) or v.presetName
  if W.visible(y,28) and W.button('save_preset',L.savePresetShort,x+w-12-sw,y,sw,28,false,v.tips.ui.savePreset,'primary') then
   local entry=Presets.capture(v.presetName,view,p,e.g)
   if not entry then v.presetMessage=L.invalidPresetName
@@ -1504,6 +1631,9 @@ local function sectionPane(v,e,group,view,p,opts)
  local upper=W.upper(opts.title or L.groups[group] or L.globals)
  local scopeW=opts.scope and W.chipWidth(opts.scope)+6 or 0
  local stateW=opts.state and W.chipWidth(opts.state) or 0
+ -- Panneaux lumineux (Beta 1.38, maquette) : interrupteur de la section dans la ligne du titre.
+ local titleSwitch=group=='lights' and v.tab=='settings'
+ if titleSwitch and stateW>0 then stateW=stateW+44 end
  local size=W.shrink(upper,math.max(40,limit-ix-10-scopeW-stateW),24,16,'display')
  local tw=W.width(upper,size,'display')
  if ix+tw+10+scopeW+stateW>limit then scopeW=0 end
@@ -1512,22 +1642,32 @@ local function sectionPane(v,e,group,view,p,opts)
  W.cell(upper,ix,top+10+(24-size)*0.5,room,size,c.text,'display')
  local cx=ix+math.min(tw,room)+10
  if scopeW>0 then cx=cx+W.chip(opts.scope,cx,top+14,opts.scopeKind or 'c')+6 end
- if stateW>0 then W.chip(opts.state,cx,top+14,opts.stateKind or 'g') end
+ if stateW>0 then
+  cx=cx+W.chip(opts.state,cx,top+14,opts.stateKind or 'g')+10
+  if titleSwitch and W.switch('section_lights_title',cx,top+15,C.on(p,'lights'),v.tips.sections.lights) then p.section_lights=not C.on(p,'lights'); touch(v,p) end
+ end
  local y=top+44
  local desc=opts.description or v.descriptions[group] or ''
+ local dh=W.paragraph(desc,ix,y,iw,12,c.label)
+ -- Réglages modifiés (Beta 1.38, maquette) : en cyan à la suite de la description, sur sa dernière ligne s'il y tient.
  if opts.modified and opts.modified>0 then
   if v.modFor~=opts.modified then v.modFor=opts.modified; v.modText=string.format(opts.modified==1 and L.modifiedOne or L.modifiedMany,opts.modified) end
-  desc=fmt(v,'paneDesc','%s %s',desc,v.modText)
+  local lines=W.lines(desc,iw,12)
+  local lw=desc~='' and W.width(lines[#lines] or '',12)+5 or 0
+  if lw+W.width(v.modText,12)<=iw then W.text(v.modText,ix+lw,y+math.max(0,#lines-1)*W.lineHeight(12),12,c.cyanText)
+  else dh=dh+W.paragraph(v.modText,ix,y+dh,iw,12,c.cyanText) end
  end
- y=y+W.paragraph(desc,ix,y,iw,12,c.label)+6
+ y=y+dh+6
  if group=='lights' then y=activeFor(v,e,ix,y,iw) end
+ -- Section décochée pour ce profil (Beta 1.38) : message en tête du volet, contenu grisé dessous.
+ if group~='overlay' and not C.on(p,group) then y=y+W.message(group=='rules' and L.rulesOff or L.sectionOff,ix,y,iw,'wn')+6 end
  -- Confirmation de la réinitialisation de cette section seulement (onglet Réglages ; l'onglet Règles de course a la
  -- sienne) : jamais un autre message (accueil, arrivé par un lien des points à vérifier).
  if v.tab=='settings' and v.resetGroup==group and v.presetMessage~='' and v.presetMessage==v.resetText then y=y+W.message(v.presetMessage,ix,y,iw,'ok')+6 end
  -- Overlay en jeu : verrou et replacement en tête.
  if group=='overlay' then
   local g=e.g; local bw=(iw-6)/2
-  if W.button('overlay_lock',g.overlayLocked and L.overlayUnlock or L.overlayLock,ix,y,bw,28,not g.overlayLocked,v.globalTips.overlayLocked,g.overlayLocked and 'outline' or 'primary') then g.overlayLocked=not g.overlayLocked; v.dirty() end
+  if W.button('overlay_lock',g.overlayLocked and L.overlayUnlock or L.overlayLock,ix,y,bw,28,not g.overlayLocked,v.globalTips.overlayLocked,g.overlayLocked and 'primary' or 'outline') then g.overlayLocked=not g.overlayLocked; v.dirty() end
   if W.button('overlay_recenter',L.overlayRecenter,ix+bw+6,y,bw,28,false,v.tips.ui.overlayRecenter) then g.overlayX=-1; g.overlayY=-1; g.overlayScale=1; v.dirty() end
   y=y+34
   if not g.overlayLocked then y=y+W.message(L.overlayHint,ix,y,iw,'ok')+6 end
@@ -1581,7 +1721,8 @@ local function settingsTab(v,e)
  -- Overlay et options globales : valables pour tous les profils (puce neutre) ; le reste : profil affiché.
  local everywhere=group=='overlay' or group=='globals'
  o.scope=everywhere and L.scopeAll or fmt(v,'scope',L.scopeProfile,L.profiles[view]); o.scopeKind=everywhere and 'n' or 'c'
- o.state=group~='overlay' and (sectionOn and L.chipSectionOn or L.chipSectionOff) or nil; o.stateKind=sectionOn and 'g' or 'a'
+ -- Overlay : toujours actif, puce « Active » (Beta 1.38, maquette).
+ o.state=sectionOn and L.chipSectionOn or L.chipSectionOff; o.stateKind=sectionOn and 'g' or 'a'
  o.modified=group~='overlay' and group~='globals' and modifiedCount(v,group,view,p) or 0
  sectionPane(v,e,group,view,p,o)
 end
@@ -1650,7 +1791,7 @@ local function rulesTab(v,e)
   o.scope=fmt(v,'scope',L.scopeProfile,L.profiles[view]); o.scopeKind='c'
   sectionPane(v,e,'rules',view,p,o)
  else
-  o.title=rv=='stops' and L.mandatorySwitch or L.safetySwitch; o.description=rv=='stops' and L.stopsDescription or L.safetyDescription
+  o.title=rv=='stops' and L.stopsTitle or L.safetySwitch; o.description=rv=='stops' and L.sectionDescs.stops or L.sectionDescs.safety
   o.key=idOf('rules',rv); o.listKey=idOf('rules_',rv); o.controls=v.ruleLists[rv]
   o.scope=fmt(v,'scope',L.scopeProfile,L.profiles.C); o.scopeKind='c'
   sectionPane(v,e,'rules','C',race,o)
@@ -1685,20 +1826,22 @@ local function diagnosticTab(v,e,host)
   y=y+W.paragraph(v.lightsLine,x+2,y,w,11,c.label,'mono')+8
  end
  -- Calibration des signes.
- local ch=8+24+8+18+34+8
+ local ch=8+24+8+28+8
  W.panel(x,y,w,ch)
  if W.visible(y+8,24) then
   W.heading(L.signs,x+10,y+8,w-20)
   local phase=v.calibration.phase
   W.chipRight(L.calibrationShort[phase] or phase,x+w-10,y+11,phase=='ready' and 'g' or 'c')
  end
- if W.visible(y+40,52) then
+ if W.visible(y+40,28) then
   if v.signFor~=v.calibration.phase or v.signOffset~=e.g.offsetSign or v.signSide~=e.g.sideSign then
    v.signFor=v.calibration.phase; v.signOffset=e.g.offsetSign; v.signSide=e.g.sideSign
    v.signText=L.calibration[v.calibration.phase]..' — '..L.signValue..e.g.offsetSign..' / '..e.g.sideSign
   end
-  W.cell(v.signText,x+10,y+42,w-20,12,c.soft)
-  if W.button('calibrate',L.calibrate,x+10,y+62,w-20,26,false,v.tips.ui.calibrate,'outline') then e.recalibrateRequested=true end
+  -- Une ligne (maquette) : état et repère, puis « Relancer » à droite.
+  local bw=math.max(90,W.width(W.upper(L.calibrateShort),12,'display')+26)
+  W.cell(v.signText,x+10,y+46,w-30-bw,12,c.soft)
+  if W.button('calibrate',L.calibrateShort,x+w-10-bw,y+40,bw,24,false,v.tips.ui.calibrate,'outline') then e.recalibrateRequested=true end
  end
  y=y+ch+GAP
  -- Phares et zones.
@@ -1713,15 +1856,15 @@ local function diagnosticTab(v,e,host)
    v.flashEventText=L.event..e.flash.eventId..' / '..e.flash.eventCount
   end
   W.cell(v.flashText,x+10,y+42,half,12,e.g.flashField~='' and c.soft or c.warn)
-  if W.button('learn',L.learn,x+10,y+62,half,26,e.flash.learnUntil>e.time,v.tips.ui.learn,'outline') then Flash.learn(e.flash,e.time) end
+  if W.button('learn',L.learnShort,x+10,y+62,half,26,e.flash.learnUntil>e.time,v.tips.ui.learn,'outline') then Flash.learn(e.flash,e.time) end
   if e.flash.learnUntil>e.time then W.cell(L.learning,x+10,y+92,half,11,c.cyanText) else W.cell(v.flashEventText,x+10,y+92,half,11,c.label) end
   local zx=x+22+half; local zw=(half-4)/2
   if frame then
-   if W.button('mark_start',L.markStart,zx,y+40,zw,26,e.zoneStart>=0,v.tips.ui.markStart) and frame.player>0 then e.zoneStart=frame.cars[frame.player].spline end
-   if W.button('mark_end',L.markEnd,zx+zw+4,y+40,zw,26,false,v.tips.ui.markEnd) and e.zoneStart>=0 and frame.player>0 and #e.zones<K.maxZones then
+   if W.button('mark_start',L.markStartShort,zx,y+40,zw,26,e.zoneStart>=0,v.tips.ui.markStart) and frame.player>0 then e.zoneStart=frame.cars[frame.player].spline end
+   if W.button('mark_end',L.markEndShort,zx+zw+4,y+40,zw,26,false,v.tips.ui.markEnd) and e.zoneStart>=0 and frame.player>0 and #e.zones<K.maxZones then
     e.zones[#e.zones+1]={from=e.zoneStart,to=frame.cars[frame.player].spline,noYield=true,noOvertake=true,maxOffset=K.pitOffsetMax,note=''}; e.zoneStart=-1
    end
-   if W.button('export',L.exportShort,zx,y+70,half,26,false,v.tips.ui.export,'outline') then host.clipboard(Zones.export(e.zones)) end
+   if W.button('export',L.exportZones,zx,y+70,half,26,false,v.tips.ui.export,'outline') then host.clipboard(Zones.export(e.zones)) end
   end
   W.help(v.tips.ui.zoneCount,x+22+half,y+8,half,24,4)
  end
@@ -1758,7 +1901,10 @@ local function diagnosticTab(v,e,host)
    W.circle(cx+colW-sw+3,ry+10,3,col)
    W.text(W.upper(state),cx+colW-sw+9,ry+4,11,col,'label')
    W.rect(cx,ry+19,colW,1,c.block)
-   W.help(L.capStates[cap.reason],cx,ry,colW,20,3)
+   -- Infobulle : nom long de la capacité (s'il diffère du nom court) et son état, faite une fois par état.
+   local tips=v.capTips[name]; local tip=tips[cap.reason]
+   if not tip then tip=(v.capLong[name]~=v.capLabels[name] and v.capLong[name]..'\n' or '')..(L.capStates[cap.reason] or cap.reason); tips[cap.reason]=tip end
+   W.help(tip,cx,ry,colW,20,3)
   end
  end
  local ny=cy+rows*20+6
@@ -1864,6 +2010,8 @@ local function diagnosticTab(v,e,host)
   W.rect(tx,py+36,tile,40,c.block)
   W.label(item[1],tx+8,py+41)
   W.text(item[2],tx+8,py+55,15,i==3 and (e.errors+host.errors==0 and c.ok or c.danger) or c.text,'mono')
+  -- Unité des temps (maquette) : « ms » en petit après la moyenne et le maximum.
+  if i<=2 and host.timer then W.text(L.perfUnit,tx+8+W.width(item[2],15,'mono'),py+59,11,c.label,'mono') end
  end
  W.help(host.timer and v.tips.ui.performance or L.runtimeTiming,rx,py,rw,82,2)
  -- Journal circulaire, filtrable par niveau.
@@ -1912,19 +2060,27 @@ local function windowSetup(v)
  v.presetDescs=L.presetDescs
  v.globalSwitches={{'useGripBoost',L.grip},{'useBrakeAssist',L.brake},{'overrideAwareness',L.awareness},{'debugLog',L.debugLog}}
  v.backgroundLabels={L.backgrounds.solid,L.backgrounds.ghost,L.backgrounds.transparent}
- v.showLabels={L.choices.info,L.choices.always}
+ v.showLabels={L.choiceShort.panelShow.info,L.choices.always}
+ -- Défauts des choix globaux (« défaut : … », maquette), en minuscules comme ceux des sections.
+ local function lower(label) return label and string.format(L.defaultValue,label:lower()) or nil end
+ local level=1; for i,k in ipairs(C.globalChoices.levelMode) do if k==C.globalDefaults.levelMode then level=i end end
+ v.levelDefault=lower(L.levelModeLabels[level])
+ local back=1; for i,k in ipairs(backgroundKeys) do if k==C.globalDefaults.overlayBackground then back=i end end
+ v.backgroundDefault=lower(v.backgroundLabels[back])
+ v.showDefault=lower(C.globalDefaults.panelShow=='always' and v.showLabels[2] or v.showLabels[1])
  v.logLabels={}; for i,level in ipairs(L.logLevels) do v.logLabels[i]=level end
  v.diagCols={{L.colCar,0,0},{L.colState,0,0},{L.colOffset,0,0},{L.colNAP,0,0},{L.colGap,0,0}}
  v.perfItems={{L.perfLabels[1],''},{L.perfLabels[2],''},{L.perfLabels[3],''},{L.perfLabels[4],''}}
  v.classLabels={}; for i=1,K.classPatternClassMax do v.classLabels[i]=intText(i) end
  v.lightColors={[1]=c.ok,[2]=c.flagYellow,[3]=c.orangeDot,[5]=c.flagRed,[6]=c.flagWhite,[12]=c.flagBlue}
  v.legendColors={c.ok,c.flagYellow,c.flagRed,c.flagWhite,c.orangeDot,c.flagBlue}
- v.legendTexts={}; for i,item in ipairs(L.lightLegend) do v.legendTexts[i]=item[1]..' · '..item[2] end
- v.capLabels={}; for _,name in ipairs(Caps.names) do v.capLabels[name]=L[name..'Label'] or L[name] or name end
+ -- Noms courts des capacités (maquette, Beta 1.38) ; les états longs restent dans l'infobulle.
+ v.capLabels={}; v.capLong={}; v.capTips={}
+ for _,name in ipairs(Caps.names) do v.capLong[name]=L[name..'Label'] or L[name] or name; v.capLabels[name]=L.capNames[name] or v.capLong[name]; v.capTips[name]={} end
  v.versionChip=nil; v.pillFor=nil; v.sessionFor=nil; v.guardFor=nil; v.navFor=nil; v.rulesResetFor=nil; v.capsFor=nil; v.apiFor=nil; v.carsFor=nil
  v.sectionsFor=nil; v.warnCountFor=nil; v.customCountFor=nil; v.bytesFor=nil; v.noteFor=nil; v.patternCountFor=nil; v.modFor=nil
  v.updateVersions=nil; v.updateHeaderFor=nil; v.updateAlertFor=nil; v.updateReportFor=nil; v.rollbackFor=nil; v.signFor=nil; v.flashFor=nil; v.cspFor=nil; v.perfFor=nil
- v.scaleFor=nil; v.opacityFor=nil; v.contentFor=nil; v.infoFor=nil; v.seedFor=nil
+ v.scaleFor=nil; v.opacityFor=nil; v.contentFor=nil; v.infoFor=nil; v.seedFor=nil; v.gripFor=nil; v.guardKind=nil
 end
 local function drawWindow(v,e,host)
  windowSetup(v)
@@ -1973,7 +2129,7 @@ local function panelPalette(alpha)
   local values={red={0.882,0.039,0.118,1},yellow={1,0.824,0.122,1},blue={0.184,0.482,1,1},green={0.18,0.878,0.498,1},pit={0.949,0.953,0.961,1},
    back={0.075,0.078,0.082,0.86},ink={0.067,0.071,0.078,1},over={1,0.353,0.306,1},amber={1,0.761,0.239,1},orange={1,0.478,0.102,1},
    under={0.18,0.878,0.498,1},overBack={0.227,0.086,0.078,0.94},underBack={0.055,0.165,0.106,0.94},amberBack={0.18,0.141,0.063,0.94},
-   off={0.165,0.18,0.212,1}}
+   off={0.165,0.18,0.212,1},best={0.698,0.424,1,1}}
   local out={}
   for key,c in pairs(values) do local ok,color=pcall(rgbm,c[1],c[2],c[3],c[4]*alpha); if not ok then return false end; out[key]=color end
   if pcall(vec2,0,0) and callable(ui.drawRectFilled) and callable(ui.windowSize) and callable(ui.getCursor)
@@ -2092,12 +2248,21 @@ local function cutBack(x1,y1,x2,y2,cut,color)
  ui.drawRectFilled(pv(x2-cut,y1+cut),pv(x2,y2),color,0)
  if callable(ui.drawTriangleFilled) then ui.drawTriangleFilled(pv(x2-cut,y1),pv(x2,y1+cut),pv(x2-cut,y1+cut),color) end
 end
--- Badge DRS (jamais un drapeau) : cadre et « DRS » blancs quand il est disponible ; effacé dès que l'aileron s'ouvre.
+-- Badge DRS (jamais un drapeau ; Beta 1.38, maquette) : aplat clair, « DRS » à l'encre, sans cadre ; effacé dès que
+-- l'aileron s'ouvre.
 local function drsBadge(colors,f)
- local p1,p2=pv(f[1],f[2]),pv(f[3],f[4])
- ui.drawRectFilled(p1,p2,colors.drsBack,0)
- if callable(ui.drawRect) then ui.drawRect(p1,p2,colors.text,0,nil,3) end
- font('display',true); write('DRS',(f[3]-f[1])*0.36,f,colors.text,CENTER); font('display',false)
+ ui.drawRectFilled(pv(f[1],f[2]),pv(f[3],f[4]),colors.text,0)
+ font('display',true); write('DRS',(f[3]-f[1])*0.36,f,colors.ink,CENTER); font('display',false)
+end
+-- Numéro de la version proposée dans le drapeau « mise à jour » (« 1.38 »), refait au changement.
+local function updateCode(v,version)
+ if v.updateCodeFor~=version then v.updateCodeFor=version; v.updateCodeText=(version or ''):gsub('^Beta ','') end
+ return v.updateCodeText
+end
+-- Pastille du compteur d'infractions (avertissement), refaite au changement.
+local function infractionText(v,count,max)
+ if v.infrFor~=count or v.infrMax~=max then v.infrFor=count; v.infrMax=max; v.infrText=string.format(L.infractionPill,count,max) end
+ return v.infrText
 end
 -- Pastille de lettres (SC, VSC, RS, SS, feux) : fond noir, cadre et lettres jaunes.
 local function badge(colors,f,code,edge)
@@ -2241,7 +2406,10 @@ function M.overlayParts(v,force)
  parts.pitCall=not idle and panel.kind=='red' and panel.redPit==false
  parts.blueGap=not idle and panel.kind=='blue' and panel.blueGap or nil
  parts.closed=e.incidents.pitsClosed and panel.kind~='red'
- parts.pills=parts.band and (not idle and (panel.noPass or panel.drsBlocked) or parts.notice or parts.giveBack~=nil or parts.pitCall or parts.blueGap~=nil or parts.closed) and true or false
+ -- Beta 1.38 (maquette) : compteur d'infractions sous l'avertissement, rappel des stands sous la voiture endommagée.
+ parts.infraction=not idle and panel.decided=='warning' and (panel.infractions or 0)>0
+ parts.repair=not idle and panel.kind=='meatball'
+ parts.pills=parts.band and (not idle and (panel.noPass or panel.drsBlocked) or parts.notice or parts.giveBack~=nil or parts.pitCall or parts.blueGap~=nil or parts.closed or parts.infraction or parts.repair) and true or false
  return parts
 end
 -- Hauteur de l'overlay en unités de référence.
@@ -2259,6 +2427,11 @@ local function sessionStrip(v,colors,e,p,y,w,u)
  local hud=e.hud; local pad=K.hudPad*u; local h=K.hudStripH*u
  ui.drawRectFilled(pv(pad,y+2*u),pv(w-pad-12*u,y+h-2*u),v.stripColor,0)
  local x=pad+8*u; local limit=w-pad-20*u
+ -- Logo de l'app en tête de la ligne (maquette, Beta 1.38), si l'image et la fonction existent.
+ if v.logo and callable(ui.drawImage) then
+  local s=20*u; local iy=y+(h-s)*0.5
+  pcall(ui.drawImage,v.logo,pv(x-3*u,iy),pv(x-3*u+s,iy+s)); x=x+s+3*u
+ end
  if p.message then
   local size=11*u
   font('body',true)
@@ -2286,7 +2459,7 @@ local function sessionStrip(v,colors,e,p,y,w,u)
  font('mono',true); cx=x
  for k=1,shown do
   local it=hud.strip[k]; local lw,vw=widths[2*k-1],widths[2*k]
-  write(it.value,vs,box(R1,cx+lw+5*u,y,cx+lw+5*u+vw+2,y+h),it.warn and colors.amber or colors.text,START); cx=cx+lw+5*u+vw+16*u
+  write(it.value,vs,box(R1,cx+lw+5*u,y,cx+lw+5*u+vw+2,y+h),it.warn and colors.amber or it.best and colors.best or colors.text,START); cx=cx+lw+5*u+vw+16*u
  end
  font('mono',false)
 end
@@ -2314,8 +2487,13 @@ local function flags(v,force)
   v.backColor=rgbm(0.075,0.078,0.082,bgAlpha); v.stripColor=rgbm(0,0,0,0.5*math.max(bgAlpha,0.5)*alpha)
  end
  local back=v.backColor
+ -- Mise à jour (Beta 1.38, maquette) : fond teinté de cyan, au moins à 90 %.
+ if kind=='update' then
+  if v.updateBackFor~=bgAlpha then v.updateBackFor=bgAlpha; v.updateBack=rgbm(0.024,0.133,0.176,math.max(bgAlpha,0.9)) end
+  back=v.updateBack
+ end
  local height=M.overlayHeight(p)*u
- if bgAlpha>0 then cutBack(0,top,w,top+height,12*u,back) end
+ if bgAlpha>0 or kind=='update' then cutBack(0,top,w,top+height,12*u,back) end
  local y=top+K.hudPad*0.5*u
  if p.strip then sessionStrip(v,colors,e,p,y,w,u); y=y+K.hudStripH*u end
  if not p.band then v.drawnHeight=height; return height end
@@ -2334,8 +2512,6 @@ local function flags(v,force)
  -- Bande d'accent (3 px à l'échelle, couleur du drapeau) tout en haut de l'overlay, jusqu'au coin coupé, sous les textes.
  local a=l.accent
  ui.drawRectFilled(pv(a[1],a[2]),pv(math.max(1,a[3]-12*u),a[4]),accent,0)
- if not v.panelVersion then v.panelVersion=string.format(L.panelVersion,C.release) end
- font('mono',true); write(v.panelVersion,9*u,l.version,colors.label,FINISH); font('mono',false)
  local f=l.flag
  local code=badgeCodes[kind] or kind=='lights' and lightsCode(v,panel.lit or 0)
  if kind=='clear' then if callable(ui.drawRect) then ui.drawRect(pv(f[1],f[2]),pv(f[3],f[4]),colors.dim,0,nil,2) end
@@ -2350,7 +2526,7 @@ local function flags(v,force)
   if callable(ui.drawRect) then ui.drawRect(pv(f[1],f[2]),pv(f[3],f[4]),accent,0,nil,2) end
  else
   ui.drawRectFilled(pv(f[1],f[2]),pv(f[3],f[4]),shown,0)
-  local sigle=kind=='lap' and panel.lapCode or kind=='yellow' and panel.double and '!!' or flagCodes[kind]
+  local sigle=kind=='lap' and panel.lapCode or kind=='yellow' and panel.double and '!!' or kind=='update' and updateCode(v,panel.updateVersion) or flagCodes[kind]
   if sigle and sigle~='' then font('display',true); write(sigle,(f[3]-f[1])*(#sigle>2 and 0.34 or #sigle>1 and 0.44 or 0.6),f,(kind=='red' or kind=='blue') and colors.text or colors.ink,CENTER); font('display',false) end
  end
  if place and l.delta then local label,value=placeText(v,panel.slotText,panel.slotDistance,panel.slotPlaced,panel.slotPassed); placeBox(colors,l.delta,label,value)
@@ -2362,7 +2538,7 @@ local function flags(v,force)
   local r=box(LIGHTS,l.title[3]-math.min(150*u,(l.title[3]-l.title[1])*0.45),l.title[2],l.title[3],l.title[4])
   startLights(colors,r,kind=='lights' and (panel.lit or 0) or 0)
  end
- if l.detail then font('body',true); write(short,fitSize(short,l.fontDetail,l.detail[3]-l.detail[1]),l.detail,panel.finish and colors.text or colors.dim,START); font('body',false) end
+ if l.detail then font('body',true); write(short,fitSize(short,l.fontDetail,l.detail[3]-l.detail[1]),l.detail,kind=='lap' and panel.lapRecord and colors.best or panel.finish and colors.text or colors.dim,START); font('body',false) end
  y=bandTop+K.hudBandH*u
  -- Explication de ce qui se passe, ou récapitulatif de course (une ligne par élément), alignées sur le titre.
  if p.lines>0 then
@@ -2390,6 +2566,8 @@ local function flags(v,force)
   if p.pitCall then count=pill(v,count,L.pitPill,colors.ink,colors.pit,nil,true) end
   if p.blueGap then count=pill(v,count,blueText(v,p.blueGap),colors.text,colors.blue,nil,false) end
   if p.closed then count=pill(v,count,L.pitClosedPill,colors.ink,colors.amber,nil,false) end
+  if p.infraction then count=pill(v,count,infractionText(v,panel.infractions,panel.infractionMax),colors.amber,colors.amberBack,nil,false) end
+  if p.repair then count=pill(v,count,L.pitPill,colors.ink,colors.pit,nil,false) end
   if panel.noPass and not idle then
    if panel.passed then count=pill(v,count,panel.passBad,colors.text,colors.overBack,colors.over,true)
    else count=pill(v,count,panel.passOk,colors.under,colors.underBack,nil,false) end
@@ -2455,6 +2633,8 @@ end
 -- masquée en rediffusion ou aux stands si réglé. Clics traversants une fois verrouillée (réglage).
 function M.hud(v)
  local e=v.e; local g=e.g
+ -- Bandeau « en ligne » masqué par « Compris » : remis dès que la garde change, fenêtre fermée comprise.
+ if v.bannerHide and v.bannerHide~=e.guard then v.bannerHide=nil end
  fontsOnce(v)
  if not callable(ui.transparentWindow) then nativeBox(v,false); return end
  local frame=e.frame; local player=frame and frame.player>0 and frame.cars[frame.player] or nil

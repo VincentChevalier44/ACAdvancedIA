@@ -1,5 +1,23 @@
 # Changelog
 
+## Beta 1.38 — 3 November 2026
+
+The window and the overlay brought to the level of the final mockup (a fidelity review of Beta 1.37 found about forty visible gaps), delivered through the in-app update.
+
+- **Sections:** an unticked section now shows its settings **dimmed under its warning** (*Section off for this profile…*), as in the mockup, instead of the warning alone; they stay adjustable and apply once the section is ticked. Descriptions are the mockup's; the count of changed settings follows them in cyan. **Global options** is the pane title; the grip bonus slider sits right under its switch; **New draw**; *default: …* on the level mode, overlay background and display.
+- **Built-in presets (your choice):** a preset aimed at another profile (Race from Practice, Multi-class endurance from Qualifying…) is applied to that profile **without switching the profile shown**; HOME says *Applied to the Race profile* and no tile lights up until you show that profile. **RESTORE DEFAULTS: <profile>** (**RESTAURER <profil>** in French), *No active preset*, *Detected: race · source race.ini*; an invalid preset name gets a red frame and the mockup's message.
+- **Choices and values:** short labels in the boxes (*Lapped*, *Refuel*, *Under FCY*…; tooltips keep the long ones); 0 reads *free* (pit-exit spread, minimum stop, maximum stint) or *delta* (Slow Zone); overlay values without units in the box (*Background opacity (%)*, size **1×**).
+- **Track light panels:** switch in the title row, **Active for** chips in full cyan, colours and durations in one column, the red note only when red is off, legend with the green duration, *Panels right now: yellow · VSC* (also on the HOME tile), the mockup's red-flag warning.
+- **Safety Car view:** five-phase strip (Parked, Called, On track, In this lap, In the pits), amber steps 1–2, filter and model side by side, the car base as rows (name, folder) — eight shown, the others counted.
+- **Racing rules:** rule sets name their restart (*RS restart*, *SS restart*); Overtake Mode gap and gain and the BoP correction are dimmed while their switch is off; **Mandatory stop** pane title.
+- **Header and HOME:** guard line *Ready · race (race.ini) → profile Race (auto)*, a dot in the state chip, a warning triangle on **PANIC**, a **Got it** button that hides the online banner until the state changes, the update alert on one row (button on the right), *· shown once* after a successful update.
+- **Diagnostics:** short buttons (**Learn · 6 s**, **Start**, **End**, **Copy zones**, **Rerun**), short capability names, *AI functions exposed by CSP*, **ms** after the times, *CSP 0.2.11 · track spa · spline 7004 m*; update notes hidden while checking or installing, **Check now** in front when nothing is published, the mockup's interrupted-install text.
+- **Overlay:** best-lap purple (#B26CFF) for a new best lap and the BEST value of the session line, the app logo at the head of that line, *START · Green light: the race is on*, *Five lights on · go at lights out*, the offence count under **WARNING** and **PIT: RETURN TO THE PIT LANE** under **CAR DAMAGED**, the version in the update flag on a tinted background, a DRS badge with a light fill and no frame, the dimmed background at half the opacity, *CARB.* for fuel in French, no version text in the corner; one-line instructions and explanations aligned with the mockup.
+- **Scroll bars** can be dragged (cyan while dragging); the class pattern rows (**Edit row by row**) show the rows in use plus **+ Add a row**.
+- **CSP AI flood setting:** CSP's safe file replacement left `new_behaviour.ini.bak` in `Documents/Assetto Corsa/cfg/extension` after each write; the app now deletes it.
+
+**Verification**: 449 checks; 117 integration cases; 1,100 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.37; 8-hour soak with 0 errors (final sources: memory between 7.9 and 9.0 MB, peak frame 0.68 ms; an earlier 1.38 run gave 8.6 to 9.8 MB and 2.39 ms, and Beta 1.37 run the same afternoon 8.4 to 9.6 MB and 2.19 ms; the memory and peak criteria are still not met, as before); engine bench with 30 AI, median of five alternating runs: 0.220 ms (Beta 1.37: 0.231 ms). The interface is not in the engine bench; the new drawing code caches its texts and tables, rebuilt only when a value or the language changes.
+
 ## Beta 1.37 — 3 November 2026
 
 The clean, final version after the first real update from the app (1.35 → 1.36), with the track light panels in their own settings section.

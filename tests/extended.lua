@@ -3764,7 +3764,7 @@ end
 tests.HOTLAP_START_FLAG_AND_DRS=function()
  local L=require('src/lang')
  local e,f=F.scene('J',1); e.profiles.H=C.defaults('H'); e.profiles.H.section_rules=false; e.g.autoProfile=false; e.g.manualProfile='H'; E.select(e,'H'); E.changed(e)
- f.flag=C.K.flagStart; F.tick(e,f,1); assert(e.guard=='nosections' and e.panel.kind=='green' and e.panel.raw==L.flagDetails.start,'start flag shown')
+ f.flag=C.K.flagStart; F.tick(e,f,1); assert(e.guard=='nosections' and e.panel.kind=='green' and e.panel.raw==L.flagDetails.start and e.panel.title==L.flagTitles.start and e.panel.short==L.flagShort.startSession,'start flag shown (hotlap: session text)')
  F.tick(e,f,C.K.greenShow+1); assert(e.panel.kind=='none','start flag cleared while AC keeps it raised')
  local me=f.cars[1]; me.drsPresent=true; me.drsAvailable=true; F.tick(e,f,0.5)
  assert(e.panel.kind=='drs' and e.panel.short==L.flagShort.drs,'DRS available badge in hotlap')
@@ -3818,7 +3818,8 @@ tests.FLAG_LIFECYCLE_ALL_PROFILES=function()
    f.flag=C.K.flagNone; F.tick(e,f,1)
    assert(e.panel.kind=='none' or e.panel.kind=='drs',profile..': '..item[2]..' cleared, still '..e.panel.kind)
   end
-  f.flag=C.K.flagStart; F.tick(e,f,0.5); assert(e.panel.kind=='green',profile..': start shown')
+  -- Beta 1.38 (maquette) : vert, titre « DÉPART », consigne de la course ou de la séance.
+  f.flag=C.K.flagStart; F.tick(e,f,0.5); assert(e.panel.kind=='green' and e.panel.title==L.flagTitles.start and e.panel.short==(use=='C' and L.flagShort.start or L.flagShort.startSession),profile..': start shown')
   F.tick(e,f,C.K.greenShow+1); assert(e.panel.kind=='none',profile..': start cleared although still raised')
   f.flag=C.K.flagNone; F.tick(e,f,0.5)
  end
@@ -4511,12 +4512,18 @@ tests.HUD_LAP_AND_SESSION_LINE=function()
  me.lap=3; me.lastLap=121.2; me.bestLap=121.2; F.tick(e,f,0.5)
  assert(e.hud.lapTitle==string.format(L.hudLapTitle,4,8) and e.hud.lapDetail==string.format(L.hudLapRecord,H.lapTime(121.2)),'line crossed: lap 4/8, new best lap ('..e.hud.lapDetail..')')
  assert(e.panel.kind=='lap' and e.panel.title==e.hud.lapTitle and e.panel.lapCode=='4','shown on the overlay')
+ -- Beta 1.38 (maquette) : nouveau meilleur tour, consigne en violet.
+ assert(e.hud.lapRecord==true and e.panel.lapRecord==true,'new best lap: purple instruction')
  me.lap=4; me.lastLap=122.4; F.tick(e,f,0.5)
  assert(e.hud.lapDetail==string.format(L.hudLapDetail,H.lapTime(122.4),H.lapTime(121.2)),'ordinary lap: last and best')
+ assert(e.hud.lapRecord==false,'ordinary lap: not purple')
  F.tick(e,f,C.K.hudLapTime+0.5); assert(e.panel.kind~='lap','gone after a few seconds')
  local function value(label) for k=1,e.hud.stripCount do local it=e.hud.strip[k]; if it.label==label then return it.value,it.warn end end end
  assert(value(L.hudPosition)=='3/3' and value(L.hudLap)=='5/8' and value(L.hudBest)==H.lapTime(121.2),'position, lap and best lap')
  local fuel,warn=value(L.hudFuel); assert(fuel==(string.format(L.hudFuelLaps,8):gsub('%.',L.decimalMark)) and not warn,'fuel in laps')
+ -- Beta 1.38 (maquette) : meilleur tour en violet dans la ligne de session, seul.
+ local purple=0; for k=1,e.hud.stripCount do local it=e.hud.strip[k]; if it.best then purple=purple+1; assert(it.label==L.hudBest,'only the best lap is purple') end end
+ assert(purple==1,'best lap purple')
  me.fuel=3; F.tick(e,f,0.5); fuel,warn=value(L.hudFuel); assert(warn,'fuel warning under two laps')
  assert(H.lapTime(61.25)==('1:01.250'):gsub('%.',L.decimalMark) and H.clock(3725)=='1:02:05' and H.clock(65)=='1:05','time formats')
 end
@@ -5775,5 +5782,15 @@ tests.LIGHTS_SECTION_137=function()
  A.flag(a,h,K.flagCaution,'drapeau jaune',104.2,4); assert(a.flagValue==K.flagCaution,'more important: at once')
  A.flag(a,h,0,'',105,nil); assert(a.flagOverride,'default hold 1.5 s')
  A.flag(a,h,0,'',105.8,nil); assert(not a.flagOverride,'handed back after 1.5 s')
+end
+-- Beta 1.38 (maquette) : cinq feux allumés, consigne propre ; avant, consigne d'attente.
+tests.PANEL_LIGHTS_ALL_138=function()
+ local L=require('src/lang'); local Panel=require('src/panel')
+ local e,f=F.scene('C',3)
+ local t=e.incidents; t.standing='lights'; t.gridLit=3
+ Panel.update(e.panel,t,f,e.run,'C',e.time+1)
+ assert(e.panel.kind=='lights' and e.panel.short==L.flagShort.lights,'lights coming on: '..tostring(e.panel.kind)..' '..tostring(e.panel.short))
+ t.gridLit=C.K.gridLights; Panel.update(e.panel,t,f,e.run,'C',e.time+2)
+ assert(e.panel.kind=='lights' and e.panel.short==L.flagShort.lightsAll,'five lights: own instruction')
 end
 return tests

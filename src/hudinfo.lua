@@ -90,10 +90,11 @@ local function recap(h,a)
  h.recapSerial=h.recapSerial+1; h.recapNew=true
 end
 -- Ligne de session : éléments {label, valeur, alerte}, refaits au plus toutes les K.hudStripPeriod s.
-local function item(h,label,value,warn)
+-- best (Beta 1.38) : valeur en violet (meilleur tour).
+local function item(h,label,value,warn,best)
  h.stripCount=h.stripCount+1; local it=h.strip[h.stripCount]
  if not it then it={}; h.strip[h.stripCount]=it end
- it.label=label; it.value=value; it.warn=warn==true
+ it.label=label; it.value=value; it.warn=warn==true; it.best=best==true
 end
 local function strip(h,frame,e,a)
  h.stripCount=0
@@ -102,7 +103,7 @@ local function strip(h,frame,e,a)
  if race and frame.sessionLaps>0 and not frame.timedRace then
   item(h,L.hudLap,string.format('%d/%d',math.min(math.max(1,a.lap+1),frame.sessionLaps),frame.sessionLaps))
  elseif frame.left>0 then item(h,L.hudLeft,M.clock(frame.left)) end
- if (a.bestLap or 0)>0 then item(h,L.hudBest,M.lapTime(a.bestLap)) end
+ if (a.bestLap or 0)>0 then item(h,L.hudBest,M.lapTime(a.bestLap),false,true) end
  if race and e.run.mandatoryStops>0 and e.pits.cars[frame.player] then
   local done=math.min(e.pits.cars[frame.player].windowStops,e.run.mandatoryStops)
   item(h,L.hudStops,string.format('%d/%d',done,e.run.mandatoryStops),done<e.run.mandatoryStops and e.pits.state=='open')
@@ -129,6 +130,8 @@ function M.update(h,frame,e,now)
   local last=a.lastLap or 0
   local record=(a.bestLap or 0)>0 and (h.best<=0 or a.bestLap<h.best-1e-4) and math.abs(a.bestLap-last)<1e-3
   h.lapDetail=last>0 and string.format(record and L.hudLapRecord or L.hudLapDetail,M.lapTime(last),M.lapTime(a.bestLap)) or L.hudLapNoTime
+  -- Beta 1.38 : nouveau meilleur tour, consigne en violet dans l'overlay.
+  h.lapRecord=last>0 and record==true
   h.lapUntil=now+K.hudLapTime; h.lapSerial=h.lapSerial+1
  end
  h.lap=a.lap

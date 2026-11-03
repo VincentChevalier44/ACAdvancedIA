@@ -184,7 +184,7 @@ No track, car or `surfaces.ini` file is ever changed, so there is nothing else t
 
 - **APP ON** / **APP OFF** (header) switches the whole app on or off. When it is off, the AI are fully native again.
 - **PANIC** (header) stops every command at once, until you click **RESUME**.
-- Unticking a section's toggle switches that feature off for the profile shown. Its values are kept.
+- Unticking a section's toggle switches that feature off for the profile shown. Its values are kept, and its settings stay visible, dimmed under a warning (since Beta 1.38).
 
 ### Resetting the settings
 
@@ -269,7 +269,7 @@ Built-in presets (**HOME › BUILT-IN PRESETS**).
 - The **Blue flags** section is only ticked in the race. In practice and qualifying, being a lap down rarely means a real deficit.
 - A preset keeps your preferences (flag panel, messages, HUD flag, DRS and delta beeps, beep volume) and your class patterns. They are also ignored when the app decides whether a preset still matches.
 - Since Beta 1.29 a preset sets everything else in its profile, **championship rules included** (mandatory stop, Safety Car, rule set). A Practice, Qualifying or Race preset, built-in or custom, sets those rules for the whole weekend (Practice, Qualifying and Race), without ticking or unticking their Racing rules tab: loading **Realistic race** after adding a mandatory stop by hand removes it. A Track day preset leaves the race weekend as it is.
-- No built-in preset is pre-selected. Since Beta 1.29 a built-in preset button lights up only for the profile shown, after you click it for that profile, and while the profile still matches it. A recommended preset applied on its own to a profile you never configured lights nothing, and **RESTORE DEFAULTS** switches the highlight off. **HOME** then reads *Preset recognised for this profile: …*, or *Last preset loaded: … — modified, or another profile selected*.
+- No built-in preset is pre-selected. Since Beta 1.29 a built-in preset button lights up only for the profile shown, after you click it for that profile, and while the profile still matches it. A recommended preset applied on its own to a profile you never configured lights nothing, and **RESTORE DEFAULTS: <profile>** switches the highlight off. Since Beta 1.38 a preset aimed at another profile than the one shown (Realistic race from Practice, Multi-class endurance from Qualifying) is applied to that profile without switching the profile shown: HOME says *Applied to the Race profile*, and its button lights up when you show that profile. **HOME** then reads *Preset recognised for this profile: …*, or *Last preset loaded: … — modified, or another profile selected*.
 - The Nordschleife preset is not limited to the Nordschleife: use it at Le Mans or anywhere else.
 
 **First installation** (no saved settings):

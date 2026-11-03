@@ -839,6 +839,13 @@ function M.floodWrite(text)
  local path=floodPath('ExtCfgUser')
  if not path or not io or type(io.save)~='function' or type(text)~='string' then return false end
  local ok,done=pcall(io.save,path,text,true)
+ -- Beta 1.38 : io.save(…, true) passe par io.replaceFile, qui laisse l'ancien contenu en new_behaviour.ini.bak dans
+ -- cfg/extension : ce reste est effacé après chaque écriture.
+ if type(io.fileExists)=='function' and type(io.deleteFile)=='function' then
+  local bak=path..'.bak'
+  local okExists,present=pcall(io.fileExists,bak)
+  if okExists and present==true then pcall(io.deleteFile,bak) end
+ end
  return ok and done~=false
 end
 function M.apply(a,frame,commands,g,now)

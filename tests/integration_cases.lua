@@ -80,8 +80,9 @@ return function(source)
   HOST.configType=nil; HOST.sim.raceSessionType=1; H.tick(HOST,1.1)
  end)
  check('activation réelle et masquage des contrôles par section',function()
-  section('lateral'); redraw(); assert(not drawn('set_rampSpeed'))
-  press('section_lateral'); redraw(); assert(drawn('set_rampSpeed'))
+  -- Beta 1.38 : section décochée montrée grisée, avec son message en tête du volet.
+  section('lateral'); redraw(); assert(drawn('set_rampSpeed') and begins(L.sectionOff))
+  press('section_lateral'); redraw(); assert(drawn('set_rampSpeed') and not begins(L.sectionOff))
   assert(HUMANAI.engine.p.section_lateral)
   press('section_lateral'); assert(not HUMANAI.engine.p.section_lateral)
   press('cat_yield'); press('section_yield'); assert(HUMANAI.engine.p.section_yield)
@@ -112,11 +113,13 @@ return function(source)
   local e=HUMANAI.engine; assert(e.g.autoProfile and e.profile=='J')
   -- Profil automatique conservé : le préréglage règle son profil sans figer la détection.
   go('home'); press('builtin_Course'); main(); assert(e.g.autoProfile and e.profile=='J' and e.profiles.C.section_blue and e.profiles.C.section_overtake and not e.profiles.C.section_traffic)
-  go('home'); assert(lit('profile_C') and e.profile=='J','the configured profile is displayed after loading a preset')
+  -- Beta 1.38 (demande du pilote) : préréglage d'un autre profil appliqué sans changer le profil affiché, aucune tuile allumée.
+  go('home'); redraw(); assert(lit('profile_J') and e.profile=='J' and not lit('builtin_Course') and begins(string.format(L.presetAppliedTo,L.profiles.C)) and C.mark(e.g,'C')=='Course','shown profile kept, preset applied to its profile')
   press('auto'); press('profile_C'); go('home'); main(); assert(e.profile=='C' and not e.g.autoProfile and lit('builtin_Course'))
   assert(HUMANAI.engine.p.section_general and HUMANAI.engine.p.section_blue and HUMANAI.engine.p.section_overtake and not HUMANAI.engine.p.section_traffic)
   section('blue'); main(); assert(drawn('section_blue') and HUMANAI.engine.p.section_blue)
-  go('home'); press('builtin_Nordschleife'); main(); assert(HUMANAI.engine.profile=='J' and HUMANAI.engine.p.section_yield and HUMANAI.engine.p.section_traffic and not HUMANAI.engine.p.section_blue)
+  -- Beta 1.38 : profil manuel, le préréglage d'un autre profil ne change plus de profil : la journée circuit d'abord.
+  go('home'); press('profile_J'); press('builtin_Nordschleife'); main(); assert(HUMANAI.engine.profile=='J' and HUMANAI.engine.p.section_yield and HUMANAI.engine.p.section_traffic and not HUMANAI.engine.p.section_blue)
   press('builtin_Endurance'); main(); assert(HUMANAI.engine.p.section_endurance and HUMANAI.engine.p.multiClass and lit('builtin_Endurance'))
   press('custom_1')
  end)
@@ -647,7 +650,8 @@ return function(source)
   HOST.draws=0; HOST.panelTexts={}; HOST.textTop=nil; HOST.circles=0; script.HUMANAI__FLAGS()
   assert(HOST.draws>=2 and HOST.fontDepth==0 and HOST.styleDepth==0 and has(HOST.panelTexts,L.flagTitles.red),'red flag drawn')
   assert(has(HOST.panelTexts,L.deltaLabel) and has(HOST.panelTexts,L.pitPill) and e.delta.kind=='red','red flag: delta box to the pits and PIT pill')
-  assert(has(HOST.panelTexts,string.format(L.panelVersion,C.release)),'version at the top of the flags panel')
+  -- Beta 1.38 (maquette) : plus de version en haut à droite de l'overlay.
+  assert(not has(HOST.panelTexts,string.format(L.panelVersion,C.release)),'no version text at the top of the flags panel')
   assert(HOST.textTop>=34,'text placed under the CSP title bar, never behind it')
   -- Fenêtre basse : titre en police normale, toujours sous la barre de titre ; police toujours rendue.
   HOST.windowHeight=110; HOST.textTop=nil; script.HUMANAI__FLAGS(); assert(HOST.textTop>=34 and HOST.fontDepth==0); HOST.windowHeight=nil
@@ -768,12 +772,13 @@ return function(source)
   HOST.carFolders[#HOST.carFolders+1]='quoted_car'; HOST.files['cars/quoted_car/ui/ui_car.json']='{"name": "F355 \\"Persephone\\" \\u00e9t\\u00e9", "tags": ["a"]}'
   assert(loadstring(source))(); local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.neutralization='sc'; E.changed(e); H.tick(HOST,0.5)
   HOST.space={x=1000,y=3000}; pause(true); go('home'); press('profile_C'); section('rules','safetyCarSpeedKmh'); main()
-  local list=HOST.comboLists['##aai_safety_pick']; assert(list and #list==1+#HOST.carFolders,'every installed car listed ('..(list and #list or 0)..')')
-  HOST.inputEdits['##aai_safety_filter']='persephone'; main(); main()
-  list=HOST.comboLists['##aai_safety_pick']; assert(#list==2 and list[2]=='F355 "Persephone" été (quoted_car)','escaped quotes and accents read ('..tostring(list[2])..')')
-  HOST.inputEdits['##aai_safety_filter']='safety car'; main(); main()
-  list=HOST.comboLists['##aai_safety_pick']; assert(#list==2 and list[2]=='Aston Martin Vantage safety car 2021 (aston_vantage2018)','found by its Content Manager name')
-  HOST.comboEdits['##aai_safety_pick']=2; main()
+  -- Beta 1.38 (maquette) : base en lignes (nom, dossier), huit au plus, les autres comptées.
+  redraw(); assert(drawn('safety_pick_8') and not drawn('safety_pick_9') and begins(string.format(L.safetyMore,#HOST.carFolders-8)),'every installed car counted, eight rows shown')
+  HOST.inputEdits['##aai_safety_filter']='persephone'; main(); redraw()
+  assert(drawn('safety_pick_1') and not drawn('safety_pick_2') and drawnText('F355 "Persephone" été') and drawnText('quoted_car'),'escaped quotes and accents read')
+  HOST.inputEdits['##aai_safety_filter']='safety car'; main(); redraw()
+  assert(drawnText('Aston Martin Vantage safety car 2021') and drawnText('aston_vantage2018') and not drawn('safety_pick_2'),'found by its Content Manager name')
+  press('safety_pick_1'); main()
   -- Beta 1.19 : bloc sous le titre Voiture de sécurité de l'onglet Règles de course, après ses réglages.
   redraw(); assert(HOST.hits['##aai_safety_clear'].y>HOST.hits['##aai_set_safetyCarEscalation'].y and not drawn('set_redFlagEnabled'),'safety car block in its own view, after its settings')
   pause(false); HOST.space={x=1000,y=780}
@@ -850,7 +855,10 @@ return function(source)
   assert(HOST.beepInterior==1 and HOST.beepVolume==2 and HOST.beepChannel=='main','full level in the cockpit view (CSP default 25 %), main channel')
   HOST.transparent={}; script.HUMANAI__HUD(); assert(e.panel.kind=='drs' and HOST.transparent.ACAdvancedIA_overlay,'DRS shown on the overlay')
   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.flagTitles.drs),'DRS title drawn')
-  assert(has(HOST.panelTexts,'DRS') and HOST.fontDepth==0 and (HOST.outlines or 0)>=1,'DRS badge, not a flag square')
+  -- Beta 1.38 (maquette) : aplat clair, « DRS » à l'encre, sans cadre.
+  HOST.outlines=0; HOST.panelTexts={}; script.HUMANAI__FLAGS()
+  local drsTexts=0; for _,t in ipairs(HOST.panelTexts) do if t=='DRS' then drsTexts=drsTexts+1 end end
+  assert(drsTexts>=2 and HOST.fontDepth==0 and HOST.outlines==0,'DRS badge (title and badge text): light fill, no frame')
   HOST.cars[0].drsAvailable=false; H.tick(HOST,0.5); HOST.cars[0].drsAvailable=true; H.tick(HOST,0.5)
   assert(HOST.played==2 and HOST.disposed==1,'second zone: new beep, previous sound released')
   e.profiles.C.drsBeepVolume=400; E.changed(e); HOST.cars[0].drsAvailable=false; H.tick(HOST,0.5); HOST.cars[0].drsAvailable=true; H.tick(HOST,0.5)
@@ -894,7 +902,8 @@ return function(source)
   assert(e.profiles.C.section_general==not was and not e.profiles[running].section_general,'edits go to the displayed profile')
   press('section_general'); assert(e.profiles.C.section_general==was,'the switch of the list toggles too')
   press('section_general'); assert(e.profiles.C.section_general==not was)
-  go('home'); press('builtin_Qualifications'); go('settings'); assert(lit('profile_Q') and e.g.autoProfile and e.profile==running,'loaded preset displayed, detection kept')
+  -- Beta 1.38 (demande du pilote) : préréglage d'un autre profil, profil affiché gardé.
+  go('home'); press('builtin_Qualifications'); go('settings'); assert(lit('profile_C') and e.g.autoProfile and e.profile==running and C.mark(e.g,'Q')=='Qualifications','preset of another profile: shown profile and detection kept')
   go('home'); press('auto'); press('profile_C'); main(); assert(e.profile=='C' and not e.g.autoProfile and lit('profile_C'),'manual choice without automatic profile')
   press('auto'); main(); assert(e.g.autoProfile and lit('profile_'..e.profile),'back to the running profile')
   pause(false)
@@ -1257,7 +1266,7 @@ return function(source)
   -- Interrupteur : coupe les règles du profil affiché seulement, enregistré ; réglages masqués, jeux de règles visibles.
   press('section_rules'); redraw()
   assert(not e.profiles.C.section_rules and e.profiles.Q.section_rules and HOST.storage['humanai:p:C:'].section_rules==false,'rules off for the profile shown only')
-  assert(not drawn('set_neutralization') and drawn('rules_F1') and not lit('section_rules'),'settings hidden, rule sets still offered')
+  assert(drawn('set_neutralization') and begins(L.rulesOff) and drawn('rules_F1') and not lit('section_rules'),'settings greyed under the off message, rule sets still offered')
   press('section_rules'); assert(e.profiles.C.section_rules,'rules on again')
   -- Jeu de règles choisi dans l'onglet : appliqué aux Essais, Qualifications et Course.
   press('rules_F1'); redraw()
@@ -2003,7 +2012,8 @@ return function(source)
   press('profile_C'); local P=e.profiles[HUMANAI.engine.profile]
   section('globals'); redraw()
   if C.on(e.profiles[e.profile],'globals') then press('section_globals'); redraw() end
-  assert(not drawn('global_useGripBoost') and not drawn('reroll') and begins(L.sectionOff),'globals off: read-only')
+  -- Beta 1.38 (maquette) : décochées, réglages grisés sous le message de section inactive.
+  assert(drawn('global_useGripBoost') and begins(L.sectionOff),'globals off: greyed under the off message')
   press('section_globals'); redraw(); assert(drawn('global_useGripBoost'),'globals on: editable')
   -- Changement de langue : valeur affichée (séparateur décimal) et texte du défaut refaits.
   section('general'); redraw(); assert(drawnText('1,2'),'French decimal comma')
@@ -2080,8 +2090,11 @@ return function(source)
   end
   -- Choix globaux trop larges pour un segment : bouton à défilement, libellé lisible.
   press('cat_overlay'); redraw()
-  local show=g.panelShow=='always' and L.choices.always or L.choices.info
-  assert(starts(show:sub(1,8)),'overlay display choice falls back to a cycle button')
+  local show=g.panelShow=='always' and L.choices.always or L.choiceShort.panelShow.info
+  assert(starts(show:sub(1,8)) or starts(W.upper(show):sub(1,8)),'overlay display choice readable (short label, Beta 1.38)')
+  -- Libellés trop larges pour un segment (police de secours) : bouton à défilement.
+  local savedShow=v.showLabels; v.showLabels={string.rep('Avec une information ',3),savedShow[2]}; g.panelShow='info'; redraw()
+  assert(starts('Avec une information') and not drawnText(W.upper(savedShow[2])),'overlay display choice falls back to a cycle button'); v.showLabels=savedShow
   -- Onglet Règles de course : en-tête dans le panneau ; ligne de choix au libellé entier (texte du défaut en infobulle).
   press('profile_C'); go('rules')
   local f=W.frame()
@@ -2097,6 +2110,7 @@ return function(source)
   assert(drawnText(label),'red-flag restart label shown in full: '..label)
   -- Overlay : même règle des polices, dépilées aussi après une erreur de dessin.
   g.panelShow='always'; pause(false); H.tick(HOST,0.5)
+  local pk=HUMANAI.engine.panel; pk.kind='sc'; pk.decided='sc'; pk.title=L.flagTitles.sc; pk.short=''; pk.explain=''; pk.changedAt=HUMANAI.engine.time
   HOST.repeatPushes=0; HOST.lastPushed=nil; HOST.fontDepthMax=0; HOST.fontPushes=0; HOST.transparent={}; script.HUMANAI__HUD()
   assert(HOST.transparent.ACAdvancedIA_overlay and HOST.dwriteDepth==0 and HOST.repeatPushes==0 and HOST.fontDepthMax==1 and HOST.fontPushes<=6,'overlay fonts: '..HOST.fontPushes..' pushes ('..HOST.repeatPushes..' repeated)')
   local clipped=ui.dwriteDrawTextClipped; ui.dwriteDrawTextClipped=function() error('draw failure (test)') end
@@ -2140,7 +2154,7 @@ return function(source)
   press('lang_en'); redraw(); assert(starts(L.diagLights),'lights line in English after the switch')
   press('lang_fr'); redraw()
   -- Signatures des préréglages et jeu de règles : calculés une fois par modification, jamais à chaque image.
-  go('home'); press('builtin_Course'); redraw()
+  go('home'); press('profile_C'); press('builtin_Course'); redraw()
   local Presets=require('src/presets'); local signature=Presets.signature; local n=0
   Presets.signature=function(...) n=n+1; return signature(...) end
   local ok,err=pcall(redraw); Presets.signature=signature; assert(ok,err); assert(n==0,'preset signatures rebuilt on an unchanged frame: '..n)
@@ -2240,6 +2254,98 @@ return function(source)
   assert(drawn('set_lightsGreenTime') and drawn('set_lightsHold') and drawn('lights_on_H'),'durations and session chips')
   HUMANAI.host.trackLights=false; redraw(); assert(begins(L.lightsNoEffect),'not equipped: no effect on this track')
   HUMANAI.host.trackLights=nil; pause(false)
+ end)
+ check('Beta 1.38 : reste new_behaviour.ini.bak effacé après chaque écriture du réglage d AI flood',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.files['cfgext\\new_behaviour.ini']='[AI_FLOOD]\r\nENABLED=1\r\n'
+  local A=require('src/applier')
+  assert(A.floodWrite('[AI_FLOOD]\r\nENABLED=0\r\n') and HOST.files['cfgext\\new_behaviour.ini']=='[AI_FLOOD]\r\nENABLED=0\r\n','written')
+  assert(HOST.files['cfgext\\new_behaviour.ini.bak']==nil and HOST.bakDeleted==1,'no .bak left in cfg/extension')
+  assert(A.floodWrite('[AI_FLOOD]\r\nENABLED=1\r\n') and HOST.files['cfgext\\new_behaviour.ini.bak']==nil and HOST.bakDeleted==2,'every write')
+ end)
+ check('Beta 1.38 : interface au niveau de la maquette',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; HOST.space={x=1000,y=3000}; assert(loadstring(source))(); H.tick(HOST,1); pause(true)
+  local e=HUMANAI.engine; local g=e.g
+  local function contains(part) for _,t in ipairs(HOST.drawnTexts) do if t:find(part,1,true) then return true end end return false end
+  -- B3 : bandeau en ligne masqué par « Compris » jusqu'au prochain changement de garde.
+  HOST.sim.isAltOnlineRace=true; H.tick(HOST,1); go('home'); redraw()
+  assert(e.guard=='online' and drawn('banner_action') and drawnText(W.upper(L.banners.online[3])),'online banner with its Got it button')
+  press('banner_action'); redraw(); assert(not drawn('banner_action'),'banner hidden after Got it')
+  HOST.sim.isAltOnlineRace=false; H.tick(HOST,1); redraw(); HOST.sim.isAltOnlineRace=true; H.tick(HOST,1); redraw()
+  assert(drawn('banner_action'),'shown again after a guard change')
+  -- Changement de garde vu par l'overlay, fenêtre fermée.
+  press('banner_action'); HOST.sim.isAltOnlineRace=false; H.tick(HOST,1); script.HUMANAI__HUD(); HOST.sim.isAltOnlineRace=true; H.tick(HOST,1); redraw()
+  assert(drawn('banner_action'),'shown again after a guard change seen by the overlay')
+  HOST.sim.isAltOnlineRace=false; H.tick(HOST,1)
+  -- B7 : garde de l'en-tête (session, source, profil, auto), fenêtre ouverte depuis le menu, sans pause.
+  pause(false); HOST.sim.isInMainMenu=true; H.tick(HOST,1); redraw()
+  assert(e.guard=='ready' and contains(' · '..L.guards.ready..' · '..L.sessionTypes[3]..' ('),'header guard line: session, source, profile, auto ('..tostring(e.guard)..')')
+  HOST.sim.isInMainMenu=false; pause(true)
+  -- B2 : préréglage intégré d'un autre profil (Endurance depuis les essais : profil Course).
+  press('profile_P'); press('builtin_Endurance'); redraw()
+  assert(lit('profile_P') and not lit('builtin_Endurance') and begins(string.format(L.presetAppliedTo,L.profiles.C)),'other profile: shown profile kept, no tile lit')
+  assert(C.mark(g,'C')=='Endurance' and C.ruleCategory('C',e.profiles.C)=='Endurance','built-in mark recorded for the target profile')
+  press('profile_C'); redraw(); assert(lit('builtin_Endurance'),'lit in its own profile')
+  -- A11, B1 : restauration du profil affiché ; nom de préréglage refusé.
+  assert(drawnText(W.upper(L.restoreShort..L.profiles.C)),'restore names the profile')
+  HOST.inputEdits['##aai_preset_name']=''; main(); press('save_preset'); redraw(); assert(begins(L.invalidPresetName),'invalid preset name message')
+  -- A3, A9 : options globales (titre, bonus de grip sous son interrupteur, nouveau tirage, défaut du mode de niveau).
+  local q=e.profiles.C; q.section_globals=true; go('settings'); press('cat_globals'); redraw()
+  local h=HOST.hits
+  assert(drawnText(W.upper(L.groups.globals)),'Global options title')
+  assert(h['##aai_global_gripPerLevelPct'].y>h['##aai_global_useGripBoost'].y and h['##aai_global_gripPerLevelPct'].y<h['##aai_global_useBrakeAssist'].y,'grip bonus right under its switch')
+  local lv=1; for i,k in ipairs(C.globalChoices.levelMode) do if k==C.globalDefaults.levelMode then lv=i end end
+  assert(drawnText(W.upper(L.reroll)) and drawnText(W.upper(string.format(L.defaultValue,L.levelModeLabels[lv]:lower()))),'New draw, level mode default')
+  -- A10 : overlay (puce Active, taille 1×, libellé de la liste).
+  press('cat_overlay'); redraw()
+  assert(drawnText(W.upper(L.chipSectionOn)) and drawnText('1×') and (drawnText(L.categories.overlay) or drawnText(W.upper(L.categories.overlay))),'overlay: Active chip, size 1×, sidebar label')
+  -- A2, B6 : panneaux lumineux (note du rouge seulement coupé, interrupteur du titre, une colonne, légende, en direct).
+  HUMANAI.host.trackLights=true; q.section_lights=true; q.lightsRed=true; press('cat_lights'); redraw()
+  local red=L.lightNotes.lightsRed:sub(1,10)
+  assert(not contains(red) and contains(L.lightNotes.lightsYellow),'red note hidden while red is on')
+  q.lightsRed=false; redraw(); assert(contains(red),'red note when red is off'); q.lightsRed=true
+  assert(drawn('section_lights_title') and lit('lights_on_C'),'title switch, session chip')
+  press('section_lights_title'); redraw(); assert(not q.section_lights and begins(L.sectionOff) and drawn('set_lightsGreenTime'),'title switch: off, greyed with its message')
+  press('section_lights_title'); redraw(); assert(q.section_lights)
+  local a,b=HOST.hits['##aai_set_lightsYellow'],HOST.hits['##aai_set_lightsGreenTime_minus']
+  assert(a and b and math.abs(a.x-b.x)<1,'colours and durations in one column')
+  assert(drawnText(W.upper(L.lightsLegendTitle[1])) or drawnText(L.lightsLegendTitle[1]),'legend heading')
+  assert(contains((string.format(L.lightsGreenFor,tostring(q.lightsGreenTime)):gsub('%.',L.decimalMark):gsub('^ ',''))),'green duration in the legend')
+  HUMANAI.host.flagOverride=true; HUMANAI.host.flagValue=2; e.incidents.neutral=true; e.incidents.neutralMode='vsc'; redraw()
+  assert(contains(L.lightNames[2]..L.lightsPhaseVsc),'panels right now: yellow · VSC')
+  go('home'); redraw(); assert(contains(L.lightShort[2]..L.lightsPhaseVsc),'home tile: Yellow · VSC')
+  e.incidents.neutral=false; HUMANAI.host.flagOverride=nil
+  -- B8 : note du jaune natif sous sa ligne.
+  q.section_accidents=true; go('settings'); press('cat_accidents'); redraw(); assert(drawn('set_yellowHud') and begins(L.yellowHudLocked),'yellow HUD note')
+  -- A8 : libellés courts des choix.
+  q.section_flash=true; press('cat_flash'); redraw()
+  assert(drawnText(W.upper(L.choiceShort.flashMode.lapped)) or drawnText(L.choiceShort.flashMode.lapped),'short choice labels')
+  -- A6, A7, B9 : arrêt obligatoire (titre, « libre »), voiture de sécurité (phases).
+  go('rules'); press('rules_view_stops'); redraw()
+  assert(drawnText(W.upper(L.stopsTitle)) and drawnText(L.zeroValues.minPitTime),'stops title, zero shown as free')
+  press('rules_view_safety'); redraw(); assert(g.safetyCarModel=='' or drawnText(W.upper(L.safetyPhaseStrip[1])),'safety car phase strip')
+  -- C : motifs de classes (colonne « Numéro de classe », « + Ajouter une ligne »).
+  q.section_endurance=true; go('settings'); press('cat_endurance'); press('pattern_rows'); redraw()
+  local rows=0; for i=1,8 do if drawn('pattern_clear_'..i) then rows=i end end
+  assert(rows>=1 and rows<8 and drawnText(W.upper(L.classColumn)),'used rows and one more, class number column')
+  press('pattern_add'); redraw(); assert(drawn('pattern_clear_'..(rows+1)),'row added'); press('pattern_rows')
+  -- A4 : diagnostic (libellés courts, noms des capacités).
+  go('diagnostic'); redraw()
+  assert(drawnText(W.upper(L.learnShort)) and drawnText(W.upper(L.markStartShort)) and drawnText(W.upper(L.exportZones)) and drawnText(W.upper(L.calibrateShort)),'short Diagnostic buttons')
+  assert(drawnText(L.capNames.level) and drawnText(W.upper(L.apiList)),'capability names, AI functions heading')
+  -- C : barre de défilement saisissable (accueil, fenêtre basse).
+  HOST.space={x=1000,y=420}; go('home'); redraw()
+  local before=HOST.hits['##aai_builtin_Nordschleife']
+  assert(drawn('scroll_home_left') and before,'rail shown when the content overflows')
+  HOST.mouseDelta={x=0,y=60}; HOST.drags['##aai_scroll_home_left']=0.5; main(); HOST.mouseDelta={x=0,y=0}; redraw()
+  local after=HOST.hits['##aai_builtin_Nordschleife']
+  assert(after==nil or after.y<before.y-1,'dragging the rail scrolls')
+  HOST.space={x=1000,y=780}
+  -- B10 : overlay (infractions sous l'avertissement, stands sous la voiture endommagée, version dans le drapeau).
+  local panel=e.panel; local function flag(kind) panel.kind=kind; panel.decided=kind; panel.title=L.flagTitles[kind] or ''; panel.short=''; panel.explain=''; panel.changedAt=e.time; HOST.panelTexts={}; script.HUMANAI__FLAGS() end
+  panel.infractions=1; panel.infractionMax=5; flag('warning'); assert(has(HOST.panelTexts,string.format(L.infractionPill,1,5)),'offence count pill')
+  flag('meatball'); assert(has(HOST.panelTexts,L.pitPill),'pit pill under car damaged')
+  panel.updateVersion='Beta 1.39'; flag('update'); assert(has(HOST.panelTexts,'1.39'),'version in the update flag')
+  pause(false)
  end)
  return results
 end

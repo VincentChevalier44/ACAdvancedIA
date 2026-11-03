@@ -66,7 +66,7 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
  extra=extra or 0
  local shown=shownKinds[kind] or kind
  if shown~=panel.kind then panel.changedAt=now end
- panel.kind=shown; panel.double=double; panel.blueGap=gap; panel.redPit=kind=='red' and value==1; panel.finish=kind=='finish'
+ panel.decided=kind; panel.kind=shown; panel.double=double; panel.blueGap=gap; panel.redPit=kind=='red' and value==1; panel.finish=kind=='finish'
  -- Feux de départ (Beta 1.34) : nombre de feux allumés.
  panel.lit=kind=='lights' and value or 0
  -- Passage de la ligne et fin de course (Beta 1.25) : textes tenus par les informations de l'overlay.
@@ -79,11 +79,12 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
   -- Départ arrêté (Beta 1.35) : place et distance lues par la case de l'overlay.
   if kind=='standing' and value>0 then panel.slotText='P'..value; panel.slotDistance=extra else panel.slotText=nil; panel.slotDistance=nil end
   if kind=='lap' and info then
-   panel.title=info.lapTitle; panel.raw=info.lapDetail; panel.detail=info.lapDetail; panel.short=info.lapDetail; panel.explain=''; panel.lapCode=info.lapCode
+   panel.title=info.lapTitle; panel.raw=info.lapDetail; panel.detail=info.lapDetail; panel.short=info.lapDetail; panel.explain=''; panel.lapCode=info.lapCode; panel.lapRecord=info.lapRecord==true
   elseif kind=='finish' and info then
    panel.title=L.flagTitles.finish; panel.raw=info.recap[1] or ''; panel.detail=panel.raw; panel.short=panel.raw; panel.explain=''
   elseif kind~='none' then
-   panel.title=kind=='yellow' and double and L.flagTitles.yellow2 or L.flagTitles[panel.kind]
+   -- Départ (Beta 1.38) : vert, titre « DÉPART » de la maquette.
+   panel.title=kind=='yellow' and double and L.flagTitles.yellow2 or kind=='start' and L.flagTitles.start or L.flagTitles[panel.kind]
    local detail
    if kind=='drs' then detail=L.flagDetails.drs
    elseif kind=='yellow' then detail=string.format(double and L.flagDetails.yellow2 or L.flagDetails.yellow,value)
@@ -93,7 +94,9 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
    panel.raw=detail; panel.detail=U.wrapText(detail,K.panelWrap)
    -- Consigne courte du bandeau (une ligne).
    local short=kind=='red' and (value==1 and (session and 'redSessionPit' or 'redPit') or (session and 'redSession' or 'red'))
-    or kind=='green' and session and 'greenSession' or kind=='yellow' and double and 'yellow2' or kind
+    or kind=='green' and session and 'greenSession' or kind=='yellow' and double and 'yellow2'
+    -- Beta 1.38 : départ hors course (séance), cinq feux allumés : consignes propres (maquette).
+    or kind=='start' and profile~=nil and profile~='C' and 'startSession' or kind=='lights' and value>=K.gridLights and 'lightsAll' or kind
    panel.short=string.format(L.flagShort[short],value,extra)
    -- Explication de ce qui se passe (Beta 1.25), sous la consigne : jaune, double jaune, neutralisations, rouge...
    local explain=kind=='yellow' and double and 'yellow2' or kind=='red' and (session and 'redSession' or 'red') or kind
@@ -103,7 +106,8 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
 end
 -- Panneau réduit aux drapeaux d'AC : onglet Règles ou panneau décoché, app à l'arrêt (aucune commande, session finie,
 -- panique, pause, hotlap). Ni dépassement interdit ni règles du DRS ; badge DRS du joueur si sa préférence est cochée.
-function M.native(panel,frame,now,p)
+-- profile (Beta 1.38) : profil en cours (consigne du départ, course ou séance) ; absent : course.
+function M.native(panel,frame,now,p,profile)
  if now<panel.at then return end
  panel.at=now+K.panelPeriod
  local kind,value=native(panel,frame,now)
@@ -113,7 +117,7 @@ function M.native(panel,frame,now,p)
  if not kind and panel.info and now<panel.info.lapUntil then kind='lap' end
  if not kind and (not p or p.drsAssist~=false) and a and a.valid and a.drsPresent and a.drsAvailable and not a.drsActive and not panel.drsUsed then kind='drs'; value=1 end
  if not kind and now<panel.updateUntil then kind='update'; value=panel.updateVersion end
- show(panel,kind or 'none',value,false,nil,now)
+ show(panel,kind or 'none',value,false,nil,now,profile)
  panel.noPass=false; panel.drsBlocked=false; panel.warnPending=false
 end
 -- Informations non urgentes : effacées après la durée réglée (0 : tant qu'elles durent) ; les drapeaux restent.
