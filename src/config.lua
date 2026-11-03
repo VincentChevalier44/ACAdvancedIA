@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.34',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
+local M={version=3,release='Beta 1.35',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -308,12 +308,12 @@ M.K={maxCars=61,paceBins=400,logLines=200,logRate=20,logDedup=5,maxZones=64,maxZ
  blueSlowdown=0.08,blueRecoveryTau=0.8,blueTrainHold=1,lostSaRatio=0.3,returnCornerMin=0.35,
  brakeEmulationGain=0.8,brakeEmulationPedal=0.2,brakeEmulationRange=80,brakeEmulationClosing=3,
  counterMax=2147483647,blockedYieldTime=3,blockedYieldGap=10,lapseSalt=50000,stintSalt=10000,performanceWindow=60,maxAppWindows=256,metadataLength=128,maxCapabilities=128,
- uiCategoryPadding=32,uiTabPadding=16,uiFallbackColumns=3,uiTipWidth=72,maxPresets=16,presetNameBytes=64,
+ uiTipWidth=72,maxPresets=16,presetNameBytes=64,
  neutralReaction=0.3,neutralAwareness=0.5,trafficPeriod=0.5,trafficMinGap=15,trafficDensityCapacity=0.65,trafficMaxCapacity=0.9,
- trafficDecelKmh=4,trafficAccelKmh=8,trafficMinSpeed=30,trafficLogDelay=60,trafficFasterMargin=0.03,targetLostGrace=1,spreadDelay=1,spreadPlanDelay=0.5,spreadReport=8,spreadPlayerGap=300,spreadSpeed=50,spreadLaunchWait=0.5,spreadCheck=3,spreadTroubleKmh=10,spreadRetry=2,spreadReached=100,spreadTroubleLines=6,slowRatio=0.6,slowMinPaceKmh=60,slowMinKmh=15,slowFollowGap=60,slowLogTime=20,slowEnd=8,slowSettle=10,spreadMinGap=15,spreadWindow=60,spreadMaxKmh=30,trackDayExitSpeed=40,trackDayExitMaxTotal=600,floodPeriod=2,floodMinLength=7000,floodRound=50,messageProbe='ACAdvancedIA',probeFrames=90,probeTime=0.1,parkReturnPeriod=10,blueCloseGap=40,blueSlack=5,radarLatMargin=0.4,radarWarnTTC=2.5,radarCaution=1.4,radarTTC=1.2,radarMinBrake=0.08,radarBrakeMax=0.45,radarApply=1.5,radarRelease=0.8,radarLogPeriod=15,contactLogPeriod=10,contactLogBudget=3,towWindow=3,blueLogTime=3,pitExitWindow=60,pitExitMinCars=10,pitExitSalt=7717,pitExitJitter=0.6,pitExitMaxTotal=180,pitExitSessionShare=0.25,pitExitMinGap=2,
+ trafficDecelKmh=4,trafficAccelKmh=8,trafficMinSpeed=30,trafficLogDelay=60,trafficFasterMargin=0.03,targetLostGrace=1,spreadDelay=1,spreadPlanDelay=0.5,spreadReport=8,spreadPlayerGap=300,spreadSpeed=50,spreadLaunchWait=0.5,spreadCheck=3,spreadTroubleKmh=10,spreadRetry=2,spreadReached=100,spreadTroubleLines=6,slowRatio=0.6,slowMinPaceKmh=60,slowMinKmh=15,slowFollowGap=60,slowLogTime=20,slowEnd=8,slowSettle=10,spreadMinGap=15,spreadWindow=60,spreadMaxKmh=30,trackDayExitSpeed=40,trackDayExitMaxTotal=600,floodPeriod=2,floodMinLength=7000,floodRound=50,messageProbe='ACAdvancedIA',probeFrames=90,probeTime=0.1,parkReturnPeriod=10,blueCloseGap=40,blueSlack=5,radarLatMargin=0.4,radarWarnTTC=2.5,radarCaution=1.4,radarTTC=1.2,radarMinBrake=0.08,radarBrakeMax=0.45,radarApply=1.5,radarRelease=0.8,radarLogPeriod=15,contactLogPeriod=10,contactLogBudget=3,towWindow=3,blueLogTime=3,pitExitWindow=60,pitExitSalt=7717,pitExitJitter=0.6,pitExitMaxTotal=180,pitExitSessionShare=0.25,pitExitMinGap=2,
  repairBase=3,repairBodyMin=5,repairBodyRate=0.1,repairSuspensionMin=0.02,repairSuspensionRate=40,repairEngineMin=990,repairEngineTime=30,repairMax=60,engineLifeNew=1000,trafficArmSpeed=60,trafficEpisode=6,trafficCycle=18,unlimitedSpeed=1e9,
  wrongWaySpeed=10,wrongWayTime=2,spinSpeed=15,spinTime=0.6,incidentClear=2,incidentMaxAge=120,crashSettle=4,rejoinWaitMax=10,rejoinSpeed=30,crashSalt=60000,stopPulse=1.5,stopPulsePeriod=0.5,
- yellowApproach=800,yellowNoPass=150,playerFlagLead=150,playerFlagLeadMax=800,flagLeadTime=1.25,gridGrace=6,gridMax=120,gridFirst=6,gridPitch=8,gridSlotRadius=4,gridApproachDecel=1.5,gridBrakeFrom=25,gridHoldDistance=1.5,gridColumn=0.35,gridColumnFrom=200,gridStillKmh=2,gridCrawlKmh=8,gridApproachKmh=80,gridBrakeMargin=3,gridBrakeScale=30,gridBrakeMin=0.1,gridNodeRange=400,gridLights=5,lightStep=1,lightsOutMin=0.2,lightsOutMax=3,jumpDistance=1,jumpSpeed=3,goShow=2,jumpShow=8,flagNone=0,flagCaution=2,flagStart=1,flagStop=5,flagReturnToPits=8,flagFasterCar=12,flagSlippery=3,flagSlowVehicle=6,flagFinished=13,flagOneLapLeft=14,penaltyMandatoryPits=1,penaltyTeleportToPits=2,
+ yellowApproach=800,yellowNoPass=150,playerFlagLead=150,playerFlagLeadMax=800,flagLeadTime=1.25,gridGrace=6,gridMax=120,gridFirst=6,gridPitch=8,gridSlotRadius=4,gridApproachDecel=1.5,gridBrakeFrom=25,gridHoldDistance=1.5,gridColumn=0.35,gridColumnFrom=200,gridStillKmh=2,gridCrawlKmh=8,gridApproachKmh=80,gridBrakeMargin=3,gridBrakeScale=30,gridBrakeMin=0.1,gridNodeRange=400,gridLights=5,lightStep=1,lightsOutMin=0.2,lightsOutMax=3,jumpDistance=1,jumpSpeed=3,goShow=2,jumpShow=8,gridOvershoot=25,gridSideBySide=0.5,gridFormFrom=500,relaunchTravel=0.5,jumpServeDistance=150,jumpServeMax=30,slowGrace=10,flagsHiddenRead=5,slowLogGap=10,flagNone=0,flagCaution=2,flagStart=1,flagStop=5,flagReturnToPits=8,flagFasterCar=12,flagSlippery=3,flagSlowVehicle=6,flagFinished=13,flagOneLapLeft=14,penaltyMandatoryPits=1,penaltyTeleportToPits=2,
  ruleBrake=0.2,aiFlashGap=40,aiFlashCooldown=8,aiFlashPulses=2,aiFlashInterval=0.4,overtakeDetect=0.95,vscEnding=12,restartMax=600,redReleaseFirst=5,redReleaseGap=2,scClosedLaps=3,
  journalPeriod=2,journalSummary=60,journalKeep=3,journalMaxBytes=4194304,
  -- Mise à jour depuis GitHub (Beta 1.33) : vérification une fois par lancement, après updateDelay s de jeu ; lignes des
@@ -359,8 +359,10 @@ function M.patterns(text,out)
 end
 function M.validate(profile,input,out)
  out=out or {}; local errors=0
- -- Migration v0 : mêmes clés reconnues ; toute version future est refusée.
- if input.schemaVersion~=nil and (not U.finite(input.schemaVersion) or input.schemaVersion<0 or input.schemaVersion>M.version or input.schemaVersion%1~=0) then input=M.defaults(profile); errors=errors+1 end
+ -- Migration v0 : mêmes clés reconnues. Version future (Beta 1.35 : après un retour à une version précédente) : chaque
+ -- clé connue validée une à une, sections gardées, numéro le plus haut gardé à l'enregistrement ; jamais les défauts.
+ if input.schemaVersion~=nil and (not U.finite(input.schemaVersion) or input.schemaVersion<0 or input.schemaVersion%1~=0) then input=M.defaults(profile); errors=errors+1 end
+ local newer=input.schemaVersion~=nil and input.schemaVersion>M.version
  for _,s in ipairs(M.schema) do
   local v=input[s.key]; local good
   if s.min then good=U.finite(v) and v>=s.min and v<=s.max
@@ -369,7 +371,7 @@ function M.validate(profile,input,out)
   out[s.key]=v
  end
  for _,group in ipairs(M.sections) do
-  local active=(input.schemaVersion==M.version or input.schemaVersion==2) and input[sectionKeys[group]]==true
+  local active=(input.schemaVersion==M.version or input.schemaVersion==2 or newer) and input[sectionKeys[group]]==true
   if group=='weather' and input.schemaVersion==2 then active=input.section_endurance==true and input.weatherAdaptation==true end
   out[sectionKeys[group]]=active
  end
@@ -380,14 +382,16 @@ function M.validate(profile,input,out)
  local _,valid=M.patterns(input.classPatterns); out.classPatterns=valid and input.classPatterns or ''
  if not valid then errors=errors+1 end
  for key in pairs(M.integerKeys) do out[key]=math.floor(out[key]+0.5) end
- out.schemaVersion=M.version
+ out.schemaVersion=newer and input.schemaVersion or M.version
  -- Migration : un profil ayant déjà une section active est considéré comme réglé.
  out.configured=input.configured==true or M.sectionsChanged(profile,out)
  return out,errors
 end
 function M.validateGlobals(input,out)
  out=out or {}; local errors=0
- if input.schemaVersion~=nil and (not U.finite(input.schemaVersion) or input.schemaVersion<0 or input.schemaVersion>M.version or input.schemaVersion%1~=0) then input=M.globalDefaults; errors=errors+1 end
+ -- Version future : clés connues validées une à une (retour à une version précédente), numéro le plus haut gardé.
+ if input.schemaVersion~=nil and (not U.finite(input.schemaVersion) or input.schemaVersion<0 or input.schemaVersion%1~=0) then input=M.globalDefaults; errors=errors+1 end
+ local newer=input.schemaVersion~=nil and input.schemaVersion>M.version
  for k,d in pairs(M.globalDefaults) do
   local v=input[k]; local valid=type(v)==type(d)
   if type(d)=='number' then valid=U.finite(v); local r=M.globalBounds[k]; if valid and r then valid=v>=r[1] and v<=r[2] end end
@@ -400,7 +404,7 @@ function M.validateGlobals(input,out)
   if not valid then v=d; errors=errors+1 end
   out[k]=v
  end
- out.seed=math.floor(out.seed); out.dataRevision=math.floor(out.dataRevision); out.schemaVersion=M.version
+ out.seed=math.floor(out.seed); out.dataRevision=math.floor(out.dataRevision); out.schemaVersion=newer and input.schemaVersion or M.version
  if out.loadedPreset~='' then out.presetsUsed=true end
  return out,errors
 end

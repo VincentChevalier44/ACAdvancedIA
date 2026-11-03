@@ -1,7 +1,8 @@
--- Panneau de drapeaux du joueur : décisions pures, aucun dessin. Priorité : rouge, noir et pénalités d'AC, voiture de
--- sécurité, FCY ou VSC (et sa fin), jaune, reprise jusqu'à la ligne, damier, véhicule lent, avertissement, piste
--- glissante, bleu, voiture endommagée, DRS, dernier tour, vert, départ, arrêt obligatoire, mise à jour disponible (Beta
--- 1.33, aux stands, une fois par lancement). Textes reconstruits seulement quand le drapeau ou sa
+-- Panneau de drapeaux du joueur : décisions pures, aucun dessin. Priorité : rouge, noir et pénalités d'AC, tour de
+-- relance (lancé ou arrêté), voiture de sécurité, FCY ou VSC (et sa fin), départ arrêté (place, voie des stands, feux,
+-- extinction, faux départ), jaune, jaune natif d'AC, reprise jusqu'à la ligne, damier, véhicule lent, place à rendre,
+-- avertissement, piste glissante, bleu (de l'app, puis natif), voiture endommagée, tour, DRS, dernier tour, vert,
+-- départ, arrêt obligatoire, mise à jour disponible (Beta 1.33, aux stands, une fois par lancement). Textes reconstruits seulement quand le drapeau ou sa
 -- valeur arrondie change. Le temps delta lui-même est lu à chaque image par l'interface (module delta).
 local U=require('src/util')
 local C=require('src/config')
@@ -75,6 +76,8 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
  local key=kind..'|'..value..'|'..extra..'|'..(double and 1 or 0)..(session and '|s' or '')
  if key~=panel.key then
   panel.key=key
+  -- Départ arrêté (Beta 1.35) : place et distance lues par la case de l'overlay.
+  if kind=='standing' and value>0 then panel.slotText='P'..value; panel.slotDistance=extra else panel.slotText=nil; panel.slotDistance=nil end
   if kind=='lap' and info then
    panel.title=info.lapTitle; panel.raw=info.lapDetail; panel.detail=info.lapDetail; panel.short=info.lapDetail; panel.explain=''; panel.lapCode=info.lapCode
   elseif kind=='finish' and info then
@@ -207,6 +210,8 @@ function M.update(panel,t,frame,p,profile,now,lights)
   elseif now<panel.updateUntil then kind='update'; value=panel.updateVersion end
  end
  show(panel,kind,value,double,gap,now,profile,extra)
+ -- Départ arrêté (Beta 1.35) : joueur à sa place (à l'arrêt) ou au-delà, lus par la case de l'overlay.
+ panel.slotPlaced=kind=='standing' and t.gridPlaced==true; panel.slotPassed=kind=='standing' and t.gridPassed==true
  -- Drapeau et zone DRS en même temps : le drapeau reste affiché, avec une ligne « DRS interdit sous drapeau ».
  local calm=kind=='none' or kind=='green' or kind=='blue' or kind=='pit' or kind=='slippery' or kind=='nativeBlue' or kind=='white' or kind=='start' or kind=='checkered' or kind=='finish' or kind=='lap'
   or kind=='slow' or kind=='giveBack' or kind=='warning' or kind=='meatball' or kind=='update' or kind=='go'

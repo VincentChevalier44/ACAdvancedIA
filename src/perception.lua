@@ -37,11 +37,18 @@ function M.occupancy(cars,count,i,g,r)
   local b=cars[j]
   -- Une voiture hors piste juste à côté (elle rejoint) compte aussi : jamais de mouvement vers elle.
   if i~=j and b.valid and not b.pit then
-   local dx,dz=b.x-a.x,b.z-a.z
-   local long=dx*a.lx+dz*a.lz; local lat=-dx*a.lz+dz*a.lx
-   local closing=max(0,long>0 and a.speed-b.speed or b.speed-a.speed)
-   local reach=(a.length+b.length)*0.5+g.occMargin+g.occSpeedGain*closing
-   nearest2=min(nearest2,dx*dx+dz*dz)
+   local dx,dz=b.x-a.x,b.z-a.z; local d2=dx*dx+dz*dz
+   nearest2=min(nearest2,d2)
+   -- Beta 1.35 : une voiture compte seulement si |long| <= portée et |lat| <= occLatMax (ou le recouvrement), donc à
+   -- moins de racine(portée maximale² + occLatMax²) : au-delà, sautée sans projection (même résultat, bien moins de
+   -- calcul à 60 voitures).
+   local far=(a.length+b.length)*0.5+g.occMargin+g.occSpeedGain*abs(a.speed-b.speed)
+   local long,lat,reach=0,0,-1
+   if d2<=far*far+g.occLatMax*g.occLatMax then
+    long=dx*a.lx+dz*a.lz; lat=-dx*a.lz+dz*a.lx
+    local closing=max(0,long>0 and a.speed-b.speed or b.speed-a.speed)
+    reach=(a.length+b.length)*0.5+g.occMargin+g.occSpeedGain*closing
+   end
    if abs(long)<=reach then
     if abs(lat)<g.occLatMin and abs(long)<=(a.length+b.length)*0.5+K.overlapMargin then r.left=true; r.right=true
     elseif lat>=g.occLatMin and lat<=g.occLatMax then r.left=true

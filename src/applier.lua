@@ -193,6 +193,7 @@ function M.rebase(a,amount)
  for i=1,K.maxCars do
   local s=a.cars[i]; s.lastWrite=s.lastWrite-amount; s.readAt=s.readAt-amount; s.weatherAt=s.weatherAt-amount; s.tyreAt=s.tyreAt-amount; s.levelAt=s.levelAt-amount
   s.pitAt=s.pitAt-amount; s.stopAt=s.stopAt-amount; s.parkAt=s.parkAt-amount; s.teleportAt=s.teleportAt-amount; s.flashAt=s.flashAt-amount; s.drsAt=s.drsAt-amount
+  if U.finite(s.placeAt) then s.placeAt=s.placeAt-amount end; if U.finite(s.launchAt) then s.launchAt=s.launchAt-amount end; if U.finite(s.scKickAt) then s.scKickAt=s.scKickAt-amount end
  end
 end
 function M.save(a,g,profiles,now,replay,force)
@@ -224,7 +225,7 @@ end
 -- keepParked : fin de session, les voitures garées restent garées (rendues à la session suivante ou au déchargement).
 function M.restore(a,frame,pendingOnly,now,final,keepParked)
  if not a.allowed or frame.online or not final and (frame.replay or frame.paused) then for i=1,K.maxCars do if a.cars[i].owned then a.cars[i].reset=true end end; return end
- if not pendingOnly and a.flagOverride and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then a.flagOverride=false; a.flagValue=K.flagNone; a.recoveryDirty=true end
+ if not pendingOnly and a.flagOverride and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then a.flagOverride=false; a.flagValue=K.flagNone; a.recoveryDirty=true; note(a,'INFO','panneaux lumineux du circuit: rendus a AC (commandes rendues)',-1) end
  if final then M.releaseBlackFlag(a) end
  if not pendingOnly then M.releaseDrs(a,frame) end
  for i=1,frame.count do
@@ -373,8 +374,8 @@ local function pitRequest(a,s,car,cmd,now)
   end
  elseif s.fuelRequested>=0 and s.owned and s.id==(car.identity or car.id) and not car.inPitBox and Caps.restoreCall(a.caps,'fuel',car.index,math.huge) then s.fuelRequested=-1; a.recoveryDirty=true end
  -- Plein de course avant le départ (sans ravitaillement prévu) : une fois par voiture et par session.
- local fuelKey=(car.identity or car.id)..'|'..(a.session or 0)
- if cmd.fuelSet>=0 and s.fuelSetFor~=fuelKey and a.caps.fuelSet.available then
+ local fuelKey=cmd.fuelSet>=0 and (car.identity or car.id)..'|'..(a.session or 0)
+ if fuelKey and s.fuelSetFor~=fuelKey and a.caps.fuelSet.available then
   claim(a,s,car,now)
   if Caps.call(a.caps,'fuelSet',car.index,cmd.fuelSet) then s.fuelSetFor=fuelKey; note(a,'INFO',string.format('carburant au depart: %.1f L (%.1f L avant)',cmd.fuelSet,car.fuel or -1),car.index+1) end
  end
@@ -431,11 +432,23 @@ end
 local function flagText(value,reason) return string.format('panneaux lumineux du circuit: %s (%s)',Lights.names[value] or tostring(value),reason~='' and reason or 'drapeau du HUD') end
 -- Beta 1.34 : drapeau voulu mais non écrit (capacité absente ou en échec, drapeau natif d'AC à respecter) : noté une
 -- fois par valeur et par cause, pour que la vérification en jeu dise pourquoi les panneaux restent éteints.
-local function unwritten(a,value,cause,lights)
- local key=value..'|'..cause
- if a.flagBlocked==key then return end
- a.flagBlocked=key
- note(a,'INFO',string.format('%s: %s voulu, non ecrit (%s)',lights and 'panneaux lumineux du circuit' or 'drapeau HUD du joueur',Lights.names[value] or tostring(value),cause),-1)
+-- Beta 1.35 : aucune chaîne construite tant que la même cause dure (comparaison de la valeur, de la cause et de son
+-- détail) ; oublié à chaque nouvelle session.
+local function unwritten(a,value,cause,detail,lights)
+ if a.flagBlocked and a.flagBlockedValue==value and a.flagBlockedCause==cause and a.flagBlockedDetail==detail then return end
+ a.flagBlocked=true; a.flagBlockedValue=value; a.flagBlockedCause=cause; a.flagBlockedDetail=detail
+ note(a,'INFO',string.format('%s: %s voulu, non ecrit (%s %s)',lights and 'panneaux lumineux du circuit' or 'drapeau HUD du joueur',Lights.names[value] or tostring(value),cause,tostring(detail)),-1)
+end
+-- Rouge (5, le drapeau noir de l'affichage d'AC) écrit seulement avec les drapeaux d'AC masqués : réglage de CSP relu
+-- au moment d'écrire (au plus toutes les K.flagsHiddenRead s), jamais une valeur périmée.
+local function redHidden(a,now)
+ local t=now or 0
+ if t>=(a.hiddenReadAt or -math.huge) then
+  a.hiddenReadAt=t+K.flagsHiddenRead
+  local ok,value=pcall(readRaceFlagsHidden)
+  if ok and type(value)=='boolean' then a.raceFlagsHidden=value elseif ok and type(value)=='number' then a.raceFlagsHidden=value~=0 end
+ end
+ return a.raceFlagsHidden==true
 end
 -- Drapeau natif libre : aucun, ou le drapeau de départ d'AC, qu'AC peut tenir longtemps (toute la session en hotlap) ;
 -- en 1.32, seul « aucun » l'était et un départ tenu bloquait les panneaux toute la course sans rien dire.
@@ -446,21 +459,22 @@ function M.flag(a,frame,wanted,reason,now)
  local lights=reason~=nil and reason~=''
  local held=now==nil or now-a.flagAt>=K.lightsHold
  local cap=a.caps.flag
+ if value==K.flagStop and lights and not redHidden(a,now) then value=K.flagCaution end
  if value==K.flagNone then a.flagBlocked=nil end
  if value~=K.flagNone and not a.flagOverride then
   -- Jamais par-dessus un drapeau natif (bleu, blanc, damier, noir, pénalité) : sur le jaune natif, seulement le jaune ou
   -- le rouge.
   local free=nativeFree(frame.flag) or frame.flag==K.flagCaution and (value==K.flagCaution or value==K.flagStop)
-  if not cap.available then unwritten(a,value,'capacite '..cap.reason,lights)
-  elseif not free then unwritten(a,value,'drapeau natif '..frame.flag,lights)
+  if not cap.available then unwritten(a,value,'capacite',cap.reason,lights)
+  elseif not free then unwritten(a,value,'drapeau natif',frame.flag,lights)
   elseif Caps.call(a.caps,'flag',-1,value) then
    a.flagOverride=true; a.flagValue=value; a.flagAt=now or -math.huge; a.recoveryDirty=true; a.flagBlocked=nil
    note(a,'INFO',lights and flagText(value,reason) or 'drapeau HUD du joueur: jaune',-1)
-  else unwritten(a,value,'echec: '..cap.error,lights) end
+  else unwritten(a,value,'echec:',cap.error,lights) end
  elseif value~=K.flagNone and a.flagOverride and value~=a.flagValue then
   if held or (Lights.rank[value] or 0)>(Lights.rank[a.flagValue] or 0) then
    if Caps.call(a.caps,'flag',-1,value) then a.flagValue=value; a.flagAt=now or -math.huge; a.flagBlocked=nil; note(a,'INFO',flagText(value,reason or ''),-1)
-   else unwritten(a,value,cap.available and 'echec: '..cap.error or 'capacite '..cap.reason,lights) end
+   else unwritten(a,value,cap.available and 'echec:' or 'capacite',cap.available and cap.error or cap.reason,lights) end
   end
  elseif value==K.flagNone and a.flagOverride and held and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then
   a.flagOverride=false; a.flagValue=K.flagNone; a.flagAt=now or -math.huge; a.recoveryDirty=true
@@ -738,6 +752,33 @@ function M.blockMessages()
  local ok,d=pcall(ac.blockSystemMessages,'.'); return ok and d or nil
 end
 function M.dispose(d) if type(d)=='function' or callable(d) then pcall(d) end end
+-- Refonte Racing 26 (Beta 1.35) : polices livrées avec l'app (fonts/, licence OFL) et icône de l'en-tête. Dossier des
+-- polices relatif à l'app (« fonts ») s'il est complet, sinon nil (Segoe UI, noté une fois au journal) ; chemin
+-- complet de l'icône, ou nil.
+local fontFiles={'barlow/Barlow-Regular.ttf','barlow/Barlow-SemiBold.ttf','barlowcondensed/BarlowCondensed-SemiBold.ttf',
+ 'barlowcondensed/BarlowCondensed-Bold.ttf','barlowcondensed/BarlowCondensed-ExtraBoldItalic.ttf','jetbrainsmono/JetBrainsMono-Medium.ttf'}
+local function scriptFolder()
+ if not callable(ac.getFolder) or not ac.FolderID or not ac.FolderID.ScriptOrigin then return nil end
+ local ok,dir=pcall(ac.getFolder,ac.FolderID.ScriptOrigin)
+ return ok and type(dir)=='string' and dir~='' and dir or nil
+end
+function M.fontDir(a)
+ local dir=scriptFolder()
+ local ok,present=pcall(function()
+  if not dir or not io or type(io.fileExists)~='function' then return false end
+  for _,file in ipairs(fontFiles) do if not io.fileExists(dir..'/fonts/'..file) then return false end end
+  return true
+ end)
+ if ok and present==true then return 'fonts' end
+ if a then note(a,'WARN','polices de l interface absentes (fonts/) : Segoe UI',-1) end
+ return nil
+end
+function M.appFile(name)
+ local dir=scriptFolder()
+ if not dir or not io or type(io.fileExists)~='function' then return nil end
+ local ok,present=pcall(io.fileExists,dir..'/'..name)
+ return ok and present==true and dir..'/'..name or nil
+end
 -- Journal de session sur disque (Documents/Assetto Corsa/logs) : un fichier par lancement du jeu, trois précédents
 -- conservés. Un rechargement de l'app dans le même lancement (repère dans ac.store) poursuit le même fichier.
 function M.journalOpen(a)
@@ -876,7 +917,7 @@ function M.unregister(a)
  a.sessionToken=nil; a.releaseToken=nil
 end
 function M.nextSession(a,frame)
- M.releaseBlackFlag(a); M.releaseDrs(a,frame)
+ M.releaseBlackFlag(a); M.releaseDrs(a,frame); a.flagBlocked=nil
  for i=1,frame.count do
   local s=a.cars[i]; local car=frame.cars[i]
   if s.owned then

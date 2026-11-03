@@ -164,7 +164,7 @@ function M.ai(t,frame,p,profile,inc,states,rows,now)
    -- même hors piste. Un dépassement en attente survit à la fin du régime (place rendue ou sanction à l'échéance).
    -- Hors piste, le drapeau jaune de l'IA est suspendu par le pilotage : le régime est gardé (couper la piste pour
    -- doubler reste un dépassement sous drapeau).
-   local regime=states[i].yellow or whole or inc.cars[i].restart==true or a.offtrack and s.regime[i]==true
+   local regime=states[i].yellow or whole or inc.cars[i].restart==true and inc.standing~='grid' and inc.standing~='lights' or a.offtrack and s.regime[i]==true
    local was=s.regime[i]; s.regime[i]=regime
    if not regime and t.retake[i] then clear(t.retake[i]) end
    -- Hors régime, déjà sortie du précédent et sans dépassement en attente : rien à suivre (la liste « devant » est

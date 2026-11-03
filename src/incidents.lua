@@ -2,6 +2,7 @@
 local U=require('src/util')
 local K=require('src/config').K
 local Delta=require('src/delta')
+local Grid=require('src/grid')
 local min,max=math.min,math.max
 local M={}
 local function clearCar(c)
@@ -14,7 +15,8 @@ function M.new()
   safety=0,safetyPhase='none',safetySince=0,safetyStill=0,safetyFailed=false,safetyLeft=false,started=0,held=0,onTrack=0,red=false,redSince=0,redCancelled=false,reds=0,redTotal=0,redInPits=0,
   greenUntil=-math.huge,playerZone=false,playerInside=false,playerToZone=0,playerLead=0,playerNoPass=false,playerZoneSlot=0,suppressed={queue=0,spawn=0,crawl=0},playerDistance=0,freshOnTrack=0,redEnd=-math.huge,redMax=0,neutralEnd=-math.huge,frameId=0,messagePriority=0,messageFrame=-1,
   playerFlag=false,playerYellow=false,playerZoneDouble=false,slipperyUntil=-math.huge,messageId=0,messageKind='',messageValue=0,messageExtra=0,messageText='',
-  standing='none',gridReady=false,gridWhy='',gridLit=0,gridSlot=0,gridGap=0,gridPit=false,jumpUntil=-math.huge,
+  standing='none',gridReady=false,gridWhy='',gridLit=0,gridSlot=0,gridGap=0,gridPit=false,gridPlaced=false,gridPassed=false,jumpUntil=-math.huge,
+  relaunchLeader=0,relaunchSpline=0,relaunchTravel=0,relaunchSpanUntil=-math.huge,
   relaunch=false,escalated=false,ending=false,endingUntil=0,restart=false,restartSince=0,playerRestart=false,pitsClosed=false,releaseAt={}}
  for i=1,K.maxCars do
   t.releaseAt[i]=-math.huge
@@ -28,7 +30,8 @@ function M.reset(t)
  t.zoneCount=0; t.activeCount=0; t.holdCount=0; t.neutral=false; t.neutralUntil=0; t.playerFlag=false; t.playerYellow=false; t.safetyPhase='none'; t.red=false; t.onTrack=0; t.playerZone=false; t.playerInside=false; t.slipperyUntil=-math.huge
  t.safetyStill=0; t.safetyFailed=false; t.safetyLeft=false; t.escalated=false; t.relaunch=false; t.ending=false; t.restart=false; t.playerRestart=false; t.pitsClosed=false
  for i=1,K.maxCars do t.releaseAt[i]=-math.huge end
- t.standing='none'; t.gridLit=0; t.jumpUntil=-math.huge
+ t.standing='none'; t.gridLit=0; t.jumpUntil=-math.huge; t.gridPlaced=false; t.gridPassed=false
+ t.relaunchLeader=0; t.relaunchTravel=0; t.relaunchSpanUntil=-math.huge
 end
 function M.rebase(t,amount)
  t.neutralSince=t.neutralSince-amount; t.neutralUntil=t.neutralUntil-amount; t.safetySince=t.safetySince-amount; t.redSince=t.redSince-amount
@@ -38,6 +41,7 @@ function M.rebase(t,amount)
  if U.finite(t.slipperyUntil) then t.slipperyUntil=t.slipperyUntil-amount end
  t.endingUntil=t.endingUntil-amount; t.restartSince=t.restartSince-amount
  if U.finite(t.jumpUntil) then t.jumpUntil=t.jumpUntil-amount end
+ if U.finite(t.relaunchSpanUntil) then t.relaunchSpanUntil=t.relaunchSpanUntil-amount end
  for i=1,K.maxCars do
   local c=t.cars[i]
   for _,key in ipairs({'since','clearedAt','windowStart','crashAt','holdUntil','holdMax','lastCrash','holdStart'}) do if U.finite(c[key]) then c[key]=c[key]-amount end end
@@ -84,6 +88,28 @@ local function standing(t,frame,now,p,profile)
 end
 -- Dépassement après une relance (Beta 1.34) : à la ligne de contrôle (défaut), ou dès le drapeau vert.
 local function restartRule(t,frame,now,p) if p.restartOvertake=='scIn' then if p.yellowMessage then message(t,'green') end else restart(t,frame,now,p) end end
+-- Meneur du tour de relance (Beta 1.35) : la mieux classée des voitures en piste, suivie une fois toutes les IA
+-- sorties des stands ; distance parcourue vers l'avant cumulée. Vrai quand elle a bouclé son tour.
+local function leaderLap(t,frame,now)
+ if now<t.relaunchSpanUntil or frame.length<=0 then return false end
+ local i=t.relaunchLeader; local a=i>0 and frame.cars[i] or nil
+ if not a or not a.valid or a.pit or a.finished or not a.splineValid then
+  i=0; local best=math.huge
+  for j=1,frame.count do
+   local b=frame.cars[j]
+   if b.valid and not b.pit and not b.finished and not b.safetyCar and b.splineValid and (b.control or b.player) then
+    local pos=(b.position or 0)>=1 and b.position or math.huge
+    if i==0 or pos<best then best=pos; i=j end
+   end
+  end
+  t.relaunchLeader=i
+  if i>0 then t.relaunchSpline=frame.cars[i].spline end
+  return false
+ end
+ local step=U.spline(a.spline-t.relaunchSpline); t.relaunchSpline=a.spline
+ if step>0 then t.relaunchTravel=t.relaunchTravel+step end
+ return t.relaunchTravel>=K.relaunchTravel and ((-a.spline)%1)*frame.length<=K.gridFormFrom
+end
 -- Sortie des stands après un drapeau rouge : ordre du classement de la course (sinon ordre de la grille), une IA toutes
 -- les deux secondes après un court délai ; la voiture de sécurité sort la première. Renvoie la durée de la sortie.
 local order={}
@@ -93,13 +119,7 @@ local function release(t,frame,now)
   local a=frame.cars[i]; t.releaseAt[i]=now
   if a.valid and a.control and not a.player and not a.safetyCar then n=n+1; order[n]=i end
  end
- for k=#order,n+1,-1 do order[k]=nil end
- table.sort(order,function(x,y)
-  local px,py=frame.cars[x].position or 0,frame.cars[y].position or 0
-  if px<1 then px=math.huge end; if py<1 then py=math.huge end
-  if px~=py then return px<py end
-  return x<y
- end)
+ Grid.sortByPosition(order,n,frame.cars)
  for rank=1,n do t.releaseAt[order[rank]]=now+K.redReleaseFirst+(rank-1)*K.redReleaseGap end
  return K.redReleaseFirst+n*K.redReleaseGap
 end
@@ -253,6 +273,11 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
  end
  -- Tour de relance d'un drapeau rouge : neutralisation propre, quelles que soient les règles du profil.
  local relaunch=t.neutral and t.relaunch
+ -- Beta 1.35 (relecture) : sous VSC ou FCY, le tour de relance d'un départ arrêté finit quand le meneur boucle son tour
+ -- (à K.gridFormFrom m de la ligne, au moins K.relaunchTravel tour parcouru depuis la sortie des stands), jamais sur un
+ -- délai : la grille se serait formée n'importe où sur le circuit, des voitures retenues en pleine piste.
+ local formLap=relaunch and t.neutralMode~='sc' and profile=='C' and p.redRestart=='standing'
+ local lapDone=formLap and leaderLap(t,frame,now)
  if mode~='local' and major and not t.red and not (t.neutral and now-t.neutralSince>=K.neutralMax) then
   if not t.neutral then
    t.neutral=true; t.neutralMode=mode; t.neutralSince=now; t.relaunch=false; t.ending=false
@@ -287,11 +312,11 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
     restartRule(t,frame,now,p)
    end
   end
- elseif t.neutral and (not relaunch and (mode=='local' or mode~=t.neutralMode) or now>=t.neutralUntil or now-t.neutralSince>=K.neutralMax) then
+ elseif t.neutral and (not relaunch and (mode=='local' or mode~=t.neutralMode) or (formLap and lapDone or not formLap and now>=t.neutralUntil) or now-t.neutralSince>=K.neutralMax) then
   local forced=now-t.neutralSince>=K.neutralMax or not relaunch and (mode=='local' or mode~=t.neutralMode)
   -- Fin de VSC (F1) : « VSC ENDING », drapeau vert quelques secondes plus tard, delta toujours jugé ; levée immédiate
   -- si les règles changent ou au délai maximal.
-  if t.neutralMode=='vsc' and not forced and not t.ending then
+  if t.neutralMode=='vsc' and not forced and not t.ending and not formLap then
    t.ending=true; t.endingUntil=now+K.vscEnding; note(t,'INFO','fin de VSC annoncee',-1)
    if p.yellowMessage then message(t,'vscEnd') end
   elseif forced or not t.ending or now>=t.endingUntil then
@@ -370,6 +395,7 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
     -- voiture de sécurité (sans elle : sous VSC ou FCY), dépassement interdit, puis jusqu'à la ligne.
     local relaunchMode=t.safety>0 and not t.safetyFailed and 'sc' or p.neutralization=='vsc' and 'vsc' or 'fcy'
     local span=release(t,frame,now)
+    t.relaunchSpanUntil=now+span; t.relaunchLeader=0; t.relaunchTravel=0
     t.neutral=true; t.relaunch=true; t.ending=false; t.neutralMode=relaunchMode; t.neutralSince=now
     t.neutralUntil=now+span+(relaunchMode=='sc' and p.neutralizationHold or frame.length/(p.fcySpeedKmh/3.6))
     if relaunchMode=='sc' then t.safetyPhase='out'; t.safetySince=now; t.safetyLeft=false end

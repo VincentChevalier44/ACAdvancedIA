@@ -36,6 +36,13 @@ end
 -- la vitesse d'obstacle sans allure connue) depuis K.slowVehicleTime s. Drapeaux jaunes de l'app actifs seulement.
 local function slow(l,inc,frame,p,d,states,multi,dt,now)
  local i=frame.player; local a=i>0 and frame.cars[i] or nil
+ -- Beta 1.35 (relecture) : rien pendant une neutralisation, un drapeau rouge, un départ arrêté, une reprise (dépassement
+ -- interdit jusqu'à la ligne) ni peu après le drapeau vert : le peloton y roule lentement par règle.
+ if inc.neutral or inc.red or (inc.standing or 'none')~='none' or inc.restart or now<(inc.greenUntil or -math.huge)+K.slowGrace then
+  for j in pairs(l.slowFor) do l.slowFor[j]=0 end
+  l.slowSlot=0; l.slowGap=0; l.slowKmh=0
+  return
+ end
  local track=a~=nil and p.yellowEnabled==true and a.valid and not a.pit and a.splineValid and frame.length>0 and frame.started
  local best,gap=0,math.huge
  for j=1,frame.count do
@@ -80,10 +87,14 @@ function M.decide(l,inc,frame,p,profile,now)
  local a=frame.cars[i]
  -- Arrivée : damier d'AC rendu.
  if not a.valid or a.finished or frame.finished then return K.flagNone,'arrivee' end
+ -- Beta 1.35 : pénalité d'AC ou disqualification du joueur, drapeau d'AC rendu (jamais couvert par les panneaux).
+ if l.playerPenalty then return K.flagNone,'penalite' end
  if inc.red then return K.flagStop,'drapeau rouge' end
  if inc.playerYellow then return K.flagCaution,inc.neutral and (neutralNames[inc.neutralMode] or 'neutralisation') or 'drapeau jaune' end
- -- Départ arrêté (Beta 1.34) : jaune pendant la formation et les feux ; vert à l'extinction (drapeau vert).
+ -- Départ arrêté (Beta 1.34) : jaune pendant la formation et les feux ; vert à l'extinction, avant toute autre
+ -- information (Beta 1.35).
  if inc.standing=='grid' or inc.standing=='lights' then return K.flagCaution,'depart arrete' end
+ if inc.standing=='go' then return K.flagStart,'depart' end
  -- Dernier tour d'une course aux tours : drapeau blanc d'AC rendu, jamais masqué par une information.
  if profile=='C' and frame.sessionLaps>0 and not frame.timedRace and a.lap+1>=frame.sessionLaps then return K.flagNone,'dernier tour' end
  if l.slowSlot>0 then return K.flagSlowVehicle,'vehicule lent' end

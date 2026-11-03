@@ -261,7 +261,7 @@ return {
   J='Nordschleife Touristenfahrten preset, applied to the Track day profile: dense traffic, yielding to the right, headlight flashes, spacing, accidents and weather.',
   P='Free practice preset, applied to the Practice profile: practice pace (97%), calmer drivers, yielding to faster cars, accidents and weather.',
   Q='Flying-lap qualifying preset, applied to the Qualifying profile: slow AI move clearly out of the way of a fast lap.',
-  C='Realistic race preset, applied to the Race profile: blue flags, overtaking on the automatic side, defending, careful start, accidents and weather. The chosen championship rules are kept.',
+  C='Realistic race preset, applied to the Race profile: blue flags, overtaking on the automatic side, defending, careful start, accidents and weather. It also sets the championship rules (base rules: mandatory stop, Safety Car, rule set) for the whole weekend (Practice, Qualifying and Race); only your preferences and class patterns are kept.',
   E='Multi-class endurance preset, applied to the Race profile (or Track day if that is the profile shown): classes, Endurance layer, lapses in focus. Applied to the Race profile, it also sets the Endurance rules for Practice, Qualifying and Race.',
  },
  rules={
@@ -272,7 +272,11 @@ return {
   Endurance='Endurance (WEC): FCY at the equivalent of 80 km/h (delta +150%), Safety Car if the incident escalates, 80 km/h Slow Zone under double yellow, pit lane closed under FCY and for three Safety Car laps, stints of 50 min at most (approximation), free refuelling as the race goes on (at every end of stint and whenever the tank requires it), new tyres and repairs at every stop, BoP, Pro-Am ratings, slower class with a predictable line.',
  },
  ui={
+  -- Racing 26 redesign (Beta 1.35).
+  warnLink='Opens the section concerned.',bannerAction='Quick action: enables the app again, resumes after panic or opens diagnostics.',
+  patternClear='Clears this pattern (frees the row).',performance='Cost of the app AI loop, interface drawing excluded: mean and maximum over the latest frames.',
   overlayRecenter='Puts the overlay back at its automatic position (centred, at the top of the screen) and back to its original size (1.00x).',
+  version='Installed app version. Updates, release notes and roll back: Diagnostic tab.',
   status='Engine state: active when the app drives the AI in this session, with the profile in use. The line below gives the reason for a stop (online session, replay, pause, panic, no section on…).',
   tab_home='Home: profile shown and edited, detected session, built-in presets (one click sets the profile concerned) and custom presets, live status and things to check.',
   mandatoryStop='Mandatory stop in the race, set for Practice, Qualifying and Race at once: on, at least one pit stop to make within the set window (the number of stops, set by clicking the title, is kept); off, no stop imposed. The F1 2025, F1 2026 and GT rules switch it on, the base and Endurance rules leave it off (in Endurance, the 50 min maximum stint forces the stops); one click adds or removes it with any rule set, which stays highlighted. The toggle shows the state of the Race profile; on a Track day and in Hotlap, where none of this applies, it stays off. A Practice, Qualifying or Race preset also sets it for the whole weekend.',

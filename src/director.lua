@@ -453,7 +453,7 @@ function M.step(e,i,dt,now)
  local level,aggression,caution=baseModifiers(s,p,now,a)
  s.baseCaution=caution; s.baseAggression=aggression
  if courtesy then aggression=aggression*K.courtesyAggression end
- local desired=0; local elapsed=now-e.startedAt
+ local desired=0; local elapsed=now-math.max(e.startedAt,e.launchAt or -math.huge)
  cmd.active=true; cmd.brake=0
  local startPhase=profile=='C' and elapsed<p.startDelay+p.startRelax
  -- Règle sportive : aucun changement de trajectoire ne commence au freinage.

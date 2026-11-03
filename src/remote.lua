@@ -1,7 +1,17 @@
--- Port de la mise à jour (Beta 1.33) : réseau, empreinte, zips et fichiers de CSP, seulement dans ce module.
--- Toutes les écritures restent dans le dossier de l'app : sauvegarde et dépôt sous backup/ (un zip, jamais un dossier
--- copié qu'AC prendrait pour une seconde app), paquet extrait d'abord dans backup/next, puis chaque fichier changé
--- déplacé à sa place, le manifeste en dernier (sa version dit qu'une installation est allée au bout).
+-- Port de la mise à jour (Beta 1.33, renforcé en Beta 1.35) : réseau, empreinte, zips et fichiers de CSP, seulement ici.
+-- Dossier de travail hors de l'app, dans cfg/extension/state de CSP (jamais rechargé en direct) :
+--   next/apps/lua/ACAdvancedIA/  paquet téléchargé, extrait et comparé au paquet ;
+--   current/                     fichiers de l'app que la copie va remplacer, copiés juste avant elle ;
+--   backup/                      version précédente (current promu après une installation réussie) ;
+--   installing.txt               repère d'une copie en cours (écrit et relu juste avant, levé juste après) ;
+--   updated.txt                  compte rendu de la dernière opération, lu au lancement suivant ;
+--   boot.txt                     démarrage surveillé de la version tout juste installée ;
+--   failed.txt                   reprise abandonnée (rappelée tant que la même version reste installée).
+-- Chaque source garde la liste de ses fichiers (.files) : une source n'est utilisée que si tous ses fichiers sont là.
+-- Le dossier de l'app (sur un autre disque que Documents, le plus souvent) ne reçoit que la copie finale : chaque fichier
+-- copié à côté (.new) puis mis en place d'un seul coup (même disque), surveillance des fichiers de CSP suspendue puis
+-- rétablie, src/ d'abord, ACAdvancedIA.lua puis le manifeste en dernier. Restes de la Beta 1.33/1.34 (dossier backup/ de
+-- l'app) : compte rendu et repère lus, rien n'y est écrit.
 -- Sans les fonctions de CSP (tests, banc de mesure), le port est inerte : rien n'est lu, écrit ni demandé.
 local Update=require('src/update')
 local M={}
@@ -19,110 +29,219 @@ local function hex(s)
  if #s==32 then return (s:gsub('.',function(c) return string.format('%02x',c:byte()) end)) end
  return nil
 end
--- Fichiers d'un dossier, chemins relatifs avec « / », sans le dossier de sauvegarde à la racine.
+-- Fichiers d'un dossier, chemins relatifs avec « / ».
 local function files(dir,rel,out)
  io.scanDir(dir,'*',function(name,attr)
+  if name=='.' or name=='..' or name=='' then return end
   local path=rel=='' and name or rel..'/'..name
-  if attr and attr.isDirectory then
-   if path~='backup' then files(dir..'/'..name,path,out) end
-  else out[#out+1]=path end
+  if attr and attr.isDirectory then files(dir..'/'..name,path,out) else out[#out+1]=path end
  end)
  return out
 end
+-- Ordre de la copie finale : src/ d'abord, les autres fichiers, puis ACAdvancedIA.lua, le manifeste en dernier.
+local function rank(path)
+ if path=='manifest.ini' then return 4 elseif path=='ACAdvancedIA.lua' then return 3 elseif path:sub(1,4)=='src/' then return 1 end
+ return 2
+end
+local function ordered(list)
+ table.sort(list,function(a,b) local x,y=rank(a),rank(b); if x~=y then return x<y end; return a<b end)
+ return list
+end
+-- Liste des fichiers d'une source (.files) : un chemin par ligne, chemins sûrs seulement.
+local function parseList(text)
+ if type(text)~='string' then return nil end
+ local out={}
+ for line in (text..'\n'):gmatch('([^\r\n]*)\r?\n') do
+  if line~='' then
+   if line:find('..',1,true) or line:find(':',1,true) or line:find('\\',1,true) or line:sub(1,1)=='/' then return nil end
+   out[#out+1]=line
+  end
+ end
+ return #out>0 and out or nil
+end
 -- Bibliothèques de CSP lues sans erreur quand elles manquent (tests, ancien CSP).
 local function lib(name) local t=rawget(_G,name); return type(t)=='table' and t or nil end
-local needed={'get','load','save','fileExists','deleteFile','move','createDir','createFileDir','scanDir','scanZip','loadFromZip','createZipAsync','extractFromZipAsync'}
+local needed={'load','save','fileExists','deleteFile','copyFile','move','createDir','createFileDir','scanDir','scanZip','loadFromZip','extractFromZipAsync'}
+M.work='ACAdvancedIA-update'
+M.list='.files'
 -- onRelease : journal versé et commandes des IA rendues à AC (fourni par le script principal), avant ac.restartApp.
 function M.new(onRelease)
  local p={ready=false}
  local web,JSON=lib('web'),lib('JSON')
- local app=folder('ScriptOrigin')
- local ready=app~=nil and type(io)=='table' and web~=nil and callable(web.get) and JSON~=nil and callable(JSON.parse)
+ local app=folder('ScriptOrigin'); local state=folder('ExtCfgState')
+ local ready=app~=nil and state~=nil and type(io)=='table' and web~=nil and callable(web.get) and JSON~=nil and callable(JSON.parse)
   and type(ac)=='table' and callable(ac.checksumSHA256) and callable(ac.restartApp)
- if ready then for _,name in ipairs(needed) do if name~='get' and not callable(io[name]) then ready=false end end end
+ if ready then for _,name in ipairs(needed) do if not callable(io[name]) then ready=false end end end
  p.ready=ready; p.app=app
- local dir=app and app..'/backup'
- local zip=dir and dir..'/previous.zip'; local version=dir and dir..'/previous.txt'
- local marker=dir and dir..'/installing.txt'; local report=dir and dir..'/updated.txt'; local staging=dir and dir..'/next'
+ local work=state and state..'/'..M.work
+ p.work=work
+ local roots=work and {next=work..'/next/'..Update.prefix:gsub('/$',''),current=work..'/current',backup=work..'/backup'} or {}
+ local old=work and work..'/backup.old'
+ local marker=work and work..'/installing.txt'; local report=work and work..'/updated.txt'
+ local bootFile=work and work..'/boot.txt'; local failedFile=work and work..'/failed.txt'
+ local legacyMarker=app and app..'/backup/installing.txt'; local legacyReport=app and app..'/backup/updated.txt'
  local function exists(f) if not ready or not f then return false end; local ok,r=pcall(io.fileExists,f); return ok and r==true end
  local function load(f) if not exists(f) then return nil end; local ok,t=pcall(io.load,f); return ok and type(t)=='string' and t or nil end
  local function save(f,t) if not ready or not f then return false end; pcall(io.createFileDir,f); local ok,r=pcall(io.save,f,t,true); return ok and r~=false end
- local function delete(f) if exists(f) then pcall(io.deleteFile,f) end end
+ local function delete(f) if exists(f) then pcall(io.deleteFile,f) end; return not exists(f) end
+ local function clock() local t=rawget(_G,'os'); local f=type(t)=='table' and (t.preciseClock or t.clock); if callable(f) then local ok,v=pcall(f); if ok and type(v)=='number' then return v end end; return 0 end
+ -- Surveillance des fichiers de CSP suspendue (rechargement en direct) le temps d'écrire dans le dossier de l'app, puis
+ -- rétablie.
+ local function watch(paused) if ac and callable(ac.pauseFilesWatching) then pcall(ac.pauseFilesWatching,paused) end end
+ local function list(dir) local ok,out=pcall(files,dir,'',{}); return ok and type(out)=='table' and out or nil end
+ local function clear(dir) local all=list(dir); if all then for _,rel in ipairs(all) do pcall(io.deleteFile,dir..'/'..rel) end end end
+ local function copy(a,b) pcall(io.createFileDir,b); local ok,r=pcall(io.copyFile,a,b,false); return ok and r~=false and exists(b) end
+ -- Remplacement d'un fichier de l'app d'un seul coup : copie à côté (.new, même dossier, même disque), puis déplacement
+ -- qui remplace ; une coupure laisse l'ancien fichier entier ou le nouveau, jamais un fichier à moitié écrit.
+ local function swap(src,dst)
+  local tmp=dst..'.new'
+  delete(tmp)
+  if not copy(src,tmp) then delete(tmp); return false end
+  local ok,r=pcall(io.move,tmp,dst,true)
+  if not ok or r==false or load(dst)~=load(src) then delete(tmp); return false end
+  return true
+ end
+ local function listOf(root) return root and parseList(load(root..'/'..M.list)) or nil end
+ local function complete(root)
+  local all=listOf(root)
+  if not all then return false end
+  for _,rel in ipairs(all) do if not exists(root..'/'..rel) then return false end end
+  return true
+ end
  function p.get(url,headers,cb)
   if not ready then cb('unavailable',nil,nil); return end
-  local ok=pcall(web.get,url,headers or {},function(err,response)
-   if err and err~='' then cb(tostring(err),nil,nil) else cb(nil,response and tonumber(response.status),response and response.body) end
+  local ok,err=pcall(web.get,url,headers or {},function(e,response)
+   if e and e~='' then cb(tostring(e),nil,nil) else cb(nil,response and tonumber(response.status),response and response.body) end
   end)
-  if not ok then cb('web',nil,nil) end
+  if not ok then cb('web: '..tostring(err),nil,nil) end
  end
  function p.json(text) if not ready or type(text)~='string' then return nil end; local ok,t=pcall(JSON.parse,text); return ok and type(t)=='table' and t or nil end
  function p.sha256(data) if not ready then return nil end; local ok,h=pcall(ac.checksumSHA256,data); return ok and hex(h) or nil end
- function p.entries(data) if not ready then return nil end; local ok,list=pcall(io.scanZip,data); return ok and type(list)=='table' and list or nil end
+ function p.entries(data) if not ready then return nil end; local ok,out=pcall(io.scanZip,data); return ok and type(out)=='table' and out or nil end
  function p.entry(data,name) if not ready then return nil end; local ok,t=pcall(io.loadFromZip,data,name); return ok and type(t)=='string' and t or nil end
- function p.previous() return exists(zip) and load(version) or nil end
  function p.installedVersion() return app and Update.manifestVersion(load(app..'/manifest.ini')) or nil end
- function p.marker() return load(marker) end
- function p.mark(text) return save(marker,text) end
- function p.unmark() delete(marker) end
- function p.done(text) save(report,text) end
- function p.takeDone() local t=load(report); delete(report); return t end
+ -- Version d'une source (next, current, backup) lue dans son manifeste ; source complète (tous ses fichiers listés là).
+ function p.sourceVersion(name) local root=roots[name]; return root and Update.manifestVersion(load(root..'/manifest.ini')) or nil end
+ function p.sourceComplete(name) return complete(roots[name]) end
+ function p.sourceHas(name,required)
+  local root=roots[name]; if not root then return false end
+  for _,rel in ipairs(required) do if not exists(root..'/'..rel) then return false end end
+  return true
+ end
+ function p.markerFile() return marker end
+ function p.marker() return load(marker) or load(legacyMarker) end
+ -- Repère écrit puis relu : un repère qui ne s'écrit pas (disque plein, lecture seule) arrête l'opération.
+ function p.mark(text) return save(marker,text) and load(marker)==text end
+ -- Repère levé : vrai seulement s'il n'existe plus (ni l'ancien du dossier de l'app).
+ function p.clearMarker()
+  local gone=delete(marker)
+  if exists(legacyMarker) then watch(true); gone=delete(legacyMarker) and gone; watch(false) end
+  return gone
+ end
+ function p.report(text) return save(report,text) end
+ function p.takeReport()
+  local text=load(report); delete(report)
+  -- Compte rendu de l'ancien module (Beta 1.33/1.34), retiré dans tous les cas.
+  if exists(legacyReport) then local was=load(legacyReport); watch(true); delete(legacyReport); watch(false); text=text or was end
+  return Update.parseReport(text)
+ end
+ -- Démarrage surveillé : version installée, essais de démarrage, version précédente.
+ function p.boot()
+  local text=load(bootFile); if not text then return nil end
+  local version,count,from=text:match('^([^\n]+)\n(%d+)\n([^\n]*)')
+  return version,tonumber(count) or 0,from~='' and from or nil
+ end
+ function p.bootSet(version,from,count) return save(bootFile,version..'\n'..(count or 0)..'\n'..(from or '')) end
+ function p.bootClear() return delete(bootFile) end
+ -- Première image atteinte : la version installée démarre ; la surveillance s'arrête.
+ function p.bootOk() if exists(bootFile) then delete(bootFile) end end
+ function p.failedNote(text) return save(failedFile,text) end
+ function p.failed() return load(failedFile) end
+ function p.clearFailed() return delete(failedFile) end
+ -- Journal de CSP (custom_shaders_patch.log) : la reprise au chargement y est dite même si l'app ne charge pas ensuite.
+ function p.log(text) if ac and callable(ac.log) then pcall(ac.log,'ACAdvancedIA: '..tostring(text)) end end
  function p.open(url) if os and callable(os.openURL) and type(url)=='string' and url:sub(1,8)=='https://' then pcall(os.openURL,url) end end
- -- Sauvegarde de la version installée : zip temporaire, puis renommé (une sauvegarde est complète ou absente).
- function p.backup(installed,cb)
-  if not ready then cb('write'); return end
-  pcall(io.createDir,dir)
-  local ok,list=pcall(files,app,'',{})
-  if not ok or type(list)~='table' or #list==0 then cb('write'); return end
-  local entries={}
-  for _,rel in ipairs(list) do entries[Update.prefix..rel]={filename=app..'/'..rel} end
-  local tmp=zip..'.tmp'; delete(tmp)
-  local started=pcall(io.createZipAsync,tmp,entries,function(err)
-   if err and err~='' then delete(tmp); cb('write'); return end
-   local moved,result=pcall(io.move,tmp,zip,true)
-   if not moved or result==false or not exists(zip) or not save(version,installed) then cb('write'); return end
+ -- Paquet extrait dans next/ (vidé d'abord ; manifeste extrait en dernier par CSP), puis comparé fichier par fichier au
+ -- paquet ; liste des fichiers écrite en dernier (source complète seulement si tout est conforme).
+ function p.stage(data,names,cb)
+  if not ready then cb('unavailable'); return end
+  pcall(io.createDir,work); clear(work..'/next'); pcall(io.createDir,work..'/next')
+  local ok,err=pcall(io.extractFromZipAsync,data,work..'/next',{crucial=Update.prefix..'manifest.ini'},function(e)
+   if e and e~='' then cb(tostring(e)); return end
+   local root=roots.next
+   for _,rel in ipairs(names) do
+    if load(root..'/'..rel)~=p.entry(data,Update.prefix..rel) then cb('fichier extrait different du paquet : '..rel); return end
+   end
+   if not save(root..'/'..M.list,table.concat(names,'\n')) then cb('liste des fichiers'); return end
    cb(nil)
   end)
-  if not started then cb('write') end
+  if not ok then cb('extraction: '..tostring(err)) end
  end
- -- Dépôt vidé (fichiers d'une extraction précédente).
- local function clear()
-  local ok,list=pcall(files,staging,'',{})
-  if ok then for _,rel in ipairs(list) do pcall(io.deleteFile,staging..'/'..rel) end end
- end
- -- Fichiers déposés mis à leur place : seulement ceux qui changent, le manifeste en dernier.
- local function place()
-  local root=staging..'/'..Update.prefix:gsub('/$','')
-  local ok,list=pcall(files,root,'',{})
-  if not ok or type(list)~='table' then return false end
-  local manifest=false
-  for _,rel in ipairs(list) do
-   if rel=='manifest.ini' then manifest=true
-   elseif load(root..'/'..rel)~=load(app..'/'..rel) then
-    pcall(io.createFileDir,app..'/'..rel)
-    local moved,result=pcall(io.move,root..'/'..rel,app..'/'..rel,true)
-    if not moved or result==false then return false end
+ -- Fichiers de l'app que la copie d'une source va remplacer, copiés dans current/ avec leur liste (le manifeste
+ -- toujours) ; renvoie true, ou false et le fichier en cause.
+ function p.snapshot(source)
+  if not ready then return false,'indisponible' end
+  local names=listOf(roots[source])
+  if not names then return false,'liste des fichiers de '..tostring(source) end
+  local root=roots.current
+  clear(root); pcall(io.createDir,root)
+  local kept,seen={},{}
+  for _,rel in ipairs(names) do seen[rel]=true end
+  if not seen['manifest.ini'] then names[#names+1]='manifest.ini' end
+  for _,rel in ipairs(names) do
+   if exists(app..'/'..rel) then
+    if not copy(app..'/'..rel,root..'/'..rel) then return false,rel end
+    kept[#kept+1]=rel
    end
   end
-  if not manifest then return false end
-  local moved,result=pcall(io.move,root..'/manifest.ini',app..'/manifest.ini',true)
-  return moved and result~=false
+  if not save(root..'/'..M.list,table.concat(kept,'\n')) then return false,M.list end
+  if p.sourceVersion('current')~=p.installedVersion() or not complete(root) then return false,'manifest.ini' end
+  return true
  end
- -- Paquet téléchargé ou sauvegarde ('backup', contrôlée comme un paquet) : extrait dans le dépôt, puis mis en place.
- function p.extract(data,cb)
-  if not ready then cb('write'); return end
-  local source=data
-  if data=='backup' then
-   if not exists(zip) then cb('write'); return end
-   source=zip
-   if not Update.content(p.entries(zip)) then cb('content'); return end
+ -- Copie finale d'une source complète dans le dossier de l'app : fichiers changés seulement, dans l'ordre sûr, chacun
+ -- remplacé d'un seul coup ; true et les chiffres de la copie, ou false et le fichier en cause.
+ function p.place(name)
+  local root=roots[name]
+  if not ready or not root then return false,'indisponible' end
+  local all=listOf(root)
+  if not all or not complete(root) then return false,'source incomplete' end
+  ordered(all)
+  local started,copied=clock(),0
+  watch(true)
+  for _,rel in ipairs(all) do
+   local src,dst=root..'/'..rel,app..'/'..rel
+   if load(src)~=load(dst) then
+    -- Surveillance réaffirmée à chaque fichier : CSP la rétablit seule au bout de quelques secondes.
+    watch(true)
+    if not swap(src,dst) then watch(false); return false,rel end
+    copied=copied+1
+   end
   end
-  pcall(io.createDir,staging); clear()
-  local started=pcall(io.extractFromZipAsync,source,staging,{crucial=Update.prefix..'manifest.ini'},function(err)
-   if err and err~='' then cb(tostring(err)); return end
-   if not place() then cb('move'); return end
-   clear(); cb(nil)
-  end)
-  if not started then cb('write') end
+  watch(false)
+  return true,nil,{compared=#all,copied=copied,ms=(clock()-started)*1000}
+ end
+ -- Installation réussie : current/ devient backup/ par renommage des dossiers (backup -> backup.old, current -> backup,
+ -- backup.old effacé) ; rejouée sans dégât (current déjà promu : rien à faire) ; à défaut de renommage, copie vérifiée.
+ -- Renvoie true, ou false et la raison.
+ function p.promote(kind)
+  if kind~='update' or not ready then return true end
+  local cur,bak=roots.current,roots.backup
+  if not complete(cur) then
+   if complete(bak) then clear(old) end
+   return true
+  end
+  clear(old)
+  local moved=false
+  if listOf(bak) or list(bak) and #list(bak)>0 then local ok,r=pcall(io.move,bak,old,false); moved=ok and r~=false end
+  local ok,r=pcall(io.move,cur,bak,false)
+  if ok and r~=false and complete(bak) then clear(old); return true end
+  -- Renommage refusé : copie des fichiers, vérifiée, puis current vidé (l'ancienne version précédente est remplacée).
+  if moved then clear(old) end
+  clear(bak); pcall(io.createDir,bak)
+  for _,rel in ipairs(listOf(cur) or {}) do if not copy(cur..'/'..rel,bak..'/'..rel) then return false,rel end end
+  if not copy(cur..'/'..M.list,bak..'/'..M.list) or not complete(bak) then return false,M.list end
+  clear(cur); clear(old)
+  return true
  end
  function p.restart()
   if callable(onRelease) then pcall(onRelease) end

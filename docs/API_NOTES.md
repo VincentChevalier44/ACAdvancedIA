@@ -152,6 +152,18 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 - `ac.StateCar.racePosition` (1 = first, 0 if unknown): pit exit order at the resumption after a red flag.
 - `jit.opt.start('maxtrace=8000','maxmcode=16384')` in the entry file: enlarged JIT compiler cache (with the default 1,000 traces and 512 KB, the engine recompiled all its code every one to two minutes). No effect on decisions; if it is refused, the app drives the cars one by one as before and the log says so.
 
+## Beta 1.35: update staged outside the app folder
+
+- CSP reloads an app when a file of its folder changes, so nothing is written there before the final copy. Work folder: `ac.getFolder(ac.FolderID.ExtCfgState)` (25, `Documents/Assetto Corsa/cfg/extension/state`, no live reload), subfolder `ACAdvancedIA-update` (`next`, `current`, `backup`, `installing.txt`, `updated.txt`).
+- `io.extractFromZipAsync(data, folder, {crucial = 'apps/lua/ACAdvancedIA/manifest.ini'}, callback)` unpacks into `next`; `io.scanDir(folder, '*', callback(name, attributes))` lists files (`attributes.isDirectory`).
+- `io.copyFile(existing, new, false)` copies (overwrite allowed). `io.move` is MoveFileEx without copy: it fails between drives (Steam on D:, Documents on C:), hence copies for everything that crosses into the app folder.
+- `ac.pauseFilesWatching(true)` suspends CSP's file watching for a few seconds; the final copy runs synchronously in one frame and re-asserts the pause every 32 files.
+- The recovery runs at the very top of `ACAdvancedIA.lua`, under `pcall`, before any other module is required; when it copied files it asks one `ac.restartApp()` on the first frame, before the engine drives anything.
+- GitHub answers 403 or 429 when the unauthenticated request limit (60 per hour) is reached.
+- Atomic replacement: each file is copied to `<destination>.new` in the destination folder, then `io.move(tmp, destination, true)` renames it (same volume, so a rename). Kept versions are swapped by renaming folders.
+- Boot sentinel `boot.txt` (version, tries) in the work folder: written by a fresh install, counted at each start before the other modules load, removed after the first successful `script.update`; two failed starts roll back to `backup`.
+- Settings: a store whose `schemaVersion` is newer than the app's is no longer replaced by the defaults; each known key is validated and the higher version is kept on save, so a roll back keeps them.
+
 ## Beta 1.34: standing restarts, AC's start flag, capability failures
 
 - `ac.StateSim.raceFlagType` can stay at `ac.FlagType.Start` (1) for a long time (the whole session in hotlap; observed by the app's own panel code). Beta 1.32 only wrote `physics.overrideRacingFlag` over 0 or AC's yellow, so a held start flag blocked the track light panels without a trace. The start flag now counts as free; blue (12), white (14), chequered (13), black (5) and penalty (8) are still never covered.

@@ -6,20 +6,21 @@ local function hexByte(c) return string.format('%02x',string.byte(c)) end
 local function collidedWith(raw) return raw.collidedWith end
 -- Dégâts d'une IA à son emplacement (Beta 1.20) : carrosserie (somme des quatre côtés, km/h), suspension la plus
 -- touchée (0 à 1), vie du moteur (1000 : neuf) ; réparation faite par AC lui-même (journal). Lus sous protection.
-local function damageRead(a,raw)
+-- Carrosserie, suspension, moteur, boîte : une seule lecture pour les IA et le joueur (aucune table créée).
+local function damageValues(raw)
  local d,sd=raw.damage,raw.suspensionDamage
- a.damageBody=d and U.number(d[0],0,1000,0)+U.number(d[1],0,1000,0)+U.number(d[2],0,1000,0)+U.number(d[3],0,1000,0) or 0
- a.damageSuspension=sd and math.max(U.number(sd[0],0,1,0),U.number(sd[1],0,1,0),U.number(sd[2],0,1,0),U.number(sd[3],0,1,0)) or 0
- a.engineLife=U.number(raw.engineLifeLeft,0,K.engineLifeNew,K.engineLifeNew); a.repairingNative=raw.isRepairing==true
- a.damageGearbox=U.number(raw.gearboxDamage,0,1,0)
+ return d and U.number(d[0],0,1000,0)+U.number(d[1],0,1000,0)+U.number(d[2],0,1000,0)+U.number(d[3],0,1000,0) or 0,
+  sd and math.max(U.number(sd[0],0,1,0),U.number(sd[1],0,1,0),U.number(sd[2],0,1,0),U.number(sd[3],0,1,0)) or 0,
+  U.number(raw.engineLifeLeft,0,K.engineLifeNew,K.engineLifeNew),U.number(raw.gearboxDamage,0,1,0)
+end
+local function damageRead(a,raw)
+ a.damageBody,a.damageSuspension,a.engineLife,a.damageGearbox=damageValues(raw); a.repairingNative=raw.isRepairing==true
 end
 -- Dégâts du joueur (Beta 1.32, drapeau noir à disque orange) : rangés à part (ceux des IA ne sont lus qu'à leur
 -- emplacement), avec le taux de dégâts mécaniques de la session (0 : dégâts désactivés).
 local function playerDamage(s,a)
- local raw=ac.getCar(a.index); local d,sd=raw.damage,raw.suspensionDamage
- s.playerBody=d and U.number(d[0],0,1000,0)+U.number(d[1],0,1000,0)+U.number(d[2],0,1000,0)+U.number(d[3],0,1000,0) or 0
- s.playerSuspension=sd and math.max(U.number(sd[0],0,1,0),U.number(sd[1],0,1,0),U.number(sd[2],0,1,0),U.number(sd[3],0,1,0)) or 0
- s.playerEngine=U.number(raw.engineLifeLeft,0,K.engineLifeNew,K.engineLifeNew); s.playerGearbox=U.number(raw.gearboxDamage,0,1,0)
+ local raw=ac.getCar(a.index)
+ s.playerBody,s.playerSuspension,s.playerEngine,s.playerGearbox=damageValues(raw)
  local blown=false; local wheels=raw.wheels
  if wheels then for w=0,3 do local wheel=wheels[w]; if wheel and wheel.isBlown==true then blown=true end end end
  s.playerBlown=blown; s.damageRate=U.number(ac.getSim().mechanicalDamageRate,0,1000,1); s.playerDamageSlot=a.slot

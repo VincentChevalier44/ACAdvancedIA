@@ -101,6 +101,14 @@
     "Beta 1.33 : mise à jour refusée en conduite, information de l overlay aux stands une fois par lancement",
     "Beta 1.33 : erreurs de mise à jour sans rien changer, annulation, option de vérification coupée",
     "Beta 1.33 : retour à la version sauvegardée, compte rendu après le redémarrage",
-    "Beta 1.33 : installation interrompue au lancement précédent, sauvegarde remise en place, moteur arrêté"
+    "Beta 1.35 : copie interrompue reprise au chargement, avant les autres modules ; reprise impossible dite, app jamais figée",
+    "Beta 1.35 : interface Racing 26, polices, segments, liens, bandeau, vues inertes, motifs, défilement",
+    "Beta 1.35 : échec de capacité pendant la restitution finale journalisé",
+    "Beta 1.35 : panneaux de relance et feux de départ dessinés",
+    "Beta 1.35 : relecture de l interface, sélecteur de profil à 900 px, globales décochées, langue, état, diagnostic, overlay",
+    "Beta 1.35 UI/updater fixes : interface à 900 px, en-têtes, choix, tuiles, logo, polices",
+    "Beta 1.35 UI/updater fixes : confirmation, portée, comptes, clic droit, langue, mémorisation, overlay",
+    "Beta 1.35 UI/updater fixes : saisie native tenue dans son cadre à petite échelle",
+    "Beta 1.35 UI/updater fixes : notes à jour, retour arrière grisé pendant une opération"
   ]
 }

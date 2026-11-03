@@ -1,5 +1,49 @@
 # Changelog
 
+## Beta 1.35 — 3 November 2026
+
+The **Racing 26** interface from Vincent's final mockup (*ACAdvancedIA — Refonte UI*), merged with Beta 1.34, a full review of the window and the overlay, and a safer update from the app.
+
+**Interface**
+- **Fonts bundled with the app**: Barlow, Barlow Condensed and JetBrains Mono (SIL Open Font License, in `fonts/` with their licences). Segoe UI and Consolas when the files are missing, noted once in the session log, even when only the overlay is shown.
+- **Header on every tab**: brand and version chip, one-click update button (greyed while you drive), track and profile, AI driven and engine state, state chip, **FR | EN**, **APP** switch, **PANIC / RESUME**, slanted tabs and the profile selector. The selector never disappears: in a narrow window the profiles show as their first letter.
+- **State chip**: **ACTIVE · RACE** while the app drives, **PAUSED · RACE** while the game is paused (live figures kept), **SUSPENDED** in a replay, after the session, on a track without an AI line, on abnormal frames or when CSP refuses the AI functions. It never says *active* when nothing is driven.
+- **HOME** in two scrolling columns: session panel, built-in presets as tiles, live figures including the light panels, **TO CHECK** with links to the section concerned, custom presets (long names shrink to fit) with a 64-byte counter, and a banner for a disabled app, a panic, an online session or the first session. After an update, the report has a **Notes ›** link.
+- **SETTINGS**: sidebar with the section switches and the number of changed settings; every section in sub-groups on two columns; default marks on the sliders, cyan diamonds on changed settings, segments for choices with up to three values (a ‹ value › button when their labels do not fit). **Global options** unticked now show the inactive-section message like every other section, instead of settings that looked editable. **Assetto Corsa native yellow on the HUD** is greyed out on an equipped track while the track light panels are on.
+- **RACING RULES**: views with their switches, rule sets, Safety Car model card and deployment steps; the message of another tab is cleared when you change tabs.
+- **DIAGNOSTICS**: update block with all its states, the last headlight flash event (id / count) and the track light panels line again, capabilities on two columns, AI table, performance tiles, log level as a segment.
+- **Overlay**: cut-corner background, accent bar in the flag colour, letter badges (SC, VSC, RS, SS), the Beta 1.34 restart panels (rolling and standing start, five start lights, **GO**, **JUMP START**), and every text in the app fonts.
+- Switching language redraws every cached text (values, defaults, update messages) at once.
+- **Lighter drawing**: one font push per change of role instead of one per text, measured texts and control identifiers kept between frames, no table or point created per frame in the overlay, the rule set and preset signatures computed once per change. A drawing error now closes its fonts and clips in the same frame.
+
+**Updating from the app, reworked**
+- Nothing is unpacked or staged in the app folder any more (CSP reloads an app whose files change): the package goes to CSP's state folder (`Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-update`), where the installed version is also copied before anything changes.
+- The click downloads, checks and unpacks; the copy into the app folder waits for you to be stopped (pause, menu, or at your pit box at standstill: the pit lane at speed no longer counts) and is done in one go, CSP's live reload paused, `src/` first, `ACAdvancedIA.lua` next, `manifest.ini` last. Files are copied, never moved (the app folder and Documents are often on different drives).
+- A failed copy puts the installed version back at once and names the file. If even that fails, the window says so with the marker file and stops there.
+- An install cut short by a crash is finished (or undone) at the next launch, before any other module loads, then the app restarts once. Two attempts at most, never a loop, and the app is never left frozen.
+- GitHub's request limit (403, 429) is shown as such; **Check now** asks at most once a minute (greyed in between); a cancelled download can no longer be revived by a late answer; release notes are cut without splitting a character; the previous version for **Roll back** is read from the backup itself; a restart that does not happen is reported after 10 seconds.
+- **Second review of the updater:**
+  - every file is first copied next to its destination under a temporary name, then renamed over it, so a crash never leaves a half-written file;
+  - each kept version (`current`, `backup`) carries its file list; **Roll back** is offered only for a complete version, and the old backup is replaced by renaming folders, never by moving files one by one;
+  - a freshly installed version that fails to start twice in a row is rolled back automatically at the next launch, and the log says so;
+  - **your settings are kept after a roll back**: a version now reads settings written by a newer one (each known setting is validated) instead of falling back to the defaults;
+  - the marker is read back after it is written, and the app restarts only once it is really gone (never a restart loop, even with a read-only marker);
+  - the downloaded size must match the release, every module the new version loads must be in the package, and the unpacked files must equal the package;
+  - the check and the download give up after a timeout; a download ready to install expires if you drive off; **Roll back** runs on the next frame, not inside the window drawing;
+  - each failure is logged with its detail, and a recovery outcome is also written to CSP's own log.
+- **Install Beta 1.35 by hand, game closed** (Content Manager or a folder copy, see README › Updating): do **not** use the update button of Beta 1.33 or 1.34. Their updater still unpacks into the app folder, which CSP watches, and has none of the protections below. Their `backup/` folder in the app folder is no longer used (delete it with the game closed if you like), so no roll back to Beta 1.34 is offered until the next update.
+
+**Race restarts and light panels (second review of the engine)** — these also fix the installed Beta 1.34:
+- **Standing start:** with the F1 rules and no Safety Car model, the restart lap under VSC or FCY used to end on a timer, wherever the field was; cars more than half a lap from their slot, or past the line, were then held where they stood. The restart lap now ends when the leader completes it, the distance to a slot is measured forwards, and a car counts as past its slot only within 25 m.
+- **Jump start:** watched only once you are in your slot and stopped, forwards only, never when you start from the pit lane; the penalty is served once you are past the line (150 m, at the latest 30 s after lights out), never while stopped on the grid. Without player penalties, no JUMP START panel.
+- **Formation:** the AI expected on the grid are counted every frame (a car in the pits, invalid or disqualified no longer makes everyone wait 2 minutes); no pit stop is requested during the formation and the lights; your distance shows to the metre below 20 m, then **IN POSITION** or **SLOT PASSED**; with no slot, *Start from the pit lane*, never *P0*.
+- **After lights out:** the race-start protections (caution, aggression, front radar, lane holding) apply to a standing restart too, and each AI steers on from its slot's column without a jump.
+- **Track light panels:** green at lights out and at a Safety Car restart (no more white SLOW VEHICLE while the field is slow behind the Safety Car or on the grid, nor for 10 s after a green); AC's penalty or your disqualification hands the flag back to AC; a pause no longer hands the panels back for a moment; AC's Hide race flags is re-read when red is about to be written.
+- **Smaller fixes:** the track's grid nodes are never modified (a second red flag used computed slots while saying AC_START), side-by-side grids are accepted and a fallback says why; lights timing as intended; no AI pass sanction during the formation; restoring the flag to AC is logged; the slow-vehicle log line at most every 10 s; timers kept across the 24-hour time wrap; a capability failing during the final hand-back is logged.
+- **Lighter engine:** the lateral occupancy skips cars too far away to count (same results), and the fuel key is built only when fuel is requested.
+
+**Verification**: 439 checks; 109 integration cases; 1,035 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.34; 8-hour soak without errors (memory between 8.6 and 9.6 MB; memory and peak criteria still not met, as before), one hour of regulated racing at 0.27 ms on average; benchmark (median of three alternating runs) 30 AI 0.21 ms (Beta 1.34: 0.22), 60 AI 0.54 ms (Beta 1.34: 0.58).
+
 ## Beta 1.34 — 3 November 2026
 
 Rolling and standing restarts after a red flag, and the fix for the track light panels that never lit in your Imola session.
@@ -8,7 +52,7 @@ Rolling and standing restarts after a red flag, and the fix for the track light 
 - **Diagnostics so this cannot stay silent again:**
   - a wanted colour that is not written is logged once, with its cause (AC's own flag, a missing capability, CSP's error);
   - every change of AC's own race flag is logged (`drapeau d AC: 1 (depart)`);
-  - the first failure of any CSP function the app uses is logged with CSP's error text, and so is the moment the app stops using it after three failures. Until now a failing function left no trace.
+  - the first failure of each CSP function the app calls through its capability table (AI and player commands) is logged with CSP's error text, and so is the moment the app stops using it after three failures. Until now a failing function left no trace.
   - The track configuration is now read even when no section is ticked, so the window no longer says it was not read yet.
 - **Restart after a red flag** (racing rules, red flag group): **rolling start (RS)** behind the Safety Car, or **standing start (SS)** from the grid.
   - F1 2025 and F1 2026 use the standing start; the base, GT and Endurance rules the rolling start.

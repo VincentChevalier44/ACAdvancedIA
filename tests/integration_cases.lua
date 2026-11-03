@@ -27,6 +27,8 @@ return function(source)
  local function redraw() HOST.hits={}; HOST.hitOrder={}; HOST.drawnTexts={}; main() end
  local function drag(id,ratio) HOST.drags['##aai_'..id]=ratio; main() end
  local function drawnText(value) for _,t in ipairs(HOST.drawnTexts) do if t==value then return true end end return false end
+ -- Refonte Racing 26 : messages coupés à la largeur de leur bloc ; la première ligne dessinée ouvre le texte attendu.
+ local function begins(value) for _,t in ipairs(HOST.drawnTexts) do if #t>=10 and value:find(t,1,true)==1 then return true end end return drawnText(value) end
  local function has(list,value) for _,x in ipairs(list) do if x==value then return true end end return false end
  local function pause(value) HOST.sim.isPaused=value; script.HUMANAI__MENU() end
  HOST=H.create(true); assert(loadstring(source))()
@@ -213,7 +215,7 @@ return function(source)
      assert(HUMANAI.engine.p[s.key]==expected,profile..':'..s.key..':'..tostring(value))
      assert(HOST.storage['humanai:p:'..profile..':'][s.key]==expected,'storage:'..s.key)
      if type(expected)=='boolean' then assert(HUMANAI.engine.run[s.key]==expected,'effective:'..s.key) end
-     if s.choices then redraw(); assert(drawnText(L.choices[value]..'  ▸'),'preview:'..s.key) end
+     if s.choices then redraw(); local at=0; for i,x0 in ipairs(s.choices) do if x0==expected then at=i end end; assert(lit('set_'..s.key..'_'..at),'preview:'..s.key) end
     end
     end
    end
@@ -237,7 +239,7 @@ return function(source)
    local guard=0; while HUMANAI.engine.g.levelMode~=value and guard<5 do press('global_levelMode'); guard=guard+1 end
    H.tick(HOST,1/60)
    assert(HUMANAI.engine.g.levelMode==value and HUMANAI.engine.runtimeG.levelMode==value)
-   redraw(); assert(drawnText(L.levelModeLabels[index]..'  ▸'))
+   redraw(); assert(drawnText(L.levelModeLabels[index]),'level mode shown')
    assert(HOST.storage['humanai:g:'].levelMode==value)
   end
   for _,key in ipairs({'useGripBoost','useBrakeAssist','overrideAwareness','debugLog'}) do
@@ -624,7 +626,7 @@ return function(source)
   HOST.mouse={x=-1e6,y=-1e6}
   HOST.clip=''; press('export'); assert(HOST.clip:match('zones'),'zones copied')
   press('log_filter'); redraw()
-  assert(drawnText(L.filterShort..' '..L.logLevels[2]),'log filter cycled')
+  assert(lit('log_filter_2') and not lit('log_filter_1'),'log filter cycled')
   HOST.hoverAll=true
   assert(HOST.styleDepth==0 and HOST.dwriteDepth==0 and HOST.clipDepth==0)
   for _,text in ipairs(HOST.tooltips) do for line in (text..'\n'):gmatch('(.-)\n') do assert(#line<=C.K.uiTipWidth+24,'tooltip line too long: '..line) end end
@@ -650,20 +652,21 @@ return function(source)
   HOST.windowHeight=110; HOST.textTop=nil; script.HUMANAI__FLAGS(); assert(HOST.textTop>=34 and HOST.fontDepth==0); HOST.windowHeight=nil
   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,e.panel.short) and e.panel.short~='','one-line instruction drawn')
   local noPass; for k,text in ipairs(HOST.panelTexts) do if text==L.noPassing then noPass=HOST.panelColors[k] end end
-  assert(noPass and noPass.g>0.9 and noPass.r<0.5,'no overtaking line drawn in green')
+  -- Refonte Racing 26 : vert du kit #2EE07F (composante verte 0,88).
+  assert(noPass and noPass.g>0.8 and noPass.r<0.5,'no overtaking line drawn in green')
   -- Temps delta en direct : positif en vert, négatif en rouge (valeur signée, virgule décimale).
   local function deltaShown(value)
    e.delta.course.delta=value; H.tick(HOST,1/60); HOST.panelTexts={}; HOST.panelColors={}; script.HUMANAI__FLAGS()
    for k,text in ipairs(HOST.panelTexts) do if text:match('^[%+%-]%d+[,%.]%d%d$') then return text,HOST.panelColors[k] end end
   end
   local text,color=deltaShown(0.8)
-  assert(text and text:sub(1,1)=='+' and color.g>0.9 and color.r<0.5,'positive delta in green: '..tostring(text))
+  assert(text and text:sub(1,1)=='+' and color.g>0.8 and color.r<0.5,'positive delta in green: '..tostring(text))
   text,color=deltaShown(-0.5)
   assert(text and text:sub(1,1)=='-' and color.r>0.9 and color.g<0.5,'negative delta in red: '..tostring(text))
   -- Valeur arrondie à zéro : « +0,00 » en vert (le signe lu est celui du centième affiché).
   e.delta.value=-0.003; HOST.panelTexts={}; HOST.panelColors={}; script.HUMANAI__FLAGS()
   local zero; for k,shown in ipairs(HOST.panelTexts) do if shown=='+0'..L.decimalMark..'00' then zero=HOST.panelColors[k] end end
-  assert(zero and zero.g>0.9 and zero.r<0.5,'rounded to zero: shown green')
+  assert(zero and zero.g>0.8 and zero.r<0.5,'rounded to zero: shown green')
   e.delta.course.delta=2
   HOST.cars[0].speedKmh=108
   H.tick(HOST,3); assert(HOST.teleports>=2,'immobilised AI recovered to their pits')
@@ -779,8 +782,10 @@ return function(source)
   HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5)
   local title=string.format(L.titleVersion,C.release)
   local function shown() for _,t in ipairs(HOST.wrappedTexts) do if t==title then return true end end return false end
-  pause(true); redraw(); assert(C.release:match('^Beta %d') and drawnText(C.release) and drawnText('ACADVANCEDIA'),'settings window')
-  go('diagnostic'); redraw(); assert(drawnText(C.release) and drawnText(L.capabilities),'diagnostic tab')
+  -- Refonte Racing 26 : marque en deux couleurs (ACADVANCED, IA) et puce de version « β1.33 » dans l'en-tête de tous les onglets.
+  local chip='β'..(C.release:gsub('^Beta ',''))
+  pause(true); redraw(); assert(C.release:match('^Beta %d') and drawnText(chip) and drawnText('ACADVANCED') and drawnText('IA'),'settings window')
+  go('diagnostic'); redraw(); assert(drawnText(chip) and drawnText(W.upper(L.capabilities)),'diagnostic tab')
   -- Trois onglets, sans Préréglages ; aucune fenêtre de diagnostic séparée.
   assert(drawn('tab_home') and drawn('tab_settings') and drawn('tab_diagnostic') and not drawn('tab_presets') and script.HUMANAI__DEBUG==nil)
   pause(false)
@@ -919,7 +924,8 @@ return function(source)
   go('home'); press('builtin_Course'); main(); assert(lit('builtin_Course'),'session preset lit')
   assert(e.profiles.C.flagPanel==false,'driver preference kept by the preset')
   for _,x in ipairs({'P','Q','C'}) do assert(C.ruleCategory(x,e.profiles[x])=='base' and e.profiles[x].mandatoryStops==0,'base rules for the weekend: '..x) end
-  e.profiles.C.drsBeepVolume=350; main(); assert(lit('builtin_Course'),'preset still lit with a personal preference')
+  -- Réglages changés hors de la fenêtre : signalés au moteur (Beta 1.35 UI/updater fixes : signatures mémorisées).
+  e.profiles.C.drsBeepVolume=350; E.changed(e); main(); assert(lit('builtin_Course'),'preset still lit with a personal preference')
   section('rules'); main(); assert(not lit('mandatory_stop') and lit('safety_switch') and lit('rules_base'),'mandatory stop unticked by the preset')
   -- Essais : un arrêt obligatoire ajouté à la main est retiré pour tout le week-end ; onglet Règles de la course gardé.
   press('mandatory_stop'); main(); assert(e.profiles.C.mandatoryStops>0 and e.profiles.P.mandatoryStops>0)
@@ -931,7 +937,7 @@ return function(source)
   main(); assert(lit('builtin_Essais') and not lit('builtin_Nordschleife') and not lit('builtin_Course'),'only the displayed profile preset lights up')
   go('home'); press('profile_J'); main(); assert(lit('builtin_Nordschleife') and not lit('builtin_Essais'),'track day view: its own preset')
   press('restore'); main(); assert(not lit('builtin_Nordschleife'),'restored: no preset highlighted')
-  e.profiles.J.multiClass=true; main(); assert(not lit('builtin_Nordschleife'),'same values set by hand after a restore: not a click')
+  e.profiles.J.multiClass=true; E.changed(e); main(); assert(not lit('builtin_Nordschleife'),'same values set by hand after a restore: not a click')
   -- Préréglage personnel de qualifications : ses règles pour tout le week-end.
   go('home'); press('profile_Q'); section('rules'); press('rules_GT'); main()
   go('home'); HOST.inputEdits['##aai_preset_name']='Qualifs GT'; press('save_preset'); main()
@@ -1190,16 +1196,18 @@ return function(source)
   HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5); pause(true); redraw()
   local e=HUMANAI.engine
   assert(e.g.language=='en' and Locale.current=='en' and L.tabs.home=='HOME' and C.schema[1].label=='Level (%)','fresh install in English')
-  assert(drawnText('HOME') and drawnText('PANIC') and drawnText('AI') and lit('lang_en') and not lit('lang_fr'),'English header, EN lit')
-  -- En-tête : activation, panique puis FR | EN, dans la fenêtre et sans chevauchement.
-  local ids={'enabled','panic','lang_fr','lang_en'}
+  -- Refonte Racing 26 : la marque reste ACADVANCED + IA dans les deux langues.
+  assert(drawnText('HOME') and drawnText('PANIC') and drawnText('IA') and lit('lang_en') and not lit('lang_fr'),'English header, EN lit')
+  -- En-tête (refonte Racing 26, maquette) : FR | EN, activation, puis panique, dans la fenêtre et sans chevauchement.
+  local ids={'lang_fr','lang_en','enabled','panic'}
   for k,id in ipairs(ids) do
    local r=HOST.hits['##aai_'..id]; assert(r and r.x+r.w<=1000+1e-6,'inside the window: '..id)
    if k>1 then local q=HOST.hits['##aai_'..ids[k-1]]; assert(q.x+q.w<=r.x+1e-6 and math.abs(q.y-r.y)<1e-6,'right of '..ids[k-1]..': '..id) end
   end
   -- Libellé long (nom de 50 caractères, profil en anglais) : police réduite plutôt que texte coupé.
   go('home'); local long=string.rep('n',50); HOST.inputEdits['##aai_preset_name']=long; press('save_preset'); redraw()
-  assert(drawnText(long..' · '..L.shortProfiles.J),'long label shrunk, not cut')
+  -- Refonte Racing 26 : nom en entier sur la ligne, profil dans sa puce.
+  assert(drawnText(long) and drawnText(W.upper(L.shortProfiles.J)),'long name shown whole, profile chip')
   -- Infobulle d'un réglage : défaut et plage au point décimal en anglais, à la virgule en français.
   local function tip(id) redraw(); local r=HOST.hits['##aai_'..id]; HOST.mouse={x=r.x+r.w/2,y=r.y+r.h/2}; HOST.lastTooltip=nil; main(); HOST.mouse={x=-1e6,y=-1e6}; return HOST.lastTooltip or '' end
   C.preset('Nordschleife','J',e.profiles.J); E.changed(e); section('yield'); local english=tip('set_yieldOffset')
@@ -1243,7 +1251,8 @@ return function(source)
   -- Profil Course (règles de base à la première installation) : interrupteur allumé, jeux de règles, réglages.
   go('home'); press('profile_C'); go('rules'); redraw()
   assert(lit('section_rules') and drawn('rules_F1') and drawn('rules_Endurance') and drawn('set_neutralization') and not drawn('set_mandatoryStops'),'rules tab content')
-  assert(drawnText(L.groups.rules) and lit('profile_C') and lit('rules_base'),'title, profile shown, rule set recognised')
+  -- Refonte Racing 26 : titre de page en capitales (condensé extra-gras).
+  assert(drawnText(W.upper(L.groups.rules)) and lit('profile_C') and lit('rules_base'),'title, profile shown, rule set recognised')
   -- Interrupteur : coupe les règles du profil affiché seulement, enregistré ; réglages masqués, jeux de règles visibles.
   press('section_rules'); redraw()
   assert(not e.profiles.C.section_rules and e.profiles.Q.section_rules and HOST.storage['humanai:p:C:'].section_rules==false,'rules off for the profile shown only')
@@ -1280,7 +1289,7 @@ return function(source)
   local function noted() return shown(L.safetySwitchNoCar) end
   assert(e.g.safetyCarModel=='ferrari_458_s3' and not noted(),'Ferrari 458 Italia Stage 3 by default')
   e.g.safetyCarModel=''; redraw(); assert(noted(),'no safety car chosen: warning')
-  press('rules_view_safety'); redraw(); assert(drawnText(L.safetyHeading),'picker under the Safety Car title'); press('rules_view_all')
+  press('rules_view_safety'); redraw(); assert(drawnText(W.upper(L.safetySwitch)) and drawnText(W.upper(L.safetyGridHeading)),'picker under the Safety Car title'); press('rules_view_all')
   e.g.safetyCarModel='sc_car'; redraw(); assert(not noted(),'warning gone once a car is chosen')
   P.Q.mandatoryStops=0; go('home'); press('profile_Q'); go('rules'); redraw(); assert(lit('mandatory_stop') and lit('profile_Q'),'race profile state shown')
   -- Interrupteur allumé avec la zone jaune locale : rien à faire escalader, dit clairement ; neutralisation « Voiture
@@ -1304,20 +1313,22 @@ return function(source)
   local e=HUMANAI.engine; local P=e.profiles
   go('home'); press('profile_C'); go('rules'); redraw()
   assert(lit('rules_view_all') and drawn('set_neutralization') and drawn('set_redFlagEnabled') and not drawn('set_mandatoryStops') and not drawn('set_pitFuel')
-   and not drawn('set_safetyCarEscalation') and not drawn('set_safetyCarSpeedKmh') and not drawnText(L.safetyHeading),'main view without pit stops and safety car')
+   and not drawn('set_safetyCarEscalation') and not drawn('set_safetyCarSpeedKmh') and not drawnText(W.upper(L.safetySwitch)),'main view without pit stops and safety car')
   local stops,safety,rules=P.C.mandatoryStops,P.C.safetyCarEscalation,P.C.section_rules
   press('rules_view_stops'); redraw()
   assert(P.C.mandatoryStops==stops and lit('rules_view_stops') and not lit('rules_view_all') and drawn('set_mandatoryStops') and drawn('set_pitWindowOpenPct')
    and drawn('set_pitFuel') and drawn('set_pitRepair') and not drawn('set_neutralization') and not drawn('set_safetyCarEscalation'),'pit stop title: its settings only, switch unchanged')
   press('rules_view_safety'); redraw()
-  assert(P.C.safetyCarEscalation==safety and lit('rules_view_safety') and drawn('set_safetyCarEscalation') and drawn('set_safetyCarSpeedKmh') and drawnText(L.safetyHeading)
+  assert(P.C.safetyCarEscalation==safety and lit('rules_view_safety') and drawn('set_safetyCarEscalation') and drawn('set_safetyCarSpeedKmh') and drawnText(W.upper(L.safetySwitch))
    and not drawn('set_mandatoryStops') and not drawn('set_neutralization'),'safety car title: its settings and the picker, switch unchanged')
   press('rules_view_all'); redraw(); assert(P.C.section_rules==rules and lit('rules_view_all'),'rules title: nothing switched')
   press('mandatory_stop'); press('safety_switch'); redraw()
   assert(P.C.mandatoryStops==1 and not P.C.safetyCarEscalation and lit('rules_base') and lit('mandatory_stop') and not lit('safety_switch'),'base rules still highlighted, stop added, safety car removed')
   press('rules_reset'); redraw()
   assert(P.C.mandatoryStops==0 and P.C.safetyCarEscalation and P.Q.mandatoryStops==0 and lit('rules_base') and lit('safety_switch'),'reset to the base rules')
-  press('rules_F1'); P.C.pitWindowOpenPct=30; P.C.mandatoryStops=0; redraw(); assert(not lit('rules_F1'),'F1 edited on the right: custom')
+  -- Réglages changés hors de la fenêtre : signalés au moteur, comme tout changement fait par l'app (Beta 1.35 UI/updater
+  -- fixes : jeu de règles refait seulement après une modification).
+  press('rules_F1'); P.C.pitWindowOpenPct=30; P.C.mandatoryStops=0; E.changed(HUMANAI.engine); redraw(); assert(not lit('rules_F1'),'F1 edited on the right: custom')
   press('rules_reset'); redraw()
   assert(lit('rules_F1') and P.C.pitWindowOpenPct==20 and P.C.mandatoryStops==1 and P.C.safetyCarEscalation,'reset to the closest rule set')
   -- Beta 1.29 (demande du pilote) : journée circuit et hotlap affichés : arrêt obligatoire et voiture de sécurité sans
@@ -1405,7 +1416,6 @@ return function(source)
  -- fois, jamais de mise en état garé ; voiture déplacée avant son tour : attente annulée (0) ; déchargement : attentes
  -- encore en cours annulées.
  check('Beta 1.22 : sorties des stands étalées en essais et qualifications, attente annulée hors de l emplacement',function()
-  local minimum=C.K.pitExitMinCars; C.K.pitExitMinCars=3
   local ok,err=pcall(function()
    HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=2; HOST.sim.currentSessionTime=5000
    for i=1,3 do local car=HOST.cars[i]; car.isInPit=true; car.isInPitlane=true; car.speedKmh=0; car.velocity={x=0,y=0,z=0} end
@@ -1423,7 +1433,6 @@ return function(source)
    HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
    for i=1,3 do assert(not HOST.cars[i].isInPit or (HOST.startDelays[i] or 0)==0,'unload: pending wait cancelled: '..i) end
   end)
-  C.K.pitExitMinCars=minimum
   if not ok then error(err,0) end
  end)
  -- Beta 1.24 : réinitialisation de chaque section des réglages : valeurs par défaut du profil affiché, préférences du
@@ -1664,11 +1673,12 @@ return function(source)
  local function halt() pause(true); script.update(1/60) end
  local function updated(setup,body)
   HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
-  local F=Fake.install({root='local',files=HOST.files})
+  local F=Fake.install({root='local',state='state',files=HOST.files})
   local ok,err=pcall(function() F.app(ver(0)); if setup then setup(F) end; assert(loadstring(source))(); body(F) end)
   HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
   F.restore(); assert(ok,err)
  end
+ local WORK='state/ACAdvancedIA-update/'
  check('Beta 1.33 : vérification au lancement, mise à jour d un clic depuis l en-tête, IA rendues avant le redémarrage',function()
   updated(function(F) F.release(ver(1)) end,function(F)
    local u=HUMANAI.updater; assert(HUMANAI.port.ready and u.phase=='idle' and u.installed==C.release)
@@ -1678,17 +1688,31 @@ return function(source)
    H.tick(HOST,30); local requests=0; for _,c in ipairs(F.calls) do if c==API then requests=requests+1 end end; assert(requests==1,'one request per launch')
    pause(true); script.update(1/60); assert(HUMANAI.host.updateStopped,'paused: stopped')
    go('home'); redraw(); assert(drawn('update_header') and lit('update_header') and drawn('update_home'),'header button and home alert')
-   assert(drawnText(string.format(L.updateAlert,ver(1))),'home alert text')
+   assert(begins(string.format(L.updateAlert,ver(1))),'home alert text')
    local order={}
    F.onRestart=function() order[#order+1]=next(HOST.releases)==nil and 'released' or 'running' end
-   HOST.releasing=true; press('update_header'); HOST.releasing=false
+   F.watch()
+   -- Un clic : téléchargement, contrôles, extraction et copie de la version installée ; la copie finale à l'image suivante.
+   press('update_header'); assert(u.phase=='ready' and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0),'nothing copied into the app by the click')
+   HOST.releasing=true; script.update(1/60); HOST.releasing=false
    assert(F.restarts==1 and order[1]=='released','AI handed back to AC before the restart')
    local files=HOST.files
    assert(files['local/ACAdvancedIA.lua']=='main '..ver(1) and Update.manifestVersion(files['local/manifest.ini'])==ver(1) and files['local/src/new.lua']=='new '..ver(1))
-   assert(files['local/backup/updated.txt']=='update '..ver(0)..' -> '..ver(1) and files['local/backup/installing.txt']==nil and files['local/backup/previous.txt']==ver(0))
-   local bk,mk,un=F.find('zip backup/previous.zip.tmp'),F.find('save backup/installing.txt'),F.find('save backup/updated.txt')
-   assert(bk and mk and un and bk<mk and mk<F.find('move manifest.ini') and F.find('move manifest.ini')<un and un<F.find('restartApp'),'backup -> mark -> extract -> report -> restart')
-   assert(logged(ver(1)..' installee, commandes des IA rendues a AC'),'journal written before the restart')
+   assert(files[WORK..'updated.txt']=='update '..ver(0)..' -> '..ver(1) and files[WORK..'installing.txt']==nil and Update.manifestVersion(files[WORK..'backup/manifest.ini'])==ver(0))
+   local snap,mk,man,rep=F.find('copy state:ACAdvancedIA-update/current/manifest.ini'),F.find('save state:ACAdvancedIA-update/installing.txt'),F.find('move manifest.ini'),F.find('save state:ACAdvancedIA-update/updated.txt')
+   assert(snap and mk and man and rep and snap<mk and mk<man and man<rep and rep<F.find('restartApp'),'snapshot -> mark -> copy (manifest last) -> report -> restart')
+   -- Beta 1.35 : chaque fichier remplacé d'un seul coup (copie à côté puis déplacement), démarrage surveillé armé.
+   assert(F.find('copy manifest.ini.new') and F.find('copy manifest.ini.new')<man and files['local/manifest.ini.new']==nil,'atomic replacement')
+   assert(files[WORK..'boot.txt']==ver(1)..'\n0\n'..ver(0),'boot watch armed')
+   assert(F.reloads==0,'no live reload of the app')
+   assert(logged(ver(1)..' installee (') and logged('copies en') and logged('commandes des IA rendues a AC'),'journal written before the restart')
+   -- Redémarrage qui n'a pas lieu (imitation de CSP : rien ne recharge l'app) : signalé après 10 s, une fois.
+   H.tick(HOST,5); assert(not u.restartLate,'not late yet')
+   H.tick(HOST,6); assert(u.restartLate and logged('l app n a pas redemarre, relancez la session pour finir'),'late restart reported')
+   -- Beta 1.35 : lancement suivant (la version installée) : démarrage compté, puis confirmé à la première image.
+   HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
+   assert(loadstring(source))(); assert(files[WORK..'boot.txt']==ver(1)..'\n1\n'..ver(0),'boot counted at load')
+   H.tick(HOST,0.1); assert(files[WORK..'boot.txt']==nil,'boot confirmed at the first frame')
   end)
  end)
  check('Beta 1.33 : mise à jour refusée en conduite, information de l overlay aux stands une fois par lancement',function()
@@ -1698,23 +1722,37 @@ return function(source)
    assert(not Update.install(u,HUMANAI.port,HUMANAI.host.updateStopped) and u.error=='driving' and not F.last('get https://github.com/'),'refused while driving, nothing downloaded')
    H.tick(HOST,0.1); assert(logged('refusee en conduite'),'refusal logged (journal fed on the next frame)')
    assert(e.panel.updateUntil==-math.huge,'no overlay notice on track')
-   HOST.cars[0].isInPit=true; HOST.cars[0].isInPitlane=true; H.tick(HOST,1)
+   -- Voie des stands en roulant : jamais « à l'arrêt » ; à l'emplacement à l'arrêt : oui.
+   HOST.cars[0].isInPit=false; HOST.cars[0].isInPitlane=true; H.tick(HOST,1); assert(not HUMANAI.host.updateStopped,'pit lane at speed: not stopped')
+   HOST.cars[0].isInPit=true; HOST.cars[0].speedKmh=0; H.tick(HOST,1)
    assert(HUMANAI.host.updateStopped and e.panel.updateUntil>e.time and e.panel.kind=='update','notice in the pits')
    HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.flagTitles.update),'overlay notice drawn')
-   HOST.cars[0].isInPit=false; HOST.cars[0].isInPitlane=false; H.tick(HOST,1); assert(e.panel.kind~='update','removed when leaving the pits')
-   HOST.cars[0].isInPit=true; HOST.cars[0].isInPitlane=true; H.tick(HOST,1); assert(e.panel.kind~='update','once per launch')
-   -- À l'arrêt, le même bouton installe.
-   halt(); go('diagnostic'); redraw(); assert(drawn('update_install') and drawn('update_check') and drawn('update_notes') and drawn('global_updateCheck'))
+   HOST.cars[0].isInPit=false; HOST.cars[0].isInPitlane=false; HOST.cars[0].speedKmh=108; H.tick(HOST,1); assert(e.panel.kind~='update','removed when leaving the pits')
+   HOST.cars[0].isInPit=true; HOST.cars[0].isInPitlane=true; HOST.cars[0].speedKmh=0; H.tick(HOST,1); assert(e.panel.kind~='update','once per launch')
+   -- Fenêtre dessinée hors de l'arrêt (état forcé) : boutons d'installation grisés et sans effet ; à l'arrêt, le même
+   -- bouton installe.
+   halt(); go('diagnostic'); HUMANAI.host.updateStopped=false; redraw()
+   local before,serial,queued=#F.calls,u.serial,#u.events
+   press('update_install'); assert(#F.calls==before and u.phase~='downloading' and u.serial==serial and #u.events==queued,'greyed install button does nothing (no refusal either)')
+   script.update(1/60); redraw(); assert(drawn('update_install') and drawn('update_check') and drawn('update_notes') and drawn('global_updateCheck'))
    press('update_notes'); assert(F.opened[1]==u.release.page,'release page opened')
   end)
  end)
  check('Beta 1.33 : erreurs de mise à jour sans rien changer, annulation, option de vérification coupée',function()
-  -- Empreinte différente : version installée intacte, erreur affichée, aucun redémarrage.
+  -- Empreinte différente : version installée intacte, erreur affichée, aucun redémarrage, rien copié.
   updated(function(F) F.release(ver(1),{actual=string.rep('cd',32)}) end,function(F)
    H.tick(HOST,11); halt(); go('diagnostic'); redraw()
    press('update_install'); redraw()
-   assert(HUMANAI.updater.error=='integrity' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0) and HOST.files['local/backup/previous.zip']==nil)
-   assert(drawnText(L.updateStates.errHash),'error shown')
+   assert(HUMANAI.updater.error=='integrity' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0) and HOST.files[WORK..'current/ACAdvancedIA.lua']==nil)
+   assert(begins(L.updateStates.errHash),'error shown')
+   assert(drawn('update_check'),'check always reachable after an error')
+  end)
+  -- Fichier de l'app ouvert pendant la copie finale : remise en place aussitôt, erreur dite avec le fichier.
+  updated(function(F) F.release(ver(1)); F.locked['local/src/ui.lua']=true end,function(F)
+   H.tick(HOST,11); halt(); go('diagnostic'); redraw(); press('update_install'); script.update(1/60); redraw()
+   local u=HUMANAI.updater
+   assert(u.error=='write' and u.detail=='src/ui.lua' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0) and HOST.files[WORK..'installing.txt']==nil)
+   assert(logged('ecriture impossible : src/ui.lua, version actuelle conservee'),'logged with the file')
   end)
   -- Téléchargement annulé : la réponse arrivée ensuite est ignorée.
   updated(function(F) F.release(ver(1)) end,function(F)
@@ -1727,47 +1765,380 @@ return function(source)
   updated(function(F) F.release(ver(1)) end,function(F)
    halt(); go('diagnostic'); redraw(); press('global_updateCheck'); assert(HUMANAI.engine.g.updateCheck==false)
    pause(false); H.tick(HOST,15); assert(not F.find(API) and HUMANAI.updater.phase=='idle','no request when turned off')
-   pause(true); redraw(); assert(drawnText(L.updateStates.unchecked))
+   pause(true); redraw(); assert(begins(L.updateStates.unchecked))
    press('update_check'); assert(F.find(API) and HUMANAI.updater.phase=='available')
   end)
-  -- GitHub sans version publiée : état affiché.
-  updated(function(F) F.release(ver(1),{apiStatus=404}) end,function()
-   H.tick(HOST,11); halt(); go('diagnostic'); redraw(); assert(HUMANAI.updater.phase=='none' and drawnText(L.updateStates.none))
+  -- GitHub sans version publiée, puis limite de requêtes : états affichés.
+  updated(function(F) F.release(ver(1),{apiStatus=404}) end,function(F)
+   H.tick(HOST,11); halt(); go('diagnostic'); redraw(); assert(HUMANAI.updater.phase=='none' and begins(L.updateStates.none))
+   -- Une vérification par minute au plus, comptée aussi en pause (temps du moteur figé) : grisée, puis de nouveau active.
+   local function asked() local n=0; for _,c in ipairs(F.calls) do if c==API then n=n+1 end end; return n end
+   local t=HUMANAI.engine.time; press('update_check'); assert(asked()==1,'greyed for a minute')
+   H.tick(HOST,61); assert(HUMANAI.engine.time==t,'engine time frozen while paused')
+   redraw(); press('update_check'); assert(asked()==2,'asked again after a minute in pause')
+  end)
+  updated(function(F) F.release(ver(1),{apiStatus=403}) end,function()
+   H.tick(HOST,11); halt(); go('diagnostic'); redraw(); assert(HUMANAI.updater.error=='rate' and begins(L.updateStates.errRate))
   end)
  end)
  check('Beta 1.33 : retour à la version sauvegardée, compte rendu après le redémarrage',function()
   updated(function(F)
-   F.files['local/backup/previous.zip']=F.zip({[Fake.prefix..'manifest.ini']='VERSION='..ver(-1),[Fake.prefix..'ACAdvancedIA.lua']='main '..ver(-1),
-    [Fake.prefix..'src/update.lua']='update '..ver(-1),[Fake.prefix..'src/remote.lua']='remote '..ver(-1),[Fake.prefix..'src/ui.lua']='ui '..ver(-1)})
-   F.files['local/backup/previous.txt']=ver(-1); F.files['local/backup/updated.txt']='update '..ver(-1)..' -> '..ver(0)
+   local names={}
+   for k,val in pairs({['manifest.ini']='VERSION='..ver(-1),['ACAdvancedIA.lua']='main '..ver(-1),['src/update.lua']='update '..ver(-1),['src/remote.lua']='remote '..ver(-1),['src/ui.lua']='ui '..ver(-1)}) do
+    F.files[WORK..'backup/'..k]=val; names[#names+1]=k
+   end
+   F.files[WORK..'backup/.files']=table.concat(names,'\n')
+   F.files[WORK..'updated.txt']='update '..ver(-1)..' -> '..ver(0)
    F.release(ver(0))
   end,function(F)
-   local u=HUMANAI.updater; assert(u.updated and u.updated.kind=='update' and u.previous==ver(-1) and HOST.files['local/backup/updated.txt']==nil)
+   local u=HUMANAI.updater; assert(u.updated and u.updated.kind=='update' and u.previous==ver(-1) and HOST.files[WORK..'updated.txt']==nil)
    assert(logged('mise a jour reussie: '..ver(-1)..' -> '..ver(0)))
-   halt(); go('home'); redraw(); assert(drawnText(string.format(L.updateDone.update,ver(-1),ver(0))),'report on the home page')
+   halt(); go('home'); redraw(); assert(begins(string.format(L.updateDone.update,ver(-1),ver(0))),'report on the home page')
+   assert(drawn('update_home_notes'),'notes link on the report')
    H.tick(HOST,0); go('diagnostic'); redraw(); assert(drawn('update_rollback') and not drawn('update_install'))
-   HOST.releasing=true; press('update_rollback'); HOST.releasing=false
-   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(-1) and Update.manifestVersion(HOST.files['local/manifest.ini'])==ver(-1))
-   assert(HOST.files['local/backup/updated.txt']=='rollback '..ver(0)..' -> '..ver(-1))
+   -- Beta 1.35 : retour arrière demandé au clic, copié à l'image suivante (hors du dessin de la fenêtre).
+   F.watch(); HOST.releasing=true; press('update_rollback'); assert(u.phase=='rollbackReady' and F.restarts==0,'deferred to the next frame'); script.update(1/60); HOST.releasing=false
+   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(-1) and Update.manifestVersion(HOST.files['local/manifest.ini'])==ver(-1) and F.reloads==0,
+    'rollback: '..u.phase..' '..u.error..' '..u.detail..' restarts '..F.restarts..' reloads '..F.reloads..' stopped '..tostring(HUMANAI.host.updateStopped))
+   assert(HOST.files[WORK..'updated.txt']=='rollback '..ver(0)..' -> '..ver(-1))
   end)
  end)
- check('Beta 1.33 : installation interrompue au lancement précédent, sauvegarde remise en place, moteur arrêté',function()
-  -- Sauvegarde présente : remise en place au chargement, puis redémarrage.
+ check('Beta 1.35 : copie interrompue reprise au chargement, avant les autres modules ; reprise impossible dite, app jamais figée',function()
+  -- Fichiers mêlés (manifeste encore à la version de départ), paquet extrait intact : copie terminée au chargement.
   updated(function(F)
    F.files['local/manifest.ini']='VERSION='..ver(-1)
-   F.files['local/backup/previous.zip']=F.zip({[Fake.prefix..'manifest.ini']='VERSION='..ver(-1),[Fake.prefix..'ACAdvancedIA.lua']='main '..ver(-1),
-    [Fake.prefix..'src/update.lua']='update '..ver(-1),[Fake.prefix..'src/remote.lua']='remote '..ver(-1),[Fake.prefix..'src/ui.lua']='ui '..ver(-1)})
-   F.files['local/backup/previous.txt']=ver(-1); F.files['local/backup/installing.txt']='update '..ver(-1)..' -> '..ver(0)
+   local names={}
+   for k,val in pairs({['manifest.ini']='VERSION='..ver(0),['ACAdvancedIA.lua']='main '..ver(0),['src/update.lua']='update '..ver(0),['src/remote.lua']='remote '..ver(0),['src/ui.lua']='ui '..ver(0)}) do
+    F.files[WORK..'next/'..Fake.prefix..k]=val; names[#names+1]=k
+   end
+   F.files[WORK..'next/'..Fake.prefix..'.files']=table.concat(names,'\n')
+   for k,val in pairs({['manifest.ini']='VERSION='..ver(-1),['ACAdvancedIA.lua']='main '..ver(-1),['src/ui.lua']='ui '..ver(-1)}) do F.files[WORK..'current/'..k]=val end
+   F.files[WORK..'current/.files']='manifest.ini\nACAdvancedIA.lua\nsrc/ui.lua'
+   F.files[WORK..'installing.txt']='update '..ver(-1)..' -> '..ver(0)
+   F.before=HUMANAI
   end,function(F)
-   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(-1) and HOST.files['local/backup/installing.txt']==nil)
-   assert(HOST.files['local/backup/updated.txt']=='recovered '..ver(-1)..' -> '..ver(0))
+   assert(Update.manifestVersion(HOST.files['local/manifest.ini'])==ver(0) and HOST.files[WORK..'installing.txt']==nil,'finished at load')
+   assert(HUMANAI==F.before,'no other module loaded before the restart')
+   -- Beta 1.35 : code déjà chargé d'une autre version : aucun autre module lu, redémarrage seul à la première image ;
+   -- la reprise est dite tout de suite au journal de CSP.
+   assert(F.restarts==0 and F.csplog and F.csplog[1]:find('copie reprise au lancement',1,true),'restart pending, told to the CSP log')
+   script.update(1/60)
+   assert(F.restarts==1 and next(HOST.releases)==nil,'one restart before the engine ran')
+   script.update(1/60); assert(F.restarts==1,'never twice')
+   -- Lancement suivant : compte rendu lu, rien à reprendre.
+   HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
+   assert(loadstring(source))(); local u2=HUMANAI.updater
+   assert(u2.phase=='idle' and u2.updated and u2.updated.kind=='update' and logged('copie reprise au lancement')==false and F.restarts==1,'report on the next launch')
+   local t=HUMANAI.engine.time; H.tick(HOST,2); assert(HUMANAI.engine.time>t,'engine running')
   end)
-  -- Sauvegarde illisible : le moteur ne pilote rien, la fenêtre l'explique.
-  updated(function(F) F.files['local/manifest.ini']='VERSION='..ver(-1); F.files['local/backup/installing.txt']='update '..ver(-1)..' -> '..ver(0) end,function(F)
-   local e=HUMANAI.engine; local calls=HOST.calls
-   H.tick(HOST,5); assert(HUMANAI.updater.phase=='failed' and HOST.calls==calls and e.time==0 and F.restarts==0,'engine gated')
-   assert(HOST.files['local/backup/installing.txt']~=nil,'marker kept for the next launch')
-   HOST.wrappedTexts={}; pause(true); script.HUMANAI__MAIN(); assert(has(HOST.wrappedTexts,L.updateRecoveryFailed),'explained')
+  -- Rien à remettre en place après deux essais : repère levé, état terminal affiché, moteur jamais figé.
+  updated(function(F) F.files['local/manifest.ini']='VERSION='..ver(-1); F.files[WORK..'installing.txt']='update '..ver(-1)..' -> '..ver(0)..'\ntries 2' end,function(F)
+   local u=HUMANAI.updater
+   assert(u.phase=='broken' and HOST.files[WORK..'installing.txt']==nil and F.restarts==0)
+   local t=HUMANAI.engine.time; H.tick(HOST,2); assert(HUMANAI.engine.time>t,'engine running')
+   halt(); go('diagnostic'); redraw(); assert(begins(string.format(L.updateStates.broken,u.brokenFile or '')),'explained')
+   assert(not Update.install(u,HUMANAI.port,true) and not Update.check(u,HUMANAI.port,9999),'no further operation')
+  end)
+ end)
+ -- Beta 1.35 : refonte Racing 26 : polices de l'app ou de secours, segment choisi à la souris, réglage remplacé par les
+ -- panneaux lumineux, lien d'un point à vérifier, bandeau d'état, vue Journée circuit des règles, motif effacé, barre
+ -- latérale qui défile.
+ check('Beta 1.35 : interface Racing 26, polices, segments, liens, bandeau, vues inertes, motifs, défilement',function()
+  local function logged(text) local e=HUMANAI.engine; local n=0; for k=0,e.log.count-1 do local row=e.log[(e.log.head-k-1)%e.log.limit+1]; if row.message:find(text,1,true) then n=n+1 end end; return n end
+  HUMANAI.release(); HOST=H.create(true); HOST.space={x=1000,y=3000}; assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  local e=HUMANAI.engine; local g=e.g
+  -- Polices : fichiers absents du dossier de l'app, Segoe UI et Consolas, noté une seule fois.
+  redraw(); redraw(); assert(W.fonts().body=='Segoe UI' and W.fonts().mono=='Consolas' and logged('polices de l interface absentes')==1,'system fonts, noted once')
+  -- Fichiers présents : polices de l'app (dossier relatif à l'app) après un rechargement.
+  for _,file in ipairs({'barlow/Barlow-Regular.ttf','barlow/Barlow-SemiBold.ttf','barlowcondensed/BarlowCondensed-SemiBold.ttf','barlowcondensed/BarlowCondensed-Bold.ttf','barlowcondensed/BarlowCondensed-ExtraBoldItalic.ttf','jetbrainsmono/JetBrainsMono-Medium.ttf'}) do HOST.files['local/fonts/'..file]='ttf' end
+  pause(false); HUMANAI.release(); assert(loadstring(source))(); H.tick(HOST,0.5); pause(true); e=HUMANAI.engine; g=e.g; redraw()
+  assert(W.fonts().body=='Barlow:fonts/barlow;Weight=Regular' and W.fonts().display:find('UltraBold;Style=Italic',1,true) and logged('polices de l interface absentes')==0,'app fonts loaded')
+  assert(HOST.dwriteDepth==0,'fonts balanced')
+  -- Segment : un clic sur une case la choisit (souris dessus), sans passer par la suivante.
+  section('overlay'); redraw(); assert(g.overlayBackground=='solid')
+  local r=HOST.hits['##aai_overlay_background']; HOST.mouse={x=r.x+r.w*5/6,y=r.y+r.h/2}; press('overlay_background')
+  HOST.mouse={x=-1e6,y=-1e6}; redraw()
+  assert(g.overlayBackground=='transparent' and lit('overlay_background_3') and not lit('overlay_background_1'),'third cell picked directly')
+  press('reset_overlay'); assert(g.overlayBackground=='solid','overlay reset')
+  -- Jaune natif du HUD : remplacé (grisé, sans effet) sur un circuit équipé avec les panneaux ; réglable sinon.
+  go('home'); press('profile_J'); local p=e.profiles.J; p.section_accidents=true; p.configured=true; section('accidents','yellowHud')
+  HUMANAI.host.trackLights=true; g.trackLights=true; redraw()
+  local before=p.yellowHud; press('set_yellowHud'); assert(p.yellowHud==before,'locked while the panels replace it')
+  redraw(); assert(begins(L.yellowHudLocked),'replacement explained')
+  g.trackLights=false; redraw(); press('set_yellowHud'); assert(p.yellowHud==not before,'settable with the panels off')
+  press('set_yellowHud'); g.trackLights=true; HUMANAI.host.trackLights=nil
+  -- Point à vérifier : lien vers la section concernée.
+  p.section_weather=false; go('home'); redraw(); assert(drawn('warn_weather'),'weather warning linked')
+  press('warn_weather'); redraw(); assert(lit('cat_weather') and lit('tab_settings'),'link opens the Weather section')
+  -- Bandeau d'état : app coupée, activation d'un clic.
+  g.enabled=false; go('home'); redraw(); assert(drawn('banner_action') and begins(L.banners.disabled[2]),'disabled banner')
+  press('banner_action'); assert(g.enabled,'enabled from the banner'); redraw(); assert(not drawn('banner_action'),'banner gone')
+  -- Journée circuit : arrêt obligatoire et voiture de sécurité inertes, leurs vues non sélectionnables ; une vue ouverte
+  -- en course est ramenée à « toutes » au passage en journée circuit.
+  go('rules'); local shownProfile=e.profile
+  press('profile_C'); redraw(); press('rules_view_stops'); redraw(); assert(lit('rules_view_stops'),'stops view in race')
+  press('profile_'..shownProfile); redraw(); assert(lit('rules_view_all') and not lit('rules_view_stops'),'back to all views in J')
+  HOST.hits={}; HOST.hitOrder={}; press('rules_view_stops'); assert(not drawn('set_pitWindowOpenPct'),'stops view never drawn in J, even on the click frame')
+  redraw(); assert(not lit('rules_view_stops') and lit('rules_view_all'),'stops view not selectable in J')
+  local stops=e.profiles.C.mandatoryStops; press('mandatory_stop'); assert(e.profiles.C.mandatoryStops==stops,'switch inert in J')
+  -- Motifs de classes : saisie puis effacement d'une ligne.
+  go('home'); press('profile_C'); e.profiles.C.section_endurance=true; section('endurance'); press('pattern_rows')
+  HOST.inputEdits['##aai_pattern_1']='gt3'; main(); assert(e.profiles.C.classPatterns:find('gt3:',1,true),'pattern typed')
+  press('pattern_clear_1'); assert(not e.profiles.C.classPatterns:find('gt3',1,true),'pattern cleared'); press('pattern_rows')
+  -- Fenêtre basse : la molette sur la barre latérale amène les dernières sections.
+  HOST.space={x=1000,y=420}; go('settings'); redraw(); assert(drawn('cat_general') and not drawn('cat_overlay'),'low window: last section below')
+  local q=HOST.hits['##aai_cat_general']; HOST.mouse={x=q.x+5,y=q.y+5}
+  for _=1,10 do HOST.wheel=-1; main() end
+  redraw(); assert(drawn('cat_overlay'),'reached with the wheel'); HOST.mouse={x=-1e6,y=-1e6}
+  assert(HOST.dwriteDepth==0 and HOST.clipDepth==0,'fonts and clips balanced')
+  -- Libellé de bouton trop long : police réduite avant toute coupure.
+  local label=string.rep('W',16); HOST.drawnTexts={}; W.button('test_shrink',label,0,0,120,28,false,'tip')
+  assert(drawnText(label),'button label shrunk, not cut')
+  HOST.space={x=1000,y=780}; pause(false); HUMANAI.release()
+ end)
+ -- Beta 1.35 : dessin des panneaux de l'étape B (relances RS et SS, feux de départ, départ, faux départ) d'après les
+ -- champs du panneau (kind, lit, slotText, slotDistance), remplis par panel.lua (étape B).
+ -- Beta 1.35 (fusion) : une capacité qui échoue pendant la restitution finale est versée au journal avant sa fermeture.
+ check('Beta 1.35 : échec de capacité pendant la restitution finale journalisé',function()
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))()
+  local e=HUMANAI.engine; C.preset('Nordschleife','J',e.profiles.J); E.changed(e); H.tick(HOST,3)
+  local owned=false; for i=1,C.K.maxCars do if HUMANAI.host.cars[i].owned then owned=true end end
+  assert(owned,'AI owned before release')
+  local original=physics.setAILevel; physics.setAILevel=function() error('niveau refuse') end
+  HOST.releasing=true; local ok=pcall(HUMANAI.release); HOST.releasing=false; physics.setAILevel=original; assert(ok,'release completes')
+  local found=false; for k=0,e.log.count-1 do local row=e.log[(e.log.head-k-1)%e.log.limit+1]; if row.message:find('capacite level: echec',1,true) then found=true end end
+  assert(found,'final restore failure logged')
+ end)
+ check('Beta 1.35 : panneaux de relance et feux de départ dessinés',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); H.tick(HOST,1)
+  local e=HUMANAI.engine; local panel=e.panel
+  for _,kind in ipairs({'rolling','standing','lights','go','jump'}) do
+   panel.kind=kind; panel.title=kind..' title'; panel.short=kind..' short'; panel.explain=''; panel.changedAt=e.time; panel.noPass=false; panel.drsBlocked=false
+   panel.lit=kind=='lights' and 3 or 0; panel.slotText=kind=='standing' and 'P4' or nil; panel.slotDistance=kind=='standing' and 380 or nil
+   panel.slotPlaced=false; panel.slotPassed=false
+   HOST.panelTexts={}; HOST.circles=0; HOST.draws=0; script.HUMANAI__FLAGS()
+   assert(has(HOST.panelTexts,kind..' title') and HOST.fontDepth==0 and HOST.dwriteDepth==0,'drawn: '..kind)
+   if kind=='rolling' then assert(has(HOST.panelTexts,'RS'),'RS badge') end
+   if kind=='standing' then assert(has(HOST.panelTexts,'SS') and has(HOST.panelTexts,string.format(L.placeLabel,'P4')) and has(HOST.panelTexts,string.format(L.placeMeters,380)),'SS badge, slot and distance') end
+   if kind=='lights' then assert(has(HOST.panelTexts,'3/5') and HOST.circles>=5,'lights: 3 of 5') end
+   if kind=='go' or kind=='jump' then assert(HOST.circles>=5,'lights out: '..kind) end
+  end
+  -- Beta 1.35 (fusion) : au mètre près sous 20 m (valeur de la grille), puis « en place » et « place dépassée ».
+  panel.kind='standing'; panel.slotText='P4'; panel.slotDistance=7; panel.slotPlaced=false; panel.slotPassed=false
+  HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,string.format(L.placeMeters,7)),'exact metres below 20 m')
+  panel.slotPlaced=true; HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.gridPlaced) and not has(HOST.panelTexts,string.format(L.placeMeters,7)),'in position')
+  panel.slotPlaced=false; panel.slotPassed=true; HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.gridPassed),'slot passed')
+  HUMANAI.release()
+ end)
+ -- Beta 1.35 (relecture de l'interface) : sélecteur de profil jamais masqué (900 px, polices de secours, français),
+ -- options globales décochées en lecture seule, textes refaits au changement de langue, état de l'en-tête (pause,
+ -- commandes suspendues), diagnostic complet, polices de l'overlay sans ouvrir la fenêtre, une police poussée à la fois.
+ check('Beta 1.35 : relecture de l interface, sélecteur de profil à 900 px, globales décochées, langue, état, diagnostic, overlay',function()
+  local function count(text) local e=HUMANAI.engine; local n=0; for k=0,e.log.count-1 do local row=e.log[(e.log.head-k-1)%e.log.limit+1]; if row.message:find(text,1,true) then n=n+1 end end; return n end
+  local function starts(prefix) for _,t in ipairs(HOST.drawnTexts) do if t:sub(1,#prefix)==prefix then return true end end return false end
+  -- Overlay seul (fenêtre jamais ouverte) : polices cherchées et absence notée une fois.
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5)
+  script.HUMANAI__HUD(); assert(count('polices de l interface absentes')==1 and W.fonts().body=='Segoe UI','overlay sets the fonts')
+  -- 900 px, mesure réaliste, polices de secours, français : les cinq profils restent cliquables.
+  HUMANAI.release(); HOST=H.create(true); HOST.realMeasure=true; HOST.space={x=900,y=700}; assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  local e=HUMANAI.engine; local g=e.g
+  redraw()
+  do local x=HUMANAI.engine; for k=0,x.log.count-1 do local r=x.log[(x.log.head-k-1)%x.log.limit+1]; assert(not r.message:find('ui:',1,true),r.message) end end
+  if require('src/locale').current~='fr' then press('lang_fr') end
+  redraw()
+  for _,p in ipairs({'J','P','Q','C','H'}) do assert(drawn('profile_'..p),'profile '..p..' shown at 900 px') end
+  -- Aucun chevauchement : le sélecteur commence après le dernier onglet.
+  local tabsEnd=0; for id,r in pairs(HOST.hits) do if id:find('##aai_tab_',1,true)==1 then tabsEnd=math.max(tabsEnd,r.x+r.w) end end
+  assert(tabsEnd>0 and HOST.hits['##aai_profile_J'].x>=tabsEnd,'profile selector after the tabs')
+  press('profile_P'); redraw(); assert(lit('profile_P'),'profile picked at 900 px')
+  -- Mesures gardées d'une image à l'autre : une image identique ne remesure presque rien.
+  redraw(); HOST.measures=0; redraw(); assert(HOST.measures<=40,'texts measured once: '..HOST.measures)
+  -- Une seule police poussée à la fois par le kit (aucune poussée par texte) ; tout refermé en fin d'image.
+  HOST.fontPushes=0; redraw(); local pushes=HOST.fontPushes
+  assert(HOST.dwriteDepth==0 and pushes<#HOST.drawnTexts,'fonts pushed only when the role changes: '..pushes..' for '..#HOST.drawnTexts)
+  -- Options globales décochées : message de section inactive, aucun réglage modifiable en silence.
+  press('profile_C'); local P=e.profiles[HUMANAI.engine.profile]
+  section('globals'); redraw()
+  if C.on(e.profiles[e.profile],'globals') then press('section_globals'); redraw() end
+  assert(not drawn('global_useGripBoost') and not drawn('reroll') and begins(L.sectionOff),'globals off: read-only')
+  press('section_globals'); redraw(); assert(drawn('global_useGripBoost'),'globals on: editable')
+  -- Changement de langue : valeur affichée (séparateur décimal) et texte du défaut refaits.
+  section('general'); redraw(); assert(drawnText('1,2'),'French decimal comma')
+  press('lang_en'); redraw(); assert(drawnText('1.2') and not drawnText('1,2'),'English decimal point after the switch')
+  press('lang_fr'); redraw()
+  -- État de l'en-tête : en pause, chiffres de l'accueil affichés ; rediffusion : commandes suspendues, jamais « actif ».
+  script.update(1/60); go('home'); redraw(); assert(HUMANAI.engine.guard=='paused' and starts(W.upper(L.pillStates.paused)),'paused pill: '..tostring(HUMANAI.engine.guard))
+  HOST.sim.isInMainMenu=true; pause(false); HOST.sim.isReplayActive=true; H.tick(HOST,0.2); redraw()
+  assert(HUMANAI.engine.guard=='replay' and drawnText(W.upper(L.pillStates.suspended)),'replay: suspended pill')
+  HOST.sim.isReplayActive=false; HOST.sim.isInMainMenu=false; pause(true); script.update(1/60)
+  -- Diagnostic : dernier événement des phares et panneaux lumineux du circuit.
+  go('diagnostic'); redraw()
+  assert(starts(L.event) and starts(L.diagLights),'flash event and track lights lines')
+  -- Message d'un onglet effacé au changement d'onglet (jamais repris par l'onglet Règles de course).
+  go('home'); HUMANAI.engine.g.loadedPreset=''; press('builtin_Course'); go('rules'); redraw()
+  assert(not begins(string.format(L.presetAppliedTo,L.profiles.C)) ,'home message not shown in the rules tab')
+  -- Polices de secours plus larges (fenêtre rechargée, mesures refaites) : noms trop longs pour la place, sigles après
+  -- le dernier onglet, tous cliquables.
+  HUMANAI.release(); HOST=H.create(true); HOST.realMeasure=true; HOST.measureScale=1.3; HOST.space={x=900,y=700}; assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  redraw(); if require('src/locale').current~='fr' then press('lang_fr') end
+  redraw()
+  local te=0; for id,r in pairs(HOST.hits) do if id:find('##aai_tab_',1,true)==1 then te=math.max(te,r.x+r.w) end end
+  for _,p in ipairs({'J','P','Q','C','H'}) do assert(drawn('profile_'..p),'profile '..p..' shown with wide fonts') end
+  local j=HOST.hits['##aai_profile_J']
+  assert(j.x>=te and j.w<50,'initials after the tabs with wide fonts: '..j.x..'+'..j.w..' / '..te)
+  press('profile_Q'); redraw(); assert(lit('profile_Q'),'initial clickable')
+  HUMANAI.release()
+ end)
+ -- Beta 1.35 UI/updater fixes : deuxième relecture de l'interface (en-têtes, lignes de choix, tuiles, logo, polices,
+ -- confirmation, portée, comptes, clic droit, langue, overlay, saisie, mises à jour).
+ local function starts(prefix) for _,t in ipairs(HOST.drawnTexts) do if t:sub(1,#prefix)==prefix then return true end end return false end
+ local function boxOf(text) for _,b in ipairs(HOST.textBoxes or {}) do if b.text==text then return b end end end
+ local function boxes() HOST.textBoxes={}; redraw() end
+ local function rightClick(id) local r=HOST.hits['##aai_'..id]; HOST.mouse={x=r.x+2,y=r.y+2}; HOST.rightClick='##aai_'..id; main(); HOST.mouse={x=-1e6,y=-1e6}; HOST.rightClick=nil end
+ check('Beta 1.35 UI/updater fixes : interface à 900 px, en-têtes, choix, tuiles, logo, polices',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.realMeasure=true; HOST.measureScale=1.3; HOST.space={x=900,y=3000}
+  HOST.files['local/icon.png']='png'
+  assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  redraw(); if require('src/locale').current~='fr' then press('lang_fr') end
+  local e=HUMANAI.engine; local g=e.g; local v=HUMANAI.panel
+  -- Logo de l'en-tête dessiné, marque décalée de 44 px ; infobulle propre de la puce de version.
+  boxes(); local brand=boxOf('ACADVANCED'); assert((HOST.images or 0)>0 and brand,'logo drawn')
+  local image=ui.drawImage; ui.drawImage=nil; boxes(); local plain=boxOf('ACADVANCED'); ui.drawImage=image
+  assert(plain and math.abs(brand.x-plain.x-44)<1e-6,'brand moved by the logo: '..brand.x..' / '..tostring(plain and plain.x))
+  boxes(); local chip=boxOf('β'..(C.release:gsub('^Beta ',''))); assert(chip,'version chip drawn')
+  HOST.mouse={x=chip.x+1,y=chip.y+1}; redraw(); HOST.mouse={x=-1e6,y=-1e6}
+  assert(HOST.lastTooltip==v.tips.ui.version,'version chip: its own tooltip')
+  -- Aucune flèche « → » (absente de Barlow) dans les textes dessinés.
+  go('home'); redraw()
+  for _,t in ipairs(HOST.drawnTexts) do assert(not t:find('→',1,true),'arrow without a Barlow glyph: '..t) end
+  -- Tuiles des préréglages intégrés : description entière, ou dernière ligne finie par « … ».
+  for _,item in ipairs(v.builtinList) do
+   local desc=L.presetDescs[item[2]]; local last=desc:match('(%S+)%s*$'); local ok=false
+   for _,t in ipairs(HOST.drawnTexts) do
+    if t:find(last,1,true) then ok=true end
+    local cut=t:match('^(.-)…$'); if cut and #cut>3 and desc:find(cut,1,true) then ok=true end
+   end
+   assert(ok,'preset description complete or ended with an ellipsis: '..item[2])
+  end
+  -- Police du kit poussée seulement quand elle change, une seule à la fois, tout refermé en fin d'image.
+  HOST.repeatPushes=0; HOST.lastPushed=nil; HOST.fontDepthMax=0; HOST.fontPushes=0; redraw()
+  assert(HOST.dwriteDepth==0 and HOST.repeatPushes==0 and HOST.fontDepthMax==1 and HOST.fontPushes*2<=#HOST.drawnTexts,'kit fonts: '..HOST.fontPushes..' pushes ('..HOST.repeatPushes..' repeated) for '..#HOST.drawnTexts..' texts')
+  -- Liste des réglages : intertitres (libellés) puis noms des sections (demi-gras), une seule police de secours.
+  go('settings'); HOST.repeatPushes=0; HOST.lastPushed=nil; redraw()
+  assert(HOST.dwriteDepth==0 and HOST.repeatPushes==0,'kit fonts on the settings list: '..HOST.repeatPushes..' repeated')
+  -- En-tête des sections : titre et puces jamais sous le bouton de réinitialisation.
+  go('settings')
+  for _,group in ipairs({'general','human','lateral','start','yield','blue','flash','overtake','traffic','accidents','endurance','weather','globals','overlay'}) do
+   press('cat_'..group); boxes()
+   local r=HOST.hits['##aai_reset_'..group]; assert(r,'reset button '..group)
+   for _,b in ipairs(HOST.textBoxes) do
+    if b.y<r.y+r.h and b.y+b.size>r.y and b.x<r.x then assert(b.x+b.w<=r.x+1e-6,'header text under the reset button ('..group..'): '..b.text) end
+   end
+  end
+  -- Choix globaux trop larges pour un segment : bouton à défilement, libellé lisible.
+  press('cat_overlay'); redraw()
+  local show=g.panelShow=='always' and L.choices.always or L.choices.info
+  assert(starts(show:sub(1,8)),'overlay display choice falls back to a cycle button')
+  -- Onglet Règles de course : en-tête dans le panneau ; ligne de choix au libellé entier (texte du défaut en infobulle).
+  press('profile_C'); go('rules')
+  local f=W.frame()
+  for _,view in ipairs({'all','stops','safety'}) do
+   press('rules_view_'..view); boxes()
+   for _,b in ipairs(HOST.textBoxes) do
+    if b.y>=f.oy+100*f.s and b.y<=f.oy+140*f.s and b.x>=f.ox+274*f.s then assert(b.x+b.w<=f.ox+(f.w-14)*f.s+1e-6,'rules pane header inside the panel ('..view..'): '..b.text) end
+   end
+  end
+  press('rules_view_all'); redraw()
+  local s; for _,x in ipairs(C.schema) do if x.key=='redRestart' then s=x end end
+  local label=L.shortLabels[s.key] or s.label
+  assert(drawnText(label),'red-flag restart label shown in full: '..label)
+  -- Overlay : même règle des polices, dépilées aussi après une erreur de dessin.
+  g.panelShow='always'; pause(false); H.tick(HOST,0.5)
+  HOST.repeatPushes=0; HOST.lastPushed=nil; HOST.fontDepthMax=0; HOST.fontPushes=0; HOST.transparent={}; script.HUMANAI__HUD()
+  assert(HOST.transparent.ACAdvancedIA_overlay and HOST.dwriteDepth==0 and HOST.repeatPushes==0 and HOST.fontDepthMax==1 and HOST.fontPushes<=6,'overlay fonts: '..HOST.fontPushes..' pushes ('..HOST.repeatPushes..' repeated)')
+  local clipped=ui.dwriteDrawTextClipped; ui.dwriteDrawTextClipped=function() error('draw failure (test)') end
+  script.HUMANAI__FLAGS(); ui.dwriteDrawTextClipped=clipped
+  assert(HOST.dwriteDepth==0 and HUMANAI.host.errors>0,'overlay fonts unwound after a drawing error')
+  -- Hôte refait : l'erreur provoquée n'est pas comptée dans le cas.
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))()
+ end)
+ check('Beta 1.35 UI/updater fixes : confirmation, portée, comptes, clic droit, langue, mémorisation, overlay',function()
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  redraw(); if require('src/locale').current~='fr' then press('lang_fr') end
+  local e=HUMANAI.engine; local g=e.g; local v=HUMANAI.panel
+  -- Confirmation de la réinitialisation dans sa section, effacée en ouvrant une autre section.
+  section('general'); press('reset_general'); redraw()
+  local done=string.format(L.sectionResetDone,L.categories.general)
+  assert(begins(done),'section reset confirmed')
+  press('cat_human'); redraw(); assert(not begins(done),'confirmation cleared in another section')
+  press('cat_general'); redraw(); assert(not begins(done),'confirmation not shown again on coming back')
+  -- Message de l'accueil (lien d'un point à vérifier) : jamais montré sous une section.
+  v.presetMessage=L.presetSaved; redraw(); assert(not begins(L.presetSaved),'home message not shown in a settings section'); v.presetMessage=''
+  -- Options globales : valables pour tous les profils.
+  section('globals'); redraw()
+  assert(drawnText(W.upper(L.scopeAll)) and not drawnText(W.upper(string.format(L.scopeProfile,L.profiles[v.view]))),'global options: all profiles')
+  -- Même compte des sections sur l'accueil et dans la liste des réglages.
+  local p=e.profiles[v.view]; local on=0; for _,x in ipairs(C.sections) do if C.on(p,x) then on=on+1 end end
+  go('settings'); redraw(); assert(drawnText(string.format(L.navCount,on,#C.sections)),'sidebar count')
+  go('home'); redraw(); assert(drawnText(string.format(L.sectionsActive,on,#C.sections)),'home count')
+  -- Clic droit : interrupteurs globaux et de l'overlay rendus à leur valeur par défaut, comme les curseurs.
+  section('globals'); if not C.on(e.profiles[e.profile],'globals') then press('section_globals') end; redraw()
+  press('global_useGripBoost'); assert(g.useGripBoost==not C.globalDefaults.useGripBoost,'switched')
+  rightClick('global_useGripBoost'); assert(g.useGripBoost==C.globalDefaults.useGripBoost,'global switch: right click resets')
+  section('overlay'); redraw()
+  press('overlay_overlayExplain'); assert(g.overlayExplain==not C.globalDefaults.overlayExplain,'overlay switched')
+  rightClick('overlay_overlayExplain'); assert(g.overlayExplain==C.globalDefaults.overlayExplain,'overlay switch: right click resets')
+  -- Panneaux lumineux pas encore lus : « inconnus », jamais « éteints ».
+  local known=HUMANAI.host.trackLights; HUMANAI.host.trackLights=nil; g.trackLights=true; go('home'); redraw()
+  assert(drawnText(L.kpiLightsUnknown) and not drawnText(L.kpiLightsIdle),'lights not read yet: unknown')
+  HUMANAI.host.trackLights=known
+  -- Changement de langue : ligne des panneaux lumineux du diagnostic refaite.
+  go('diagnostic'); redraw(); assert(starts(L.diagLights),'lights line (fr)')
+  press('lang_en'); redraw(); assert(starts(L.diagLights),'lights line in English after the switch')
+  press('lang_fr'); redraw()
+  -- Signatures des préréglages et jeu de règles : calculés une fois par modification, jamais à chaque image.
+  go('home'); press('builtin_Course'); redraw()
+  local Presets=require('src/presets'); local signature=Presets.signature; local n=0
+  Presets.signature=function(...) n=n+1; return signature(...) end
+  local ok,err=pcall(redraw); Presets.signature=signature; assert(ok,err); assert(n==0,'preset signatures rebuilt on an unchanged frame: '..n)
+  go('rules'); redraw()
+  local category,closest=C.ruleCategory,C.closestRuleCategory; local m=0
+  C.ruleCategory=function(...) m=m+1; return category(...) end; C.closestRuleCategory=function(...) m=m+1; return closest(...) end
+  ok,err=pcall(redraw); C.ruleCategory=category; C.closestRuleCategory=closest; assert(ok,err); assert(m==0,'rule set worked out on an unchanged frame: '..m)
+  -- Overlay : fenêtre à la taille de son contenu, gardée dans l'écran, bande d'accent tout en haut.
+  local UI=require('src/ui'); local K=C.K
+  g.panelShow='always'; g.overlayLocked=true; pause(false); H.tick(HOST,0.5)
+  for _,scale in ipairs({1,1.5}) do
+   g.overlayScale=scale; g.overlayX=-1; g.overlayY=-1; HOST.transparent={}; HOST.rects={}; script.HUMANAI__HUD()
+   local o=HOST.transparent.ACAdvancedIA_overlay; local parts=UI.overlayParts(v,false)
+   assert(o and math.abs(o.w-K.hudWidth*scale)<1e-6 and math.abs(o.h-UI.overlayHeight(parts)*scale)<1e-6,'overlay window sized from its content at '..scale)
+   assert(math.abs(v.drawnHeight-o.h)<1e-6,'content height equals the window at '..scale)
+   assert(o.x>=0 and o.y>=0 and o.x+o.w<=1920+1e-6 and o.y+o.h<=1080+1e-6,'overlay on screen at '..scale)
+   local stripe=false; for _,q in ipairs(HOST.rects) do if q[1]==0 and math.abs(q[2])<1e-6 and math.abs(q[4]-q[2]-3*scale)<1e-6 then stripe=true end end
+   assert(stripe,'accent stripe at the very top at '..scale)
+  end
+  g.overlayX=5000; g.overlayY=5000; HOST.transparent={}; script.HUMANAI__HUD(); local o=HOST.transparent.ACAdvancedIA_overlay
+  assert(math.abs(o.x+o.w-1920)<1e-6 and math.abs(o.y+o.h-1080)<1e-6,'kept inside the screen')
+  HOST.rects=nil; g.overlayX=-1; g.overlayY=-1; g.overlayScale=1
+ end)
+ check('Beta 1.35 UI/updater fixes : saisie native tenue dans son cadre à petite échelle',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.space={x=630,y=600}; assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  go('home'); HOST.varPushes=0; HOST.varDepth=0; redraw()
+  assert(HOST.varPushes>0 and HOST.varDepth==0,'input padding reduced and restored at 0.7')
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  go('home'); HOST.varPushes=0; redraw(); assert(HOST.varPushes==0,'nothing changed at full scale')
+ end)
+ check('Beta 1.35 UI/updater fixes : notes à jour, retour arrière grisé pendant une opération',function()
+  updated(function(F) F.release(ver(0)) end,function(F)
+   local u=HUMANAI.updater
+   H.tick(HOST,11); assert(u.phase=='current' and u.release and u.release.version==ver(0),'up to date: '..u.phase)
+   halt(); go('diagnostic'); redraw()
+   assert(Update.view(u,true)=='uptodate' and drawn('update_notes'),'release notes link while up to date')
+   press('update_notes'); assert(F.opened[#F.opened]==u.release.page,'release page opened')
+   u.previous=ver(-1); u.phase='downloading'; u.serial=u.serial+1; redraw()
+   assert(drawn('update_rollback'),'rollback still shown, greyed, during an operation')
+   local serial=u.serial; press('update_rollback'); assert(u.phase=='downloading' and u.serial==serial,'greyed rollback does nothing')
+   u.phase='current'; u.serial=u.serial+1
   end)
  end)
  return results

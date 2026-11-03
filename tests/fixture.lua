@@ -40,7 +40,7 @@ function M.tick(e,f,seconds,kinematic)
    assert(s.directionCount<=6,'direction count')
    if cmd.active then assert(cmd.level>=0.3 and cmd.level<=1.1 and cmd.caution>=0.5 and cmd.caution<=16,'command bound') end
    local old=s.testOffset
-   if old then assert(not(row.left and s.offset<old-1e-9),'movement towards occupied left'); assert(not(row.right and s.offset>old+1e-9),'movement towards occupied right') end
+   if old and not cmd.gridWake then assert(not(row.left and s.offset<old-1e-9),'movement towards occupied left'); assert(not(row.right and s.offset>old+1e-9),'movement towards occupied right') end
    s.testOffset=s.offset
   end
  end

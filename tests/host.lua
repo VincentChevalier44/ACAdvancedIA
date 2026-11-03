@@ -193,7 +193,18 @@ function M.create(native110,options)
   h.panelTexts[#h.panelTexts+1]=text; h.panelColors[#h.panelColors+1]=color; h.textTop=math.min(h.textTop or math.huge,p1.y)
   if wrap then h.wrappedPanel[#h.wrappedPanel+1]=text end
  end
- ui.measureDWriteText=function(text,size) assert(type(text)=='string' and type(size)=='number' and size>0); return {x=#text*size*0.5,y=size*1.2} end
+ -- Mesure : 0,5 em par octet (défaut) ; h.realMeasure : largeur moyenne de la police poussée (condensée, chasse fixe,
+ -- Segoe UI, gras), caractères UTF-8 comptés une fois.
+ ui.measureDWriteText=function(text,size)
+  assert(type(text)=='string' and type(size)=='number' and size>0)
+  h.measures=(h.measures or 0)+1
+  if not h.realMeasure then return {x=#text*size*0.5,y=size*1.2} end
+  local name=h.fontStack[#h.fontStack] or ''
+  local k=name:find('Condensed',1,true) and 0.43 or (name:find('Mono',1,true) or name:find('Consolas',1,true)) and 0.6 or name:find('Segoe',1,true) and 0.56 or 0.5
+  if name:find('Bold',1,true) then k=k*1.06 end
+  local n=0; for _ in text:gmatch('[%z\1-\127\194-\244][\128-\191]*') do n=n+1 end
+  return {x=n*size*k*(h.measureScale or 1),y=size*1.2}
+ end
  ui.drawCircleFilled=function(p,r,color,segments) assert(p.x and type(r)=='number' and r>0 and color.r and type(segments)=='number'); h.circles=(h.circles or 0)+1 end
  ui.drawCircle=function(p,r,color,segments,thickness) assert(p.x and type(r)=='number' and r>0 and color.r and type(segments)=='number' and type(thickness)=='number'); h.circles=(h.circles or 0)+1 end
  ui.drawText=function(text,pos,color) assert(type(text)=='string' and pos.x and color.r); h.badgeTexts[#h.badgeTexts+1]=text end
@@ -208,16 +219,24 @@ function M.create(native110,options)
  ui.mouseDelta=function() return h.mouseDelta or {x=0,y=0} end
  ui.windowHovered=function() return h.windowHovered==true end
  ui.drawTriangleFilled=function(a,b,c,color) assert(a.x and b.x and c.x and color.r) end
+ ui.drawQuadFilled=function(a,b,c,d,color) assert(a.x and b.x and c.x and d.x and color.r); h.quads=(h.quads or 0)+1 end
+ -- Beta 1.35 UI/updater fixes : image (logo de l'en-tête), hauteur des cadres natifs, marges des commandes natives.
+ ui.drawImage=function(path,p1,p2) assert(type(path)=='string' and p1.x and p2.x and p2.x>p1.x and p2.y>p1.y); h.images=(h.images or 0)+1 end
+ ui.frameHeight=function() return h.frameHeight or 22 end
+ ui.textLineHeight=function() return h.lineHeight or 15 end
+ ui.StyleVar={FramePadding=18}
+ ui.pushStyleVar=function(id,value) assert(type(id)=='number' and value~=nil); h.varDepth=(h.varDepth or 0)+1; h.varPushes=(h.varPushes or 0)+1 end
+ ui.popStyleVar=function(count) h.varDepth=(h.varDepth or 0)-(count or 1); assert(h.varDepth>=0,'unbalanced popStyleVar') end
  ac.disableExtraHUDElements=function(id,disable) assert(id=='sessionTime'); h.hudHidden[id]=disable~=false end
  ac.onMessage=function(fn) h.messageListeners[#h.messageListeners+1]=fn; return function() for k,f in ipairs(h.messageListeners) do if f==fn then table.remove(h.messageListeners,k) end end end end
  ac.blockSystemMessages=function(regex) assert(type(regex)=='string'); h.blocked=h.blocked+1; return function() h.blocked=h.blocked-1 end end
- ui.drawRectFilled=function(p1,p2,color) assert(p1.x and p2.y and color.r); h.draws=h.draws+1 end
+ ui.drawRectFilled=function(p1,p2,color) assert(p1.x and p2.y and color.r); h.draws=h.draws+1; if h.rects then h.rects[#h.rects+1]={p1.x,p1.y,p2.x,p2.y} end end
  ui.setCursor=function(v) assert(v.x and v.y); h.panelCursor=v; h.cursorTop=math.min(h.cursorTop or math.huge,v.y) end
  ui.getCursor=function() return {x=8,y=h.titleBar or 34} end
  ui.textColored=function(text,color) assert(type(text)=='string' and color.r); h.panelTexts[#h.panelTexts+1]=text; h.panelColors[#h.panelColors+1]=color end
  ui.pushFont=function() h.fontDepth=h.fontDepth+1 end
  ui.popFont=function() h.fontDepth=h.fontDepth-1; assert(h.fontDepth>=0,'unbalanced popFont') end
- ui.StyleColor={Text=0,Button=21,ButtonHovered=22,ButtonActive=23}
+ ui.StyleColor={Text=0,Border=5,FrameBg=7,PopupBg=4,Button=21,ButtonHovered=22,ButtonActive=23}
  ui.pushStyleColor=function(id,color) assert(type(id)=='number' and type(color)=='table'); h.styleDepth=h.styleDepth+1; h.styleMax=math.max(h.styleMax,h.styleDepth); if id==ui.StyleColor.Text then h.textColor=color end end
  ui.popStyleColor=function(count) h.styleDepth=h.styleDepth-(count or 1); assert(h.styleDepth>=0,'unbalanced popStyleColor') end
  ui.ButtonFlags={Active=0x200000}; ui.text=function() h.rendered=h.rendered+1 end; ui.separator=function() h.cursor=0; h.lastRight=0 end
@@ -262,7 +281,7 @@ function M.create(native110,options)
  end
  -- Commandes dessinées (Beta 1.9) : boutons invisibles par identifiant, souris simulée, glisser par proportion de la
  -- largeur (h.drags[id]=0..1), clic droit (h.rightClick=id, souris sur la commande), molette (h.wheel).
- h.hits={}; h.hitOrder={}; h.drawnTexts={}; h.drags={}; h.mouse={x=-1e6,y=-1e6}; h.clipDepth=0; h.dwriteDepth=0; h.space={x=1000,y=780}
+ h.hits={}; h.hitOrder={}; h.drawnTexts={}; h.drags={}; h.mouse={x=-1e6,y=-1e6}; h.clipDepth=0; h.dwriteDepth=0; h.fontStack={}; h.space={x=1000,y=780}
  ui.availableSpace=function() return {x=h.space.x,y=h.space.y} end
  ui.invisibleButton=function(id,size)
   assert(type(id)=='string' and id:sub(1,2)=='##' and size.x>0 and size.y>0,'invisible button')
@@ -282,9 +301,13 @@ function M.create(native110,options)
  ui.mouseLocalPos=function() if h.activeHit and h.activeHit==h.lastHit then return h.dragPos end return h.mouse end
  ui.mouseClicked=function(button) if button==1 and h.rightClick and h.rightClick==h.lastHit then h.rightClick=nil; return true end return false end
  ui.mouseWheel=function() local w=h.wheel or 0; h.wheel=0; return w end
- ui.dwriteDrawText=function(text,size,pos,color) assert(type(text)=='string' and type(size)=='number' and size>0 and pos.x and color.r); h.drawnTexts[#h.drawnTexts+1]=text end
- ui.pushDWriteFont=function(name) assert(type(name)=='string'); h.dwriteDepth=h.dwriteDepth+1 end
- ui.popDWriteFont=function() h.dwriteDepth=h.dwriteDepth-1; assert(h.dwriteDepth>=0,'unbalanced popDWriteFont') end
+ -- h.textBoxes (facultatif) : position et largeur de chaque texte dessiné, mesurée avec la police poussée.
+ ui.dwriteDrawText=function(text,size,pos,color) assert(type(text)=='string' and type(size)=='number' and size>0 and pos.x and color.r); h.drawnTexts[#h.drawnTexts+1]=text
+  if h.textBoxes then local m=ui.measureDWriteText(text,size); h.measures=h.measures-1; h.textBoxes[#h.textBoxes+1]={text=text,x=pos.x,y=pos.y,size=size,w=m.x} end end
+ -- Même police repoussée aussitôt (rien gagné) et profondeur la plus haute de la pile : comptées.
+ ui.pushDWriteFont=function(name) assert(type(name)=='string'); h.dwriteDepth=h.dwriteDepth+1; h.fontStack[#h.fontStack+1]=name; h.fontPushes=(h.fontPushes or 0)+1
+  if h.lastPushed==name then h.repeatPushes=(h.repeatPushes or 0)+1 end; h.lastPushed=name; h.fontDepthMax=math.max(h.fontDepthMax or 0,h.dwriteDepth) end
+ ui.popDWriteFont=function() h.dwriteDepth=h.dwriteDepth-1; h.fontStack[#h.fontStack]=nil; assert(h.dwriteDepth>=0,'unbalanced popDWriteFont') end
  ui.drawLine=function(a,b,color,th) assert(a.x and b.y and color.r and type(th)=='number') end
  ui.pushClipRect=function(a,b) assert(a.x and b.y); h.clipDepth=h.clipDepth+1 end
  ui.popClipRect=function() h.clipDepth=h.clipDepth-1; assert(h.clipDepth>=0,'unbalanced popClipRect') end

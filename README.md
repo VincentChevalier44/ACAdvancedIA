@@ -6,7 +6,7 @@
 
 ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP). Its HumanAI engine sits on top of the game's own AI and makes the AI cars drive more like people. On a track day they move aside for faster cars and spread out around the lap. In a race they respect blue flags, overtake and defend with intent, and flash their headlights at slower cars. They make the odd mistake, slow down for yellow flags, and follow Full Course Yellows, Virtual Safety Cars, a Safety Car and red flags. They make their mandatory pit stops, refuel and repair, and fit wet tyres when it rains. The app enforces the racing rules for you as well (delta time, penalties, DRS rules), and its in-game overlay tells you what is happening. It works in **offline sessions only**.
 
-- **Current version:** Beta 1.34. See [CHANGELOG.md](CHANGELOG.md).
+- **Current version:** Beta 1.35. See [CHANGELOG.md](CHANGELOG.md).
 - **Interface:** English by default, French available (**FR** | **EN** buttons in the settings window).
 - **Author:** VincentChevalier44. MIT License.
 
@@ -20,6 +20,7 @@ ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP
 - [Updating](#updating)
 - [Uninstalling and resetting the settings](#uninstalling-and-resetting-the-settings)
 - [Features](#features)
+  - [The settings window (Racing 26 interface)](#the-settings-window-racing-26-interface)
   - [Session profiles and automatic detection](#session-profiles-and-automatic-detection)
   - [Sections, built-in presets and first-install behaviour](#sections-built-in-presets-and-first-install-behaviour)
   - [General driving: level, aggression, caution and spreads](#general-driving-level-aggression-caution-and-spreads)
@@ -104,7 +105,7 @@ The repository download also contains the test bench and the technical documents
    - The window, the tooltips, the overlay and the on-screen messages change at once, and the choice is saved.
    - The session log always stays in French.
 4. **Find your way around.**
-   - The window has four tabs: **HOME**, **SETTINGS**, **RACING RULES** and **DIAGNOSTICS**.
+   - The window has four tabs: **HOME**, **SETTINGS**, **RACING RULES** and **DIAGNOSTICS**. The profile shown and edited is picked at the right of the tabs, on every tab.
    - The **SETTINGS** tab has a sidebar with four groups: **DRIVING**, **TRAFFIC**, **RACE & SAFETY** and **ADVANCED**. See [Settings overview](#settings-overview).
    - The window has no title bar. Drag an empty area to move it.
 5. **What is active on a first installation:**
@@ -121,19 +122,23 @@ The repository download also contains the test bench and the technical documents
 
 ## Updating
 
-**From the app (since Beta 1.33).** At launch, about ten seconds into the game, the app makes **one request** to GitHub (`api.github.com`) to read the latest published release; nothing about you or your installation is sent. When a newer version exists:
-- **UPDATE · 1.34** appears in the header, right of the tabs, and *Update available: Beta 1.34* under **HOME › TO CHECK**, with an **Update** button;
-- **DIAGNOSTICS › UPDATES** shows the installed and available versions, the first lines of the release notes and **Release notes** (opens the release page in your browser);
-- in the pits, the overlay shows **UPDATE AVAILABLE** once per launch, for 6 seconds. Never while you drive.
+**From the app (since Beta 1.33, reworked in Beta 1.35).** At launch, about ten seconds into the game, the app makes **one request** to GitHub (`api.github.com`) to read the latest published release; nothing about you or your installation is sent. When a newer version exists:
+- **UPDATE · 1.36** appears in the header, right of the tabs, and *Update available* under **HOME › TO CHECK**, with an **Update** button (both greyed while you drive);
+- **DIAGNOSTICS › UPDATES** shows the installed and available versions, the first lines of the release notes and **Read everything on GitHub**;
+- in the pits, the overlay shows **UPDATE AVAILABLE** once per launch, for 6 seconds. Never on track.
 
-One click on **Update** works only when stopped (in the pits, paused or in a menu). It:
+One click on **Update**, stopped (paused, in a menu, or at your pit box at standstill):
 1. downloads the release's SHA-256 digest, then its package, from the repository's release downloads only (no other address is followed);
 2. checks the digest, the package contents (everything under `apps/lua/ACAdvancedIA/`, no path outside it, the updater itself included) and the version in its `manifest.ini`;
-3. backs up the installed version to `backup/previous.zip` in the app folder;
-4. unpacks the package into `backup/next`, then moves each changed file into place, `manifest.ini` last;
-5. writes the session log, hands every AI back to AC and restarts the app.
+3. unpacks it into CSP's state folder, `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-update/next`, never into the app folder, and checks the unpacked copy;
+4. copies the installed version to `ACAdvancedIA-update/current`;
+5. then, on the first frame you are stopped (**READY · WHEN STOPPED** until then), writes a marker, copies the changed files into the app folder in one go with CSP's live reload paused (`src/` first, `ACAdvancedIA.lua` next, `manifest.ini` last), keeps the version you had in `ACAdvancedIA-update/backup`, writes the session log, hands every AI back to AC and restarts the app.
 
-Any error before step 4 leaves the installed version untouched (*Corrupted file: update cancelled, current version kept*). A failed step 4 puts the backup back at once. An install cut short by a crash or a power cut is finished or undone at the next launch: the version in `manifest.ini` tells which, and the app drives nothing until then. **Roll back to Beta X** puts the backed-up version back the same way. Your settings, profiles and presets are kept: they live in CSP's storage, not in the app folder. Untick **Check for updates at launch** to never contact GitHub; **Check now** asks on demand. With a CSP version that lacks the web, zip or digest functions, the block says so: update manually as below. The download size is shown, but not its progress (CSP does not report it).
+Steps 1 to 4 can be cancelled and never touch the app folder. A failed copy in step 5 puts the installed version back at once (*Cannot write to the app folder: current version kept*; the log names the file). If that fails too, the block says *Recovery impossible*, names the marker file and does nothing more: restart the game, and reinstall manually if it persists. An install cut short by a crash or a power cut is finished at the next launch, before the app loads anything else: from the unpacked package when it is intact, otherwise by putting the starting version back; the app then restarts once. Two attempts at most, never a loop. **Roll back to Beta X** puts the previous version back the same way. **Check now** asks at most once a minute (greyed in between); GitHub's request limit is shown as such. Your settings, profiles and presets are kept: they live in CSP's storage, not in the app folder. Untick **Check for updates at launch** to never contact GitHub. With a CSP version that lacks the web, zip, copy or digest functions, the block says so: update manually as below. The download size is shown, but not its progress (CSP does not report it).
+
+Each file is copied next to its destination under a temporary name, then renamed over it, so a crash never leaves a half-written file. Each kept version carries its file list, and **Roll back** is offered only for a complete one. A freshly installed version that fails to start twice in a row is rolled back automatically at the next launch. Your settings are kept after a roll back: a version reads settings written by a newer one, validating each setting it knows.
+
+**Coming from Beta 1.33 or 1.34, install Beta 1.35 by hand** (below), game closed: their update button would unpack into the app folder, which CSP watches, without the protections above. Their `backup/` folder in the app folder is no longer used (you can delete it, game closed), and no roll back to Beta 1.34 is offered until the next update.
 
 **Manually or with Content Manager:**
 
@@ -155,7 +160,7 @@ If you created your own zone files in `tracks/` (see [Track zones and class patt
   - Beta 1.26 hides Assetto Corsa's original messages by default.
 - What changed is written to the session log (`profils mis a jour …`) and shown under **HOME › TO CHECK** (*Updated to the current presets: …*).
 
-If you may want to roll back to an older version, back up `ACAdvancedIA.ini` (game closed) before updating. Read [CHANGELOG.md](CHANGELOG.md) for what changed and what to check in game.
+Rolling back from the app keeps your settings since Beta 1.35. Before going back by hand to a version older than 1.35, back up `ACAdvancedIA.ini` (game closed): those versions reset settings written by a newer one. Read [CHANGELOG.md](CHANGELOG.md) for what changed and what to check in game.
 
 ## Uninstalling and resetting the settings
 
@@ -192,6 +197,23 @@ No track, car or `surfaces.ini` file is ever changed, so there is nothing else t
 | **Everything** (factory reset) | Close the game, delete `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini`. If the app has switched CSP's AI flood off, restore it first (see [Uninstalling](#uninstalling)): the backup of your original AI flood values is kept in this file | Nothing: the next start behaves like a first installation, and custom presets are deleted too |
 
 ## Features
+
+### The settings window (Racing 26 interface)
+
+Since Beta 1.35 the window uses the **Racing 26** design shared with SetupLab: a near-black background, anthracite panels with a cut corner, cyan for actions, and the racing colours of the flags.
+
+- **Fonts bundled with the app** (`fonts/`, SIL Open Font License): Barlow for text, Barlow Condensed for labels, titles, buttons and tabs, JetBrains Mono for numbers. Without the font files the window falls back to Segoe UI and Consolas, and the session log says so once.
+- **Header** (84 px, on every tab):
+  - the brand, the version chip and, when a newer version is published, the one-click **UPDATE** button;
+  - the track and the profile in use, how many AI cars the app drives and the engine state;
+  - a state chip (**ACTIVE · RACE**, **PAUSED · RACE**, **SUSPENDED** in a replay or after the session, **APP OFF**, **PANIC**, **ONLINE**, **WAITING**, **NATIVE AI**), **FR | EN**, the **APP** switch and **PANIC / RESUME**;
+  - slanted tabs (the racing-rules tab shows the rule set in use) and the profile selector, with a green dot on the profile in use; in a narrow window the profiles show as their first letter, never hidden.
+- **HOME**: the session panel (profile in use, detection source, automatic profile switch), the built-in presets as tiles, live figures (AI driven, incidents, yellow zones, neutralisation, light panels), the **TO CHECK** list with a link to the section concerned, and the custom presets with their byte counter (64 bytes at most). A banner explains a disabled app, a panic, an online session or the wait for the first session, with a one-click action.
+- **SETTINGS**: the sidebar lists the 14 sections in four groups, each with its switch and the number of settings changed from the profile defaults. A section shows its settings in **sub-groups** on two columns (one when the window is narrow). Sliders show the profile default as a grey mark; changed settings get a cyan diamond; a right click restores the default. Choices with up to three values are segments (a ‹ value › button when their labels do not fit), longer ones a ‹ value › button. An unticked section, **Global options** included, shows why its settings do not apply instead of the settings.
+- **RACING RULES**: the three views (racing rules, mandatory stop, Safety Car) with their switches, then the championship rule sets with their main features and the reset. On a track-day or hotlap profile the mandatory-stop and Safety Car switches are greyed out and their views cannot be opened.
+- **DIAGNOSTICS**: updates, sign calibration, headlight flashes (learnt field, last event id and count) and zones, the track light panels, the session log, CSP capabilities (two columns), the AI functions CSP exposes (names only), the AI table, performance tiles and the circular log with its level filter.
+- **Window size**: 900 × 700 by default. Wider windows widen the columns while the text keeps its size; narrower ones scale the whole window down. Columns, lists, the sidebar and the logs scroll with the wheel.
+- **CSP rendering**: flat colours only, no gradients, filters, letter spacing or animations; every state (rest, hover, pressed, disabled, selected) has its own colour. Tooltips stay the native ones, in the kit colours.
 
 All numbers below are the shipped defaults unless stated otherwise. Every value can be changed in the settings. The complete list, with ranges and per-profile defaults, is in the [Settings reference](#settings-reference).
 
@@ -609,7 +631,7 @@ Safety Car escalation (**Safety Car if the incident escalates**, on by default i
   - There is no overtaking during the restart lap, nor until the line after the green.
   - Since Beta 1.34, **Restart after a red flag** chooses how the race restarts (the overlay announces it during the restart lap):
     - **Rolling start (RS) behind the Safety Car** (base, GT and Endurance rules): the green comes when the Safety Car pits, as above.
-    - **Standing start (SS) from the grid** (F1 2025 and F1 2026 rules): after the restart lap, every car drives to its grid slot, in race order with the slots closed up. A car in the pit lane starts from the pit lane. The AI slow down along the approach (speed cap from the distance to the slot, assist brake in the last metres), take the column of their slot and are held there. The overlay tells you your slot and the distance to it (*Go to your grid slot: P4 · 380 m*). Once everyone is in place (or after 2 minutes, whoever is still out is held where they are), five lights come on in the overlay, one per second, and go out after a random hold; every AI leaves at once. Moving before lights out is a **jump start**, penalised like the other infringements (throttle cut, counted towards disqualification). The trackside light panels stay yellow during the grid and the lights, then green.
+    - **Standing start (SS) from the grid** (F1 2025 and F1 2026 rules): after the restart lap, every car drives to its grid slot, in race order with the slots closed up. A car in the pit lane starts from the pit lane. The AI slow down along the approach (speed cap from the distance to the slot, assist brake in the last metres), take the column of their slot and are held there. The overlay tells you your slot and the distance to it (*Go to your grid slot: P4 · 380 m*, to the metre below 20 m, then **IN POSITION** or **SLOT PASSED**). With the VSC or FCY, the restart lap ends when the leader completes it. Once everyone is in place (or after 2 minutes, whoever is still out is held where they are), five lights come on in the overlay, one per second, and go out after a random hold; every AI leaves at once, with the race-start protections (caution, aggression, front radar, lane holding). Moving forwards once you are in your slot and stopped, before lights out, is a **jump start**, penalised like the other infringements (throttle cut, counted towards disqualification) once you are past the line, never on the grid; starting from the pit lane is never a jump start. The trackside light panels stay yellow during the grid and the lights, then green.
     - The grid slots are the track's `AC_START` nodes when CSP gives them and they make sense (before the line, within 400 m, in order, on the track), otherwise computed: 6 m before the line, 8 m apart, alternating columns. Nobody is ever teleported, so laps stay exact. Without the CSP functions it needs (stop counter, speed cap, lateral offset) or a measured lateral direction, the restart stays rolling and the log says why.
     - A new incident during the grid or the lights cancels the standing start: the holds are released and the usual yellow flags take over.
   - **Overtaking allowed after the restart** (Safety Car view): **at the control line** (default, the usual rule) or **as soon as the Safety Car pits**, for a red-flag restart lap and for an ordinary Safety Car deployment.
@@ -908,7 +930,7 @@ return { zones = {
 - **Sign calibration**: its state, *Offset / side sign*, and **Rerun sign calibration**.
 - **Headlight flashes**: the learned signal, and **Learn headlight flashes (6 s)**.
 - **Track zones**: **Mark start**, **Mark end (no manoeuvres)**, **COPY**, and the zone count.
-- **UPDATES** (since Beta 1.33), at the top: installed and available versions, the state (for example *You have the latest version (checked at 14:32)*, *Downloading Beta 1.34 (1.0 MB)…*, *GitHub unreachable: check the connection*), the first lines of the release notes, **Update** (**Cancel** while downloading), **Check now**, **Release notes**, **Roll back to Beta X** after an update, and **Check for updates at launch**.
+- **UPDATES** (since Beta 1.33), at the top: installed and available versions, the state (for example *You have the latest version (checked at 14:32)*, *Downloading Beta 1.36 (1.0 MB)…*, *Beta 1.36 ready: it installs as soon as you stop*, *GitHub unreachable: check the connection*, *GitHub refuses for now (request limit)*), the first lines of the release notes with **Read everything on GitHub**, **Update** (greyed while you drive; **Cancel** until the copy starts; **Try again** after an error), **Check for updates at launch**, then **Check now** (once a minute at most) and **Roll back to Beta X** side by side.
 - **SESSION LOG**: **Write the session log to disk**, with the log's path and size.
 - **CSP capabilities**: one row per CSP function the app uses, with its state (*Available, not used yet*, *Call succeeded*, *Missing*, *Disabled after three failures*). Below it: the level mode, the braking-zone and grip notes, and **Exposed AI functions**.
 

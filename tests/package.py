@@ -9,7 +9,8 @@ from test_pdr import APP, VERSION
 def main():
     names=['ACAdvancedIA.lua','manifest.ini','icon.png','README.md','COMPATIBILITY.md','CHANGELOG.md','LICENSE']
     files=[APP/name for name in names]
-    for folder,patterns in [('src',['*.lua']),('tracks',['*.md','*.lua']),('sounds',['*.wav'])]:
+    # Beta 1.35 : polices de l'interface Racing 26 et leurs licences (OFL), dans fonts/<famille>/.
+    for folder,patterns in [('src',['*.lua']),('tracks',['*.md','*.lua']),('sounds',['*.wav']),('fonts',['*/*.ttf','*/OFL.txt'])]:
         for pattern in patterns: files.extend((APP/folder).glob(pattern))
     files=sorted({p for p in files if p.is_file()})
     dist=APP/'dist'; dist.mkdir(exist_ok=True)
@@ -26,6 +27,10 @@ def main():
         # sans lui ne pourrait plus se mettre à jour, l'app la refuse).
         assert not any(name.startswith('apps/lua/ACAdvancedIA/backup/') for name in archive.namelist())
         for name in ('manifest.ini','ACAdvancedIA.lua','src/update.lua','src/remote.lua'): assert 'apps/lua/ACAdvancedIA/'+name in archive.namelist(), name
+        for name in ('barlow/Barlow-Regular.ttf','barlow/Barlow-SemiBold.ttf','barlow/OFL.txt','barlowcondensed/BarlowCondensed-SemiBold.ttf',
+                     'barlowcondensed/BarlowCondensed-Bold.ttf','barlowcondensed/BarlowCondensed-ExtraBoldItalic.ttf','barlowcondensed/OFL.txt',
+                     'jetbrainsmono/JetBrainsMono-Medium.ttf','jetbrainsmono/OFL.txt'):
+            assert 'apps/lua/ACAdvancedIA/fonts/'+name in archive.namelist(), name
     digest=hashlib.sha256(output.read_bytes()).hexdigest()
     output.with_suffix('.sha256').write_text(digest+'  '+output.name+'\n',encoding='ascii')
     print(f'{output.name}: {len(files)} files, {output.stat().st_size} bytes, SHA256 {digest}')

@@ -261,7 +261,7 @@ return {
   J='Préréglage Nordschleife Touristenfahrten, appliqué au profil Journée circuit : trafic dense, cession à droite, appels de phares, espacement, accidents et météo.',
   P='Préréglage Essais libres, appliqué au profil Essais : rythme d’essais (97 %), pilotes plus calmes, cession aux voitures plus rapides, accidents et météo.',
   Q='Préréglage Qualifications tour lancé, appliqué au profil Qualifications : les IA lentes s’écartent franchement devant un tour rapide.',
-  C='Préréglage Course réaliste, appliqué au profil Course : drapeaux bleus, dépassements côté automatique, défense, départ prudent, accidents et météo. Les règles de championnat choisies sont conservées.',
+  C='Préréglage Course réaliste, appliqué au profil Course : drapeaux bleus, dépassements côté automatique, défense, départ prudent, accidents et météo. Il pose aussi les règles de championnat (règles de base : arrêt obligatoire, voiture de sécurité, jeu de règles) pour tout le week-end (Essais, Qualifications et Course) ; seuls vos préférences et vos motifs de classes sont gardés.',
   E='Préréglage Endurance multi-classes, appliqué au profil Course (ou Journée circuit si celui-ci est affiché) : classes, surcouche Endurance, baisses de concentration. Appliqué au profil Course, il pose aussi les règles Endurance pour les Essais, Qualifications et Course.',
  },
  rules={
@@ -272,7 +272,11 @@ return {
   Endurance='Endurance (WEC) : FCY à l’équivalent de 80 km/h (delta +150 %), voiture de sécurité si l’incident s’aggrave, Slow Zone à 80 km/h en double jaune, stands fermés sous FCY et trois tours de voiture de sécurité, relais de 50 min au plus (approximation), ravitaillement libre au fil de la course (à chaque fin de relais et dès que le réservoir l’exige), pneus neufs et réparations à chaque arrêt, BoP, grades Pro-Am, classe lente à trajectoire prévisible.',
  },
  ui={
+  -- Refonte Racing 26 (Beta 1.35).
+  warnLink='Ouvre la section concernée.',bannerAction='Action rapide : réactive l’app, reprend après la panique ou ouvre le diagnostic.',
+  patternClear='Efface ce motif (la ligne se libère).',performance='Coût de la boucle IA de l’app, hors dessin de l’interface : moyenne et maximum sur les dernières images.',
   overlayRecenter='Replace l’overlay à sa position automatique (centré, en haut de l’écran) et lui rend sa taille d’origine (1,00x).',
+  version='Version installée de l’app. Mises à jour, notes de version et retour arrière : onglet Diagnostic.',
   status='État du moteur : actif quand l’app pilote les IA dans cette session, avec le profil en cours. La ligne du dessous donne la raison d’un arrêt (session en ligne, replay, pause, panique, aucun onglet coché…).',
   tab_home='Accueil : profil affiché et réglé, session détectée, préréglages intégrés (un clic règle le profil concerné) et personnels, état en direct et points à vérifier.',
   mandatoryStop='Arrêt obligatoire en course, réglé à la fois pour les Essais, Qualifications et Course : activé, au moins un arrêt aux stands à faire dans la fenêtre réglée (le nombre d’arrêts, réglé en cliquant le titre, est gardé) ; désactivé, aucun arrêt imposé. Les règles F1 2025, F1 2026 et GT l’activent, les règles de base et Endurance le laissent éteint (en Endurance, le relais maximal de 50 min impose les arrêts) ; il s’ajoute ou se retire d’un clic avec n’importe quel jeu de règles, qui reste surligné. L’interrupteur montre l’état du profil Course ; en Journée circuit et en Hotlap, où rien de cela n’agit, il reste éteint. Un préréglage d’essais, de qualifications ou de course le règle aussi pour tout le week-end.',

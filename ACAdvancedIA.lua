@@ -1,3 +1,50 @@
+-- Reprise d'une mise à jour interrompue (Beta 1.35), avant tout autre module : une copie arrêtée au milieu (plantage,
+-- coupure) aurait pu laisser des modules de deux versions ; elle est terminée ou défaite ici, de façon synchrone, avant
+-- que les autres modules soient chargés. Seuls les deux modules de la mise à jour sont lus d'abord, chacun protégé.
+-- Contrat figé (lu par toutes les versions à venir, voir src/update.lua) : Update.recover(port), Remote.new(onRelease),
+-- port.ready, port.work, port.restart, port.log, port.bootOk, Update.recoverText.
+local okUpdate,Update=pcall(require,'src/update')
+local okRemote,Remote=pcall(require,'src/remote')
+local onRelease
+local port
+if okUpdate and okRemote and type(Update)=='table' and type(Remote)=='table' then
+ local ok,made=pcall(Remote.new,function() if onRelease then onRelease() end end)
+ if ok and type(made)=='table' then port=made end
+end
+if not port then
+ -- Modules de la mise à jour illisibles : l'app se charge sans mise à jour (port inerte, état affiché « non vérifié »).
+ local function none() end
+ local unread=okUpdate and okRemote and 'port' or tostring(not okUpdate and Update or Remote):sub(1,160)
+ port={ready=false,work='',restart=none,log=none,bootOk=none,unreadable=unread}
+ if not okUpdate or type(Update)~='table' then
+  Update=setmetatable({new=function(version) return {phase='idle',installed=version,events={},serial=0,askedAt=0} end,
+   view=function() return 'unchecked' end,take=function(_,out) return out end,checkGap=60,page=''},{__index=function() return none end})
+ end
+end
+local recovered
+do
+ local ok,result=pcall(function() return port.ready and Update.recover(port) or nil end)
+ -- Sans reprise, result vaut nil : jamais « ok and result or … », qui prendrait alors l'échec.
+ if ok then recovered=result else recovered={outcome='failed',failed=tostring(result):sub(1,120),file=port.work} end
+end
+-- Reprise dite tout de suite au journal de CSP : elle reste lisible même si un module ne se charge pas ensuite.
+if recovered and port.ready then
+ local okText,level,text=pcall(Update.recoverText,recovered)
+ if okText and text then pcall(port.log,level..' '..text) end
+end
+-- Fichiers de l'app copiés à l'instant par la reprise : le code déjà chargé est celui d'une autre version. Aucun autre
+-- module n'est lu ; l'app redémarre à la première image (compte rendu lu au lancement suivant).
+if recovered and recovered.restart then
+ local asked=false
+ local function restartOnly() if not asked then asked=true; pcall(port.restart) end end
+ function script.update() restartOnly() end
+ function script.HUMANAI__UPDATE() restartOnly() end
+ function script.HUMANAI__MAIN() end
+ function script.HUMANAI__MENU() end
+ function script.HUMANAI__FLAGS() end
+ function script.HUMANAI__HUD() end
+ return
+end
 local Snapshot=require('src/snapshot')
 local Applier=require('src/applier')
 local Engine=require('src/engine')
@@ -14,8 +61,6 @@ local Penalties=require('src/penalties')
 local Journal=require('src/journal')
 local Locale=require('src/locale')
 local Lights=require('src/lights')
-local Update=require('src/update')
-local Remote=require('src/remote')
 local K=Config.K
 -- Cache des traces du compilateur JIT agrandi (machine virtuelle de l'app) : avec les 1 000 traces et 512 Ko de code
 -- machine par défaut, le moteur vide et recompile tout son code toutes les une à deux minutes (pics d'image). Sans
@@ -68,7 +113,8 @@ if host.upgraded and #host.upgraded>0 then U.log(engine.log,0,'INFO','profils mi
 if host.signsRestored then U.log(engine.log,0,'INFO','sens lateral retabli: -1 / -1 (convention AC, mesure sur cette installation jusqu a la Beta 1.8 ; la mesure le confirmera)',-1) end
 if host.firstInstall then U.log(engine.log,0,'INFO','premiere installation: prereglages recommandes et regles de base (essais, qualifications, course)',-1) end
 local journal=Journal.new()
--- Journal de session sur disque : lignes nouvelles toutes les deux secondes, résumé chaque minute, capacités perdues.
+-- Journal de session sur disque : lignes nouvelles toutes les deux secondes, résumé chaque minute. Les capacités de CSP
+-- perdues sont dites par l'applicateur (Applier.reportCaps), une seule fois.
 local function writeJournal(force)
  if not globals.journal then return end
  if not host.journalTried then
@@ -77,26 +123,11 @@ local function writeJournal(force)
  end
  if not host.journalPath or not force and engine.time<journal.flushAt then return end
  journal.flushAt=engine.time+K.journalPeriod
- for _,name in ipairs(Caps.names) do
-  local reason=host.caps[name].reason
-  if journal.caps[name]~=reason then
-   if reason=='failures' then U.log(engine.log,engine.time,'WARN','capacite CSP desactivee apres trois echecs: '..name,-1) end
-   journal.caps[name]=reason
-  end
- end
  if engine.time>=journal.summaryAt then journal.summaryAt=engine.time+K.journalSummary; U.log(engine.log,engine.time,'INFO',Journal.summary(engine),-1) end
  Journal.collect(journal,engine.log,Applier.clockText())
  Applier.journalWrite(host,Journal.take(journal))
 end
-local function cancelProbe()
- local index=host.caps.probeIndex
- if index==0 or not host.allowed or frame.online or frame.replay or frame.paused then return end
- local a=frame.cars[index]
- if a and a.valid and host.caps.probeID~=(a.identity or a.id) then host.caps.probeIndex=0; host.caps.probeDone=false; return end
- if a and a.valid and a.control and not a.player and not a.pit and not a.offtrack then
-  if Caps.restoreCall(host.caps,'level',a.index,host.caps.probeOriginal) then host.caps.probeIndex=0; host.caps.probeDone=true end
- end
-end
+local function cancelProbe() if host.allowed then Caps.cancelProbe(host.caps,frame) end end
 local function syncRestored()
  for i=1,K.maxCars do
   local state=host.cars[i]
@@ -134,6 +165,7 @@ local function release()
  if released then return end
  -- Aucune image ne suivra : restitution complète, y compris en pause ou en replay.
  released=true; Snapshot.read(frame,K.dtMax,engine.time); pcall(saveRace,true); Applier.access(host); stop(true); Applier.unregister(host)
+ pcall(Applier.reportCaps,host)
  -- Overlay en jeu (Beta 1.25) : case de session d'AC et messages d'origine rendus, écoute des messages close.
  pcall(UI.restoreNative,panel); pcall(messages,false); Applier.dispose(messageListener); messageListener=nil
  pcall(writeJournal,true); Applier.journalWrite(host,'=== fin : '..Applier.clockText()..' ===\n')
@@ -147,11 +179,13 @@ local function updateLog()
  Update.take(updater,updateEvents)
  for i=1,#updateEvents do local ev=updateEvents[i]; U.log(engine.log,engine.time,ev[1],ev[2],-1); updateEvents[i]=nil end
 end
-local port=Remote.new(function() updateLog(); release() end)
-host.updater=updater; host.updatePort=port; host.updateStopped=false
+onRelease=function() updateLog(); release() end
+host.updater=updater; host.updatePort=port; host.updateStopped=false; host.updateNow=0
 local updateClock,updateAsked,updateNoticed=0,false,false
--- Installation interrompue au lancement précédent : sauvegarde remise en place, l'app ne pilote rien d'ici le redémarrage.
-local recovering=port.ready and Update.start(updater,port) or false
+-- Horloge de la mise à jour : temps réel (le temps du moteur est figé en pause et dans les menus, là où la fenêtre sert).
+local updateNow,updateCounter=0,nil
+-- Compte rendu de la reprise faite au chargement et de la dernière opération ; version précédente proposée.
+if port.ready then Update.start(updater,port,recovered) end
 updateLog()
 -- Messages d'AC (Beta 1.25) : repris sur l'overlay ; leur affichage d'origine est masqué (Beta 1.26 : par défaut). Un
 -- message témoin, envoyé dès le premier masquage, doit encore arriver à l'écoute : sinon (masquage qui couperait
@@ -315,11 +349,18 @@ end
 -- Mise à jour : vérification au lancement (après K.updateDelay s), état « à l'arrêt » pour l'installation (pause, menu
 -- ou stands) ; information de l'overlay une fois par lancement, aux stands seulement, retirée dès la sortie.
 local function updateTick(dt)
- if not port.ready or released or recovering then return end
+ if not port.ready then return end
+ local step=U.finite(dt) and dt>0 and dt<=K.dtMax and dt or 0
  if U.finite(dt) and dt>0 and dt<=K.dtMax then updateClock=updateClock+dt end
+ local counter=Applier.clock(host)
+ if counter and updateCounter and counter>updateCounter then step=math.max(step,counter-updateCounter) end
+ updateCounter=counter; updateNow=updateNow+math.min(step,1); host.updateNow=updateNow
+ -- Après la restitution (redémarrage demandé) : seule l'alerte de redémarrage en retard reste suivie.
+ if released then if updater.phase=='restarting' then Update.tick(updater,port,false,updateNow); updateLog() end; return end
  local player=frame.player>0 and frame.cars[frame.player] or nil
  host.updateStopped=Update.stopped(frame,player)
- if not updateAsked and globals.updateCheck and updateClock>=K.updateDelay and updater.phase=='idle' then updateAsked=true; Update.check(updater,port,engine.time) end
+ Update.tick(updater,port,host.updateStopped,updateNow)
+ if not updateAsked and globals.updateCheck and updateClock>=K.updateDelay and updater.phase=='idle' then updateAsked=true; Update.check(updater,port,updateNow) end
  local pit=player~=nil and player.pit==true and not frame.paused
  local panelState=engine.panel
  if pit and not updateNoticed and Update.offered(updater) then
@@ -334,12 +375,16 @@ local function protect(fn,arg)
   U.log(engine.log,engine.time,'ERROR',tostring(err):sub(1,256),-1)
   pcall(stop)
  end
+ return ok
 end
-HUMANAI={engine=engine,host=host,release=release,updater=updater,port=port}
+-- Démarrage surveillé (mise à jour) : la première image passée sans erreur, la version installée est confirmée.
+local booted=false
+if port.unreadable then U.log(engine.log,0,'ERROR','mise a jour: module illisible, app chargee sans mise a jour ('..port.unreadable..')',-1) end
+HUMANAI={engine=engine,host=host,release=release,updater=updater,port=port,panel=panel}
 function script.HUMANAI__UPDATE(dt)
- if recovering then return end
  local before=Applier.clock(host)
- protect(update,dt)
+ local ran=protect(update,dt)
+ if ran and not booted then booted=true; pcall(port.bootOk) end
  local ok,err=pcall(updateTick,dt)
  if not ok then host.errors=host.errors+1; U.log(engine.log,engine.time,'ERROR','mise a jour: '..tostring(err):sub(1,200),-1) end
  local after=before and Applier.clock(host)
@@ -365,8 +410,6 @@ end
 function script.HUMANAI__MAIN()
  script.HUMANAI__MENU()
  if host.menuVisible then
-  -- Reprise d'une mise à jour interrompue : quelques lignes de texte seulement, rien d'autre n'est dessiné.
-  if recovering then protectUI(UI.recovery,panel); return end
   -- Une seule fois : fenêtre ramenée à la taille compacte (Beta 1.14), puis la taille du pilote est respectée.
   if not globals.windowCompacted and Applier.compactWindow(host,UI.compactSize()) then globals.windowCompacted=true; dirty() end
   protectUI(UI.main,panel)
@@ -374,10 +417,12 @@ function script.HUMANAI__MAIN()
 end
 -- Panneau de drapeaux : protégé comme les autres fenêtres ; une erreur d'affichage est journalisée une fois et
 -- n'arrête jamais le moteur.
-function script.HUMANAI__FLAGS() if not released and not recovering then protectUI(UI.flags,panel) end end
+-- Panneau de drapeaux dans une fenêtre : absent du manifeste (seul IN_GAME est déclaré, l'overlay le remplace) ; gardé
+-- pour les tests et les anciens points d'appel, il dessine le même contenu que l'overlay.
+function script.HUMANAI__FLAGS() if not released then protectUI(UI.flags,panel) end end
 -- Overlay en jeu (Beta 1.25, rappel IN_GAME) : fenêtre transparente dessinée par l'app, comme SuperHUD.
 function script.HUMANAI__HUD()
- if released or recovering then return end
+ if released then return end
  protectUI(UI.hud,panel)
  pcall(messages,globals.overlayMessages and globals.overlayBlockMessages and globals.enabled)
 end

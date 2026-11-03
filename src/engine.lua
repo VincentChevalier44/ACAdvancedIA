@@ -124,7 +124,7 @@ function M.reset(e,now,keepOffset)
  e.pitSpline=-1; e.eventSalt=(e.eventSalt+1)%K.counterMax; e.returning=keepOffset
 end
 function M.rebase(e,amount)
- e.time=e.time-amount; e.startedAt=e.startedAt-amount; e.panel.at=e.panel.at-amount; Penalties.rebase(e.penalties,amount); Delta.rebase(e.delta,amount); Mistakes.rebase(e.mistakes,amount); e.deltaBeep.nextAt=e.deltaBeep.nextAt-amount
+ e.time=e.time-amount; e.startedAt=e.startedAt-amount; if e.launchAt then e.launchAt=e.launchAt-amount end; if e.jumpGoAt then e.jumpGoAt=e.jumpGoAt-amount end; e.panel.at=e.panel.at-amount; Penalties.rebase(e.penalties,amount); Delta.rebase(e.delta,amount); Mistakes.rebase(e.mistakes,amount); e.deltaBeep.nextAt=e.deltaBeep.nextAt-amount
  if e.panel.noticeUntil>-math.huge then e.panel.noticeUntil=e.panel.noticeUntil-amount end
  if e.panel.warnUntil>-math.huge then e.panel.warnUntil=e.panel.warnUntil-amount end
  Lights.rebase(e.lights,amount); Grid.rebase(e.grid,amount)
@@ -291,7 +291,7 @@ function M.step(e,frame,dt)
  end
  if e.session~=frame.session or e.sessionType~=frame.type then
   e.session=frame.session; e.sessionType=frame.type
-  M.reset(e,now,true); e.wasStarted=frame.started; e.startedAt=frame.started and now-frame.time or now
+  M.reset(e,now,true); e.wasStarted=frame.started; e.startedAt=frame.started and now-frame.time or now; e.launchAt=nil; e.jumpDue=false
   e.classes.nextAt=0; e.flash=Flash.new()
   e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); Lights.reset(e.lights); Grid.reset(e.grid); e.slowLogged=0; e.panel.warnPending=false; e.panel.warnUntil=-math.huge; e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
   e.configuredRevision=-1
@@ -343,7 +343,7 @@ function M.step(e,frame,dt)
   for i=1,frame.count do if math.abs(e.states[i].offset-e.states[i].base)>K.offsetEpsilon then settled=false; break end end
   e.returning=not settled
  end
- if frame.started and not e.wasStarted then e.startedAt=now; if e.profile=='C' then startReport(e,frame,now) end end
+ if frame.started and not e.wasStarted then e.startedAt=now; e.launchAt=nil; if e.profile=='C' then startReport(e,frame,now) end end
  -- Mesure du départ (Beta 1.25) : vitesse moyenne du peloton à la fin de l'attente de départ et freinages du radar
  -- pendant le lancement, pour comparer les départs d'une version à l'autre.
  if e.startSpeedLogged==false and frame.started and now-e.startedAt>=e.run.startDelay then
@@ -354,7 +354,7 @@ function M.step(e,frame,dt)
  end
  e.wasStarted=frame.started
  -- Maintien de ligne au départ : écart à la trajectoire lu dans l'instantané suivant, pendant le départ seulement.
- frame.laneWanted=e.profile=='C' and e.run.startLaneHold==true and (not frame.started or now-e.startedAt<e.run.startDelay+e.run.startRelax)
+ frame.laneWanted=e.profile=='C' and e.run.startLaneHold==true and (not frame.started or now-math.max(e.startedAt,e.launchAt or -math.huge)<e.run.startDelay+e.run.startRelax)
  -- Informations de l'overlay (Beta 1.25) : à chaque image, même app à l'arrêt ou session finie ; récapitulatif de
  -- course noté une fois au journal.
  HudInfo.update(e.hud,frame,e,now)
@@ -368,7 +368,10 @@ function M.step(e,frame,dt)
  if reason~='ready' then
   for i=1,K.maxCars do local cmd=e.commands[i]; cmd.active=false; cmd.stopHold=false; cmd.rulePit=false; cmd.pitHold=false; cmd.pitCompound=-1; cmd.fuelTarget=-1; cmd.fuelSet=-1; cmd.scPark=false; cmd.scSpeed=K.unlimitedSpeed; cmd.recover=false; cmd.drsBlock=false; cmd.startDelay=-1 end
   -- App à l'arrêt : le panneau reprend encore les drapeaux d'AC (leur affichage d'origine est masqué dans CSP).
-  e.incidents.playerFlag=false; e.incidents.playerYellow=false; e.lights.value=K.flagNone; e.lights.reason=''; Panel.native(e.panel,frame,now,e.p)
+  e.incidents.playerFlag=false; e.incidents.playerYellow=false
+  -- Pause : valeur des panneaux gardée (l'applicateur n'écrit rien en pause) ; sinon rendue à AC et recalculée dès la
+  -- reprise (jamais un quart de seconde rendu à AC à chaque sortie de pause, Beta 1.35).
+  if reason~='paused' then e.lights.value=K.flagNone; e.lights.reason=''; e.lights.at=-math.huge end; Panel.native(e.panel,frame,now,e.p)
   -- Aucun onglet coché (hotlap, journée circuit sans commande) : le bip du DRS du joueur reste actif ; app coupée,
   -- panique, pause : aucun bip.
   if reason=='nosections' then drsBeep(e,frame,frame.flag==K.flagCaution and not frame.flagOwned,e.p.drsAssist~=false,e.p.drsBeepVolume or 100) else e.drs.was=false end
@@ -587,11 +590,14 @@ function M.step(e,frame,dt)
  -- Beta 1.32 : véhicule lent devant le joueur (drapeau blanc), dégâts du joueur (drapeau noir à disque orange), valeur
  -- des panneaux lumineux du circuit ; place à rendre (avertissement).
  local l=e.lights
+ l.playerPenalty=e.penalties.disqualified==true or frame.player>0 and (frame.cars[frame.player].penaltyType or 0)>0
  if Lights.update(l,e.incidents,frame,e.run,e.profile,e.delta,e.states,e.run.multiClass==true,now) then
   U.log(e.log,now,'INFO',string.format('voiture du joueur endommagee: suspension %.2f, moteur %.0f, boite %.2f, carrosserie %.0f km/h, pneu eclate %s',
    frame.playerSuspension,frame.playerEngine,frame.playerGearbox,frame.playerBody,frame.playerBlown and 'oui' or 'non'),frame.player)
  end
- if l.slowSlot>0 and l.slowSlot~=e.slowLogged then
+ -- Une ligne par véhicule lent, pas plus d'une toutes les K.slowLogGap s (journée circuit chargée).
+ if l.slowSlot>0 and l.slowSlot~=e.slowLogged and (e.slowLogged==0 or now-(e.slowLoggedAt or -math.huge)>=K.slowLogGap) then
+  e.slowLoggedAt=now
   U.log(e.log,now,'INFO',string.format('vehicule lent devant le joueur: %s a %.0f km/h, %.0f m devant',frame.cars[l.slowSlot].name,l.slowKmh,l.slowGap),l.slowSlot)
  end
  e.slowLogged=l.slowSlot
@@ -713,7 +719,27 @@ function M.step(e,frame,dt)
  end
  -- Départ arrêté (Beta 1.34) : formation, feux, départ, après les commandes des stands (retenues à l'emplacement
  -- gardées) ; un faux départ du joueur est une infraction comme une autre (sanction à l'image suivante).
- if Grid.step(e.grid,e.incidents,frame,now,e.commands,e.g.offsetSign,e.runtimeG.seed,e.log)=='jump' and e.run.playerPenalties then e.penalties.jumpPending=true end
+ local launched=Grid.step(e.grid,e.incidents,frame,now,e.commands,e.g.offsetSign,e.runtimeG.seed,e.log,e.states,e.penalties.ai.dq)
+ if launched then
+  -- Beta 1.35 : protections et prudence de départ de la course aussi à l'extinction d'un départ arrêté.
+  e.launchAt=now
+  if launched=='jump' then
+   local a=frame.player>0 and frame.cars[frame.player] or nil
+   if e.run.playerPenalties and not C.solo(e.profile) and a then e.incidents.jumpUntil=now+K.jumpShow; e.jumpDue=true; e.jumpGoAt=now; e.jumpLap=a.lap or 0
+   else U.log(e.log,now,'INFO','faux depart du joueur: sans sanction (penalites du joueur desactivees)',frame.player) end
+  end
+ end
+ -- Faux départ : sanction servie une fois le joueur passé la ligne et à K.jumpServeDistance m (jamais à l'arrêt sur la
+ -- grille au milieu des voitures qui partent), au plus tard K.jumpServeMax s après l'extinction.
+ if e.jumpDue then
+  local a=frame.player>0 and frame.cars[frame.player] or nil
+  if not a or not a.valid then e.jumpDue=false
+  elseif (a.lap or 0)>e.jumpLap and a.spline*frame.length>=K.jumpServeDistance or now-e.jumpGoAt>=K.jumpServeMax then e.jumpDue=false; e.penalties.jumpPending=true end
+ end
+ -- Formation de la grille et feux : aucun arrêt aux stands demandé (la voie des stands longe la grille).
+ if e.incidents.standing=='grid' or e.incidents.standing=='lights' then
+  for i=1,frame.count do local cmd=e.commands[i]; if not frame.cars[i].pit then cmd.rulePit=false; cmd.weatherPit=false end end
+ end
  -- Carburant des arrêts forcés, une fois toutes les demandes d'arrêt connues (règles, météo, drapeau rouge).
  Pits.fuel(e.pits,frame,e.commands,e.run,e.profile,now,red)
  for i=1,K.maxCars do local cmd=e.commands[i]; cmd.scPark=false; cmd.scSpeed=K.unlimitedSpeed; cmd.parkReason='sc'; cmd.scRelease=false end

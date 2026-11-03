@@ -17,15 +17,25 @@ function M.call(c,name,index,value,extra,force)
 end
 -- Restitution : tentée même après une série d'échecs ; une écriture réussie remet la capacité en service.
 function M.restoreCall(c,name,index,value,extra) return M.call(c,name,index,value,extra,true) end
+-- Sonde du niveau : voiture changée sous la sonde (sonde oubliée, à refaire) ; niveau d'origine remis (sonde finie).
+local function probeSwapped(c,a) if a and a.valid and c.probeID~=(a.identity or a.id) then c.probeIndex=0; c.probeDone=false; return true end return false end
+local function probeRestore(c,a) if M.restoreCall(c,'level',a.index,c.probeOriginal) then c.probeIndex=0; c.probeDone=true end end
+-- Sonde interrompue (app désactivée, onglet Général décoché) : niveau d'origine rendu dès que la voiture le permet.
+function M.cancelProbe(c,frame)
+ if c.probeIndex==0 or frame.online or frame.replay or frame.paused then return end
+ local a=frame.cars[c.probeIndex]
+ if probeSwapped(c,a) then return end
+ if a and a.valid and a.control and not a.player and not a.pit and not a.offtrack then probeRestore(c,a) end
+end
 function M.probe(c,frame,now,g)
  if frame.online or frame.replay or frame.paused then return end
  if c.probeIndex>0 then
   local a=frame.cars[c.probeIndex]
-  if a and a.valid and c.probeID~=(a.identity or a.id) then c.probeIndex=0; c.probeDone=false; return end
+  if probeSwapped(c,a) then return end
   if not a or not a.valid or not a.control or a.pit or a.offtrack or frame.online or frame.replay then return end
   if now<c.probeAt then return end
   c.native110=a.aiLevel>=K.probeLevel-K.probeTolerance
-  if M.restoreCall(c,'level',a.index,c.probeOriginal) then c.probeIndex=0; c.probeDone=true end
+  probeRestore(c,a)
  elseif not c.probeDone and c.level.available then
   for i=1,frame.count do
    local a=frame.cars[i]
