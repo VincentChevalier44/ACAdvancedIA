@@ -111,6 +111,7 @@ messageListener=Applier.listenMessages(function(title,description,kind,time) if 
 host.note=engine.note
 -- AI flood de CSP (Beta 1.26) : état chargé par CSP au lancement ; le moteur écrit ensuite le réglage voulu.
 do local user,system,writable=Applier.floodRead(); Engine.floodInit(engine,user,system,writable); engine.floodWrite=Applier.floodWrite end
+if Applier.floodLeftover() then U.log(engine.log,0,'INFO','nettoyage: new_behaviour.ini.bak efface (reste d une version d avant la Beta 1.38)',-1) end
 if host.storageErrors>0 then U.log(engine.log,0,'WARN','invalid_storage:'..host.storageErrors,-1) end
 U.log(engine.log,0,'INFO',jitTuned and 'compilateur JIT: cache agrandi (8000 traces, 16 Mo), voitures pilotees en un seul appel protege' or 'compilateur JIT: options indisponibles, voitures pilotees une par une',-1)
 if host.upgraded and #host.upgraded>0 then U.log(engine.log,0,'INFO','profils mis a jour vers les prereglages '..Config.release..': '..table.concat(host.upgraded,', '),-1) end
@@ -421,12 +422,31 @@ local function protectUI(fn,arg)
   if text~=lastUIError then lastUIError=text; U.log(engine.log,engine.time,'ERROR','ui:'..text,-1) end
  end
 end
+-- Image lente d'une fenêtre (Beta 1.39) : au-delà de K.uiSlowFrame s, un WARN par lieu (onglet, section ; overlay), au
+-- plus K.uiSlowLogs, pour situer un gel dans le journal de la séance suivante. Première image de chaque fenêtre (polices
+-- chargées) : seuil K.uiSlowFirst.
+local slowSeen,slowCount,slowWarm={},0,{}
+local function timedUI(fn,place)
+ local started=Applier.clock(host)
+ protectUI(fn,panel)
+ local ended=started and Applier.clock(host)
+ local spent=ended and ended-started or 0
+ local window=place or 'main'
+ local limit=slowWarm[window] and K.uiSlowFrame or K.uiSlowFirst; slowWarm[window]=true
+ if spent>limit and slowCount<K.uiSlowLogs then
+  local where=place or UI.where(panel)
+  if not slowSeen[where] then
+   slowSeen[where]=true; slowCount=slowCount+1
+   U.log(engine.log,engine.time,'WARN',string.format('interface lente: %s, %.0f ms',where,spent*1000),-1)
+  end
+ end
+end
 function script.HUMANAI__MAIN()
  script.HUMANAI__MENU()
  if host.menuVisible then
   -- Une seule fois : fenêtre ramenée à la taille compacte (Beta 1.14), puis la taille du pilote est respectée.
   if not globals.windowCompacted and Applier.compactWindow(host,UI.compactSize()) then globals.windowCompacted=true; dirty() end
-  protectUI(UI.main,panel)
+  timedUI(UI.main)
  end
 end
 -- Panneau de drapeaux : protégé comme les autres fenêtres ; une erreur d'affichage est journalisée une fois et
@@ -437,6 +457,6 @@ function script.HUMANAI__FLAGS() if not released then protectUI(UI.flags,panel) 
 -- Overlay en jeu (Beta 1.25, rappel IN_GAME) : fenêtre transparente dessinée par l'app, comme SuperHUD.
 function script.HUMANAI__HUD()
  if released then return end
- protectUI(UI.hud,panel)
+ timedUI(UI.hud,'overlay')
  pcall(messages,globals.overlayMessages and globals.overlayBlockMessages and globals.enabled)
 end

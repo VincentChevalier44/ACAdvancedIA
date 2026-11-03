@@ -47,6 +47,7 @@ function M.create(native110,options)
   return h.configType or h.sim.raceSessionType or fallback end} end}
  ac.setWindowOpen=function(id,opened) h.windowOpen[id]=opened end; ac.isWindowOpen=function(id) return h.windowOpen[id]==true end
  ac.getTrackID=function() return 'test' end
+ ac.getTrackName=function() return 'Test Raceway' end
  ac.getTrackLayout=function() return h.trackLayout or '' end
  ac.getCarID=function(index) return 'model_'..index end
  ac.getDriverName=function(index) return 'Driver '..index end

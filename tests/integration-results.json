@@ -117,6 +117,10 @@
     "Beta 1.36 : puce d état sans IA dans la session",
     "Beta 1.37 : section Panneaux lumineux, accueil et diagnostic",
     "Beta 1.38 : reste new_behaviour.ini.bak effacé après chaque écriture du réglage d AI flood",
-    "Beta 1.38 : interface au niveau de la maquette"
+    "Beta 1.38 : interface au niveau de la maquette",
+    "Beta 1.39 : base de 347 voitures lue par étapes, aucune image figée",
+    "Beta 1.39 : image lente de la fenêtre journalisée une fois par lieu",
+    "Beta 1.39 : reste new_behaviour.ini.bak des anciennes versions effacé au lancement",
+    "Beta 1.39 : derniers écarts de la maquette"
   ]
 }

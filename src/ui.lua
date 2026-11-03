@@ -56,6 +56,8 @@ local function globalTips()
   elseif type(default)=='boolean' then value=default and L.tipOn or L.tipOff
   elseif type(default)=='string' then value=L.choices[default] or default
   else value=number(default)..(bounds and string.format(L.tipRange,number(bounds[1]),number(bounds[2])) or '') end
+  -- Beta 1.39 (maquette) : la note des messages masqués passe dans l'infobulle de l'interrupteur.
+  if key=='overlayBlockMessages' then text=text..'\n\n'..L.overlayBlockedNote end
   out[key]=wrap(text..'\n\n'..string.format(L.tipGlobalDefault,value))
  end
  return out
@@ -101,13 +103,16 @@ local function texts(v)
  v.builtinNames={Nordschleife=L.presetJ,Essais=L.presetP,Qualifications=L.presetQ,Course=L.presetC,Endurance=L.presetE}
  -- Textes mémorisés (préréglage chargé, liste des voitures, version, delta, pastilles, message) : refaits à la
  -- prochaine image.
+ -- Infobulles du diagnostic (Beta 1.39) : état de la calibration, zone de freinage émulée ; coupées une fois.
+ v.calibrationTips={}; for phase,text in pairs(L.calibration) do v.calibrationTips[phase]=wrap(text) end
+ v.brakeTip=wrap(L.brakeEmulation)
  v.updateLine=nil; v.loadedFor=nil; v.carFilterBuilt=nil; v.panelVersion=nil; v.infrFor=nil; v.updateCodeFor=nil; v.deltaHundredths=nil; v.giveBackName=nil; v.blueTenths=nil; v.presetMessage=''
  -- Textes et mesures de la fenêtre refaits à la prochaine image (Beta 1.35) : textes mémorisés (v.memo), ligne des
  -- panneaux lumineux du diagnostic, place à rejoindre de l'overlay.
- v.setupFor=nil; v.memo={}; v.lightsFor=nil; v.lightsValue=nil; v.lightsSection=nil; v.placeSlot=nil; v.placeMeters=nil; v.lightOpts={}; v.activeFor=nil
+ v.setupFor=nil; v.memo={}; v.placeSlot=nil; v.placeMeters=nil; v.lightOpts={}; v.activeFor=nil
 end
 function M.new(e,host,calibration,dirty)
- local v={e=e,host=host,calibration=calibration,dirty=dirty,open={},controls={},logFilter=1,patternInvalid=false,category='general',keptRules={},
+ local v={e=e,host=host,calibration=calibration,dirty=dirty,open={patternRows=true},controls={},logFilter=1,patternInvalid=false,category='general',keptRules={},
   patternRows={},patternFragments={},patternSource=false,patternProfile='',presetName='',presetMessage='',derived={},signatureValues={},builtinSignatures={},
   builtinConfigs={Nordschleife={J=C.preset('Nordschleife','J',{})},Essais={P=C.preset('Essais','P',{})},Qualifications={Q=C.preset('Qualifications','Q',{})},Course={C=C.preset('Course','C',{})},Endurance={J=C.preset('Endurance','J',{}),C=C.withRules('Endurance','C',C.preset('Endurance','C',{}))}}}
  v.patternIds={}; v.patternClassIds={}; v.patternClearIds={}
@@ -145,6 +150,27 @@ local function fontsOnce(v)
  v.fontsChecked=true; W.setFonts(Adapter.fontDir(v.host)); v.logo=Adapter.appFile('icon.png')
 end
 local function mark(v) Engine.changed(v.e); v.dirty() end
+-- Entier groupé par milliers (séparateur de la langue), pour la taille du journal.
+local function groupDigits(n)
+ local s=string.format('%d',math.floor(n))
+ local out=s:reverse():gsub('(%d%d%d)','%1'..L.thousands):reverse()
+ if out:sub(1,#L.thousands)==L.thousands then out=out:sub(#L.thousands+1) end
+ return out
+end
+-- Préréglage chargé pour le profil affiché (Beta 1.39, maquette) : un préréglage appliqué à un autre profil laisse
+-- « Aucun préréglage actif » ici. Nom lu au changement du préréglage, marque relue au changement des marques ou du
+-- profil ; préréglage personnel : profil de son entrée (aucune table neuve).
+local function loadedHere(v,e,view)
+ local g=e.g
+ if v.hereFor~=g.loadedPreset then v.hereFor=g.loadedPreset; v.hereKind,v.hereName=g.loadedPreset:match('^([^:]+):(.*)$'); v.hereMarks=nil end
+ if v.hereKind=='builtin' then
+  if v.hereMarks~=g.builtinMarks or v.hereView~=view then v.hereMarks=g.builtinMarks; v.hereView=view; v.hereBuiltin=C.mark(g,view)==v.hereName end
+  return v.hereBuiltin
+ elseif v.hereKind=='custom' then
+  for i=1,K.maxPresets do local entry=v.host.presets[i]; if entry and entry.name==v.hereName then return entry.profile==view end end
+ end
+ return true
+end
 -- Un profil modifié à la main est réglé : aucun préréglage automatique ne le remplacera.
 local function touch(v,p) p.configured=true; mark(v) end
 local globalSliders={'occLatMin','occLatMax','occMargin','occSpeedGain','gripPerLevelPct'}
@@ -196,18 +222,19 @@ local function builtinActive(v,name,profile,label)
  if active then v.activePreset=label end
  return active
 end
--- Base des voitures (dossiers content/cars), lue une fois à la demande.
+-- Base des voitures (dossiers content/cars), lue à la demande par étapes (Beta 1.39 : une part à chaque image, jamais
+-- tout d'un coup), gardée pour la session ; liste vide tant qu'elle n'est pas finie.
+local noCars={}
 local function carDatabase(v)
- if not v.carList then
-  v.carList=Snapshot.carDatabase(); v.carNames={}
-  for _,car in ipairs(v.carList) do
-   -- Nom affiché sans le dossier entre parenthèses (Beta 1.38 : lignes de la base, nom puis dossier).
-   local suffix=' ('..car.id..')'
-   car.name=car.label:sub(-#suffix)==suffix and car.label:sub(1,#car.label-#suffix) or car.label
-   v.carNames[car.id]=car.name
-  end
+ if v.carList then return v.carList end
+ local loader=v.carLoader
+ if not loader then loader=Snapshot.carLoader(); v.carLoader=loader end
+ if Snapshot.carStep(loader,Adapter.clock,v.host) then
+  v.carList=loader.list; v.carNames={}; v.carLoader=nil
+  for _,car in ipairs(v.carList) do v.carNames[car.id]=car.name end
+  return v.carList
  end
- return v.carList
+ return noCars,loader
 end
 -- Fenêtre de réglages « Racing 26 » (Beta 1.35, refonte de Vincent, canevas « ACAdvancedIA — Refonte UI ») : en-tête
 -- fixe de 84 px (marque, version, mise à jour, session, état, langue, activation, panique ; onglets inclinés et choix
@@ -502,7 +529,7 @@ local safetyStrip={parked=1,call=2,out=3,['in']=4,parking=5}
 local SAFETY_ROWS=8
 local function safetyBlock(v,e,x,y,w)
  local c=W.colors(); local g=e.g
- local list=carDatabase(v)
+ local list,loading=carDatabase(v)
  local found=g.safetyCarModel~='' and e.incidents.safety>0
  if W.visible(y,24) then
   W.heading(L.safetyGridHeading,x,y,w)
@@ -512,7 +539,7 @@ local function safetyBlock(v,e,x,y,w)
  if g.safetyCarModel~='' then
   if W.visible(y,56) then
    W.rect(x,y,w,56,c.select); W.frameRect(x,y,w,56,c.selectLine)
-   W.cell(W.upper(v.carNames[g.safetyCarModel] or g.safetyCarModel),x+12,y+8,w-140,20,c.text,'display')
+   W.cell(W.upper(v.carNames and v.carNames[g.safetyCarModel] or g.safetyCarModel),x+12,y+8,w-140,20,c.text,'display')
    local phase=found and (L.safetyPhases[e.incidents.safetyPhase] or '') or L.safetyMissing
    W.cell(fmt(v,'safetyLine','%s · %s',g.safetyCarModel,phase),x+12,y+34,w-140,11,c.muted,'mono')
    if W.button('safety_clear',L.safetyClearShort,x+w-112,y+14,100,28,false,v.tips.ui.safetyClear) then g.safetyCarModel=''; v.dirty() end
@@ -547,7 +574,6 @@ local function safetyBlock(v,e,x,y,w)
   y=y+math.max(h,24)
  end
  y=y+4
- y=y+W.paragraph(L.safetyHelp,x,y,w,12,c.label)+8
  -- Filtre puis modèle, côte à côte, libellés au-dessus (Beta 1.38, maquette).
  local half=(w-10)/2
  if W.visible(y,14) then W.label(L.safetyFilter,x,y); W.label(L.safetyModel,x+half+10,y) end
@@ -566,13 +592,15 @@ local function safetyBlock(v,e,x,y,w)
   for j=#rows,n+1,-1 do rows[j]=nil end
   v.carMoreText=n>SAFETY_ROWS and string.format(L.safetyMore,n-SAFETY_ROWS) or nil
  end
+ -- Lecture de la base en cours : « n / N » à la place des lignes.
+ if loading then y=y+W.message(fmt(v,'carLoading',L.carLoading,loading.read,#loading.folders),x,y,w,'mut')+4 end
  for i=1,math.min(#rows,SAFETY_ROWS) do
   local car=rows[i]
   if W.visible(y,28) then
    local picked=car.id==g.safetyCarModel
    if W.row(idOf('safety_pick_',i),x,y,w,28,picked,v.tips.ui.safetyPick) then g.safetyCarModel=car.id; g.safetyCarPicked=true; v.dirty() end
    local iw=W.width(car.id,11,'mono')
-   W.cell(car.name or car.label,x+10,y+8,w-iw-30,12,picked and c.cyanText or c.text)
+   W.cell(car.name,x+10,y+8,w-iw-30,12,picked and c.cyanText or c.text)
    W.right(car.id,x+w-10,y+9,11,c.label,'mono')
   end
   y=y+31
@@ -722,18 +750,21 @@ local function globalBlock(v,e,x,y,w)
    yr=yr+globalSlider(v,g,idOf('global_',key),key,L.globalShort[key] or L.globalLabels[key],number(g[key]),rx,yr,cw,W.step(bounds[1],bounds[2]),tips[key])
   end
  end
- yr=yr+8
- if W.visible(yr,24) then W.heading(L.subgroups.globalsSeed[1],rx,yr,cw,L.subgroups.globalsSeed[2]) end
- yr=yr+30
- if W.visible(yr,46) then
-  W.cell(L.seed,rx,yr+4,cw-140,12,c.body); W.help(tips.seed,rx,yr,cw-140,46,4)
+ -- Personnalités (maquette, Beta 1.39) : en pleine largeur sous les deux colonnes, hors du voile d'une section
+ -- décochée. Renvoie le bas de la liste des réglages, puis le bas du bloc.
+ local listBottom=math.max(yl,yr)
+ local py=listBottom+8
+ if W.visible(py,24) then W.heading(L.subgroups.globalsSeed[1],x,py,w,L.subgroups.globalsSeed[2]) end
+ py=py+30
+ if W.visible(py,46) then
+  W.cell(L.seed,x,py+4,w-140,12,c.body); W.help(tips.seed,x,py,w-140,46,4)
   if v.seedFor~=g.seed then v.seedFor=g.seed; v.seedText=string.format('%.0f',g.seed) end
-  W.text(v.seedText,rx,yr+22,18,c.text,'mono')
-  if W.button('reroll',L.reroll,rx+cw-130,yr+10,130,28,false,v.tips.ui.reroll,'primary') then g.seed=math.floor(U.unit(g.seed,1,1)*2147483647); mark(v) end
+  W.text(v.seedText,x,py+22,18,c.text,'mono')
+  if W.button('reroll',L.reroll,x+w-130,py+10,130,28,false,v.tips.ui.reroll,'primary') then g.seed=math.floor(U.unit(g.seed,1,1)*2147483647); mark(v) end
  end
- yr=yr+52
- yr=yr+W.paragraph(L.rerollNote,rx,yr,cw,12,c.label)+8
- return math.max(yl,yr)+8
+ py=py+52
+ py=py+W.paragraph(L.rerollNote,x,py,w,12,c.label)+8
+ return listBottom,py+8
 end
 -- État de la section (trafic, météo, accidents, arrêts) au-dessus de ses réglages.
 local function statusLines(v,e,group,view,p,out)
@@ -821,7 +852,6 @@ local function overlayBlock(v,e,x,y,w)
  yr=switchList(v,g,overlayContentKeys,L.subgroups.overlayContents,rx,yr,cw)+8
  yr=switchList(v,g,overlayNativeKeys,L.subgroups.overlayNative,rx,yr,cw)+8
  yr=switchList(v,g,overlayBehaviourKeys,L.subgroups.overlayBehaviour,rx,yr,cw)
- if g.overlayBlockMessages then yr=yr+6+W.message(L.overlayBlockedNote,rx,yr+6,cw,'mut') end
  y=math.max(yl,yr)+10
  -- Panneaux lumineux du circuit : réglés dans leur section (Beta 1.37), une ligne y mène.
  if W.visible(y,24) then
@@ -962,20 +992,23 @@ local function sectionContent(v,e,group,view,p,x,top,w,listKey,controls)
  -- réglable ; son message est en tête du volet.
  local from=y
  if group=='lights' then y=lightsStatus(v,p,x,y,w)+8 end
- local bottom
- if group=='globals' then bottom=globalBlock(v,e,x,y,w)
+ local bottom,listBottom
+ if group=='globals' then listBottom,bottom=globalBlock(v,e,x,y,w)
  else
   local list=Groups.build(listKey,controls)
   -- Jaune natif du HUD remplacé par les panneaux lumineux seulement sur un circuit équipé, section Panneaux lumineux
   -- cochée pour le profil affiché (ailleurs il sert encore) ; sa note est sous sa ligne.
   local locked=group=='accidents' and C.on(p,'lights') and v.host.trackLights==true and 'yellowHud' or nil
   y=groupColumns(v,idOf(listKey,view),list,view,p,x,y,w,locked,group=='lights')
+  listBottom=y
   if group=='rules' and v.rulesView=='safety' then y=safetyBlock(v,e,x,y+12,w) end
   if group=='endurance' then y=patternBlock(v,p,x,y+12,w) end
   if group=='lights' then y=lightsLegend(v,p,x,y+12,w) end
   bottom=y+8
  end
- if not C.on(p,group) then W.rect(x-2,from,w+4,bottom-from,W.colors().veil) end
+ -- Voile (maquette, Beta 1.39) : seulement la liste des réglages et l'état du circuit ; ni la légende, ni les
+ -- personnalités, motifs et base des voitures.
+ if not C.on(p,group) then W.rect(x-2,from,w+4,listBottom-from,W.colors().veil) end
  return bottom-top
 end
 -- Langue de l'interface : textes de la fenêtre et du panneau de drapeaux refaits aussitôt ; choix enregistré.
@@ -1028,8 +1061,9 @@ local updateChips={uptodate={'chipUpToDate','g'},checking={'chipChecking','c'},a
  none={'chipNone','n'},interrupted={'chipRestored','o'},success={'chipUpToDate','g'},rolledback={'chipRolledBack','g'},unchecked={'chipUnchecked','n'}}
 local updateKinds={uptodate='ok',success='ok',done='ok',rolledback='ok',checking='mut',downloading='mut',verifying='mut',installing='mut',ready='mut',
  none='mut',unchecked='mut',driving='mut',interrupted='wo',errNet='er',errHash='er',errWrite='er',errFormat='er',errRate='er',broken='er'}
--- États où les notes de version sont masquées (vérification, installation : maquette, Beta 1.38).
-local updateBusyViews={checking=true,downloading=true,verifying=true,installing=true,ready=true,done=true}
+-- États où les notes de version sont masquées (vérification, installation : maquette, Beta 1.38) ; montrées pendant
+-- le téléchargement (Beta 1.39, maquette).
+local updateBusyViews={checking=true,verifying=true,installing=true,ready=true,done=true}
 -- Bloc « Mises à jour » du diagnostic (MajBloc) : versions, état, notes de la version publiée et lien, commande
 -- principale (annuler, installer, réessayer), option du lancement, puis « Vérifier maintenant » et retour arrière.
 local function updateBlock(v,e,host,x,y,w)
@@ -1043,10 +1077,11 @@ local function updateBlock(v,e,host,x,y,w)
  local stopped=host.updateStopped
  -- Hauteur connue d'avance (fond du panneau) : notes et lien, message, boutons.
  local notes=r and (newer or view=='success') and not updateBusyViews[view] and math.min(K.updateNotes,#r.notes) or 0
- local message=port.ready and updateText(v,u,view) or L.updateUnavailable
- local mh=#W.lines(message,w-33,12)*W.lineHeight(12)
+ -- Version disponible (Beta 1.39, maquette) : aucun message, les versions et le bouton suffisent.
+ local message=port.ready and (view~='available' and updateText(v,u,view) or '') or L.updateUnavailable
+ local mh=message~='' and #W.lines(message,w-33,12)*W.lineHeight(12)+8 or 0
  local kh=#W.lines(L.updateKept,w-20,12)*W.lineHeight(12)
- local height=8+24+8+18+(newer and 16 or 0)+mh+8+(notes>0 and notes*18+30 or 0)+(r and 22 or 0)+(port.ready and (34+30+32) or 0)+kh+12
+ local height=8+24+8+18+(newer and 16 or 0)+mh+(notes>0 and notes*18+30 or 0)+(r and 22 or 0)+(port.ready and (34+30+32) or 0)+kh+12
  W.panel(x,y,w,height)
  y=y+8
  local chip=updateChips[view] or updateChips.unchecked
@@ -1060,7 +1095,7 @@ local function updateBlock(v,e,host,x,y,w)
  if W.visible(y,16) then W.cell(v.updateInstalledText,x+10,y,w-20,12,c.muted) end
  y=y+18
  if v.updateAvailableText then if W.visible(y,16) then W.cell(v.updateAvailableText,x+10,y,w-20,12,c.cyanText) end; y=y+16 end
- y=y+W.message(message,x+10,y,w-20,updateKinds[view] or 'mut')+8
+ if message~='' then y=y+W.message(message,x+10,y,w-20,updateKinds[view] or 'mut')+8 end
  if notes>0 then
   if W.visible(y,16) then W.label(fmt(v,'notesOf',L.updateNotesOf,r.version),x+10,y) end
   y=y+16
@@ -1088,6 +1123,10 @@ local function updateBlock(v,e,host,x,y,w)
    elseif newer and Update.offered(u) then
     -- En conduite : bouton grisé et sans effet (copie seulement à l'arrêt).
     if W.button('update_install',L.updateButton,x+10,y,w-20,28,stopped,stopped and tips.updateInstall or tips.updateDriving,stopped and 'primary' or 'disabled') then updateAct(v,'install') end
+   elseif view=='none' then
+    -- Aucune version publiée (maquette, Beta 1.39) : « Vérifier maintenant » à la place de l'action, en contour.
+    checkShown=true
+    if W.button('update_check',L.updateCheckNow,x+10,y,w-20,28,false,tips.updateCheck,cooling and 'disabled' or 'outline') then updateAct(v,'check') end
    elseif updateErrors[view] then
     checkShown=true
     if W.button('update_check',L.updateRetry,x+10,y,w-20,28,false,tips.updateCheck,cooling and 'disabled' or 'outline') then updateAct(v,'check') end
@@ -1102,8 +1141,7 @@ local function updateBlock(v,e,host,x,y,w)
    local back=u.previous~=nil
    local half=(w-26)/2
    local bw=back and half or w-20
-   -- Aucune version publiée : « Vérifier maintenant » en bouton principal (maquette).
-   if not checkShown and W.button('update_check',L.updateCheckNow,x+10,y,bw,24,false,tips.updateCheck,cooling and 'disabled' or view=='none' and 'primary' or nil) then updateAct(v,'check') end
+   if not checkShown and W.button('update_check',L.updateCheckNow,x+10,y,bw,24,false,tips.updateCheck,cooling and 'disabled' or nil) then updateAct(v,'check') end
    if back then
     if v.rollbackFor~=u.previous then v.rollbackFor=u.previous; v.rollbackText=string.format(L.updateRollback,u.previous) end
     local bx=checkShown and x+10 or x+16+half
@@ -1218,7 +1256,7 @@ local function headerBar(v,e)
   W.rect(mx,10,1,28,c.ruleHead)
   local frame=e.frame
   local track=frame and frame.track or false
-  if v.sessionFor~=track or v.sessionProfile~=e.profile then v.sessionFor=track; v.sessionProfile=e.profile; v.sessionLine=frame and (frame.track~='' and frame.track or L.noSession)..' / '..L.profiles[e.profile] or L.noSession end
+  if v.sessionFor~=track or v.sessionProfile~=e.profile then v.sessionFor=track; v.sessionProfile=e.profile; v.sessionLine=frame and (frame.trackName~='' and frame.trackName or frame.track~='' and frame.track or L.noSession)..' / '..L.profiles[e.profile] or L.noSession end
   W.cell(W.upper(v.sessionLine),mx+12,9,mw-12,14,c.text,'cond')
   local ready=live(e)
   -- Garde (Beta 1.38, maquette) : prête, la session détectée, sa source et le profil en cours (« Prêt · course
@@ -1414,7 +1452,7 @@ local function homeTab(v,e,host)
  local line
  local lineKind
  if v.activePreset then line=fmt(v,'presetLine','%s%s',L.activePreset,v.activePreset); lineKind='ok'
- elseif e.g.loadedPreset~='' then line=fmt(v,'presetLine','%s%s%s',L.loadedPreset,v.loadedName,L.presetModified); lineKind='mut'
+ elseif e.g.loadedPreset~='' and loadedHere(v,e,view) then line=fmt(v,'presetLine','%s%s%s',L.loadedPreset,v.loadedName,L.presetModified); lineKind='mut'
  else line=L.noActivePreset; lineKind='mut' end
  local restore=fmt(v,'restore','%s%s',L.restoreShort,L.profiles[view])
  local rw=math.max(130,W.width(W.upper(restore),12,'display')+34)
@@ -1461,7 +1499,7 @@ local function homeTab(v,e,host)
   local neutral=t.neutral and t.neutralMode or nil
   kpi(x+12,ky,unit*3+10,L.kpiNeutral,neutral and W.upper(L.neutralNames[neutral]) or (liveNow and L.neutralNames.none or '—'),neutral~=nil,nil,false,liveNow)
   local value=host.flagOverride and host.flagValue or 0
-  local lightText=host.trackLights==false and L.kpiLightsNone or not C.on(e.p,'lights') and L.kpiLightsOff or host.trackLights==nil and L.kpiLightsUnknown or value~=0 and fmt(v,'kpiLights','%s%s',L.lightShort[value] or '',lightsPhase(e,value)) or L.kpiLightsIdle
+  local lightText=host.trackLights==false and L.kpiLightsNone or not C.on(e.p,'lights') and L.kpiLightsOff or host.trackLights==nil and (e.frame and e.guard~='init' and L.kpiLightsUnknown or L.kpiLightsNone) or value~=0 and fmt(v,'kpiLights','%s%s',L.lightShort[value] or '',lightsPhase(e,value)) or L.kpiLightsIdle
   kpi(x+12+3*(unit+5)+5,ky,unit*3+5,L.kpiLights,lightText,false,value~=0 and v.lightColors[value] or c.rule,false,liveNow)
  end
  y=y+8+24+8+2*59+8+GAP
@@ -1667,7 +1705,7 @@ local function sectionPane(v,e,group,view,p,opts)
  -- Overlay en jeu : verrou et replacement en tête.
  if group=='overlay' then
   local g=e.g; local bw=(iw-6)/2
-  if W.button('overlay_lock',g.overlayLocked and L.overlayUnlock or L.overlayLock,ix,y,bw,28,not g.overlayLocked,v.globalTips.overlayLocked,g.overlayLocked and 'primary' or 'outline') then g.overlayLocked=not g.overlayLocked; v.dirty() end
+  if W.button('overlay_lock',g.overlayLocked and L.overlayUnlock or L.overlayLock,ix,y,bw,28,not g.overlayLocked,v.globalTips.overlayLocked,g.overlayLocked and 'primary' or nil) then g.overlayLocked=not g.overlayLocked; v.dirty() end
   if W.button('overlay_recenter',L.overlayRecenter,ix+bw+6,y,bw,28,false,v.tips.ui.overlayRecenter) then g.overlayX=-1; g.overlayY=-1; g.overlayScale=1; v.dirty() end
   y=y+34
   if not g.overlayLocked then y=y+W.message(L.overlayHint,ix,y,iw,'ok')+6 end
@@ -1812,18 +1850,17 @@ local function diagnosticTab(v,e,host)
  local y=top-offset
  y=updateBlock(v,e,host,x,y,w)
  if frame then
+  -- Ligne CSP (maquette, Beta 1.39) : libellés discrets, valeurs en clair ; morceaux refaits au changement.
   if v.cspFor~=frame.patch or v.cspTrack~=frame.track or v.cspLength~=frame.length then
    v.cspFor=frame.patch; v.cspTrack=frame.track; v.cspLength=frame.length
-   v.cspLine=L.patch..frame.patch..' · '..L.track..frame.track..' · '..string.format(L.trackLength,frame.length)
+   local parts=v.cspParts or {}; v.cspParts=parts
+   parts[1]=L.patch; parts[2]=frame.patch; parts[3]=' · '..L.track; parts[4]=frame.track; parts[5]=' · '..L.splineLabel; parts[6]=string.format(L.meters,frame.length)
   end
-  y=y+W.paragraph(v.cspLine,x+2,y,w,11,c.label,'mono')+4
-  local lightValue=host.flagOverride and host.flagValue or 0
-  local lightsOn=C.on(e.p,'lights')
-  if v.lightsFor~=host.trackLights or v.lightsValue~=lightValue or v.lightsSection~=lightsOn then
-   v.lightsFor=host.trackLights; v.lightsValue=lightValue; v.lightsSection=lightsOn
-   v.lightsLine=L.diagLights..(host.trackLights==true and L.diagLightsOn or host.trackLights==false and L.diagLightsOff or L.diagLightsUnknown)..' · '..(lightsOn and (L.lightNames[lightValue] or '') or L.kpiLightsOff)
+  if W.visible(y,14) then
+   local cx=x+2
+   for i=1,6 do local part=v.cspParts[i]; W.text(part,cx,y,11,i%2==0 and c.soft or c.label,'mono'); cx=cx+W.width(part,11,'mono') end
   end
-  y=y+W.paragraph(v.lightsLine,x+2,y,w,11,c.label,'mono')+8
+  y=y+20
  end
  -- Calibration des signes.
  local ch=8+24+8+28+8
@@ -1834,13 +1871,17 @@ local function diagnosticTab(v,e,host)
   W.chipRight(L.calibrationShort[phase] or phase,x+w-10,y+11,phase=='ready' and 'g' or 'c')
  end
  if W.visible(y+40,28) then
-  if v.signFor~=v.calibration.phase or v.signOffset~=e.g.offsetSign or v.signSide~=e.g.sideSign then
-   v.signFor=v.calibration.phase; v.signOffset=e.g.offsetSign; v.signSide=e.g.sideSign
-   v.signText=L.calibration[v.calibration.phase]..' — '..L.signValue..e.g.offsetSign..' / '..e.g.sideSign
+  if v.signOffset~=e.g.offsetSign or v.signSide~=e.g.sideSign then
+   v.signOffset=e.g.offsetSign; v.signSide=e.g.sideSign; v.signText=e.g.offsetSign..' / '..e.g.sideSign
   end
-  -- Une ligne (maquette) : état et repère, puis « Relancer » à droite.
+  -- Une ligne (maquette, Beta 1.39) : libellé et signes en chiffres alignés, l'état est dans la puce (son texte long en
+  -- infobulle), puis « Relancer » à droite.
   local bw=math.max(90,W.width(W.upper(L.calibrateShort),12,'display')+26)
-  W.cell(v.signText,x+10,y+46,w-30-bw,12,c.soft)
+  local lw=math.min(W.width(L.signLabel,12),math.max(40,w-30-bw-70))
+  W.cell(L.signLabel,x+10,y+46,lw,12,c.soft)
+  W.text(v.signText,x+18+lw,y+46,12,c.text,'mono')
+  local stateTip=v.calibrationTips[v.calibration.phase]
+  if stateTip then W.help(stateTip,x+10,y+40,w-30-bw,24,4) end
   if W.button('calibrate',L.calibrateShort,x+w-10-bw,y+40,bw,24,false,v.tips.ui.calibrate,'outline') then e.recalibrateRequested=true end
  end
  y=y+ch+GAP
@@ -1848,7 +1889,7 @@ local function diagnosticTab(v,e,host)
  local half=(w-20-12)/2
  local zh=8+24+8+18+30+30+8
  W.panel(x,y,w,zh)
- if W.visible(y+8,24) then W.heading(L.flash,x+10,y+8,half); W.heading(L.zones,x+22+half,y+8,half,intText(#e.zones),'mono') end
+ if W.visible(y+8,24) then W.heading(L.diagFlash,x+10,y+8,half); W.heading(L.diagZones,x+22+half,y+8,half,intText(#e.zones),'mono') end
  if W.visible(y+40,80) then
   if v.flashFor~=e.g.flashField or v.flashEvent~=e.flash.eventId or v.flashCount~=e.flash.eventCount then
    v.flashFor=e.g.flashField; v.flashEvent=e.flash.eventId; v.flashCount=e.flash.eventCount
@@ -1856,8 +1897,10 @@ local function diagnosticTab(v,e,host)
    v.flashEventText=L.event..e.flash.eventId..' / '..e.flash.eventCount
   end
   W.cell(v.flashText,x+10,y+42,half,12,e.g.flashField~='' and c.soft or c.warn)
+  -- Dernier événement des phares (Beta 1.39) : en infobulle du champ.
+  W.help(v.flashEventText,x+10,y+40,half,18,4)
   if W.button('learn',L.learnShort,x+10,y+62,half,26,e.flash.learnUntil>e.time,v.tips.ui.learn,'outline') then Flash.learn(e.flash,e.time) end
-  if e.flash.learnUntil>e.time then W.cell(L.learning,x+10,y+92,half,11,c.cyanText) else W.cell(v.flashEventText,x+10,y+92,half,11,c.label) end
+  if e.flash.learnUntil>e.time then W.cell(L.learning,x+10,y+92,half,11,c.cyanText) end
   local zx=x+22+half; local zw=(half-4)/2
   if frame then
    if W.button('mark_start',L.markStartShort,zx,y+40,zw,26,e.zoneStart>=0,v.tips.ui.markStart) and frame.player>0 then e.zoneStart=frame.cars[frame.player].spline end
@@ -1870,7 +1913,14 @@ local function diagnosticTab(v,e,host)
  end
  y=y+zh+GAP
  -- Journal de session.
- local journalText=host.journalPath and fmt(v,'journal',L.journalPath,host.journalPath,host.journalBytes or 0) or L.journalOff
+ -- Journal (maquette, Beta 1.39) : fin du chemin et taille groupée par milliers, refaites au changement.
+ if host.journalPath and (v.journalFor~=host.journalPath or v.journalBytesFor~=(host.journalBytes or 0)) then
+  v.journalFor=host.journalPath; v.journalBytesFor=host.journalBytes or 0
+  local path=host.journalPath:gsub('\\','/')
+  local tail=path:match('([^/]+/[^/]+)$') or path
+  v.journalText=string.format(L.journalShort,(tail~=path and '…/' or '')..tail,groupDigits(v.journalBytesFor))
+ end
+ local journalText=host.journalPath and v.journalText or L.journalOff
  local jh=8+24+8+#W.lines(journalText,w-20,11,'mono')*W.lineHeight(11)+10
  W.panel(x,y,w,jh)
  if W.visible(y+8,24) then
@@ -1882,13 +1932,18 @@ local function diagnosticTab(v,e,host)
  -- Capacités CSP : grille de deux colonnes, état à droite de chaque ligne.
  local names=Caps.names
  local ready=0; for _,name in ipairs(names) do local r=host.caps[name].reason; if r=='ready' or r=='present' then ready=ready+1 end end
- if v.capsFor~=ready then v.capsFor=ready; v.capsText=string.format(L.capsCount,ready,#names) end
+ if v.capsFor~=ready then v.capsFor=ready; v.capsReady=intText(ready); v.capsTotal=' / '..#names end
  local rows=math.ceil(#names/2)
  local notesText=fmt(v,'capsNotes','%s%s',L.levelMode,host.caps.probeDone and L.choices[host.caps.levelMode] or L.probe)
- local nh=#W.lines(notesText,w-20,12)*W.lineHeight(12)+#W.lines(L.brakeEmulation,w-20,11)*W.lineHeight(11)+#W.lines(L.gripUnits,w-20,11)*W.lineHeight(11)+8
+ local nh=#W.lines(notesText,w-20,12)*W.lineHeight(12)+#W.lines(L.gripUnits,w-20,11)*W.lineHeight(11)+8
  local kh=8+24+6+rows*20+6+nh+8
  W.panel(x,y,w,kh)
- if W.visible(y+8,24) then W.heading(L.capabilities,x+10,y+8,w-20,v.capsText,'mono') end
+ if W.visible(y+8,24) then
+  -- Compteur (maquette, Beta 1.39) : capacités prêtes en vert, total en gris.
+  W.heading(L.capabilities,x+10,y+8,w-20)
+  local tw=W.width(v.capsTotal,11,'mono'); local rw=W.width(v.capsReady,11,'mono')
+  W.text(v.capsTotal,x+w-10-tw,y+14,11,c.label,'mono'); W.text(v.capsReady,x+w-10-tw-rw,y+14,11,c.ok,'mono')
+ end
  local cy=y+38; local colW=(w-20-12)/2
  for i,name in ipairs(names) do
   local cap=host.caps[name]
@@ -1909,9 +1964,11 @@ local function diagnosticTab(v,e,host)
  end
  local ny=cy+rows*20+6
  if W.visible(ny,nh) then
+  local notesTop=ny
   ny=ny+W.paragraph(notesText,x+10,ny,w-20,12,c.label)
-  ny=ny+W.paragraph(L.brakeEmulation,x+10,ny,w-20,11,c.label)
   W.paragraph(L.gripUnits,x+10,ny,w-20,11,c.label)
+  -- Zone de freinage émulée (Beta 1.39) : en infobulle des notes, absente de la maquette.
+  W.help(v.brakeTip,x+10,notesTop,w-20,nh,4)
  end
  y=y+kh+GAP
  -- Fonctions IA exposées par CSP : en-tête cliquable (nombre, flèche), noms seulement.
@@ -2079,7 +2136,7 @@ local function windowSetup(v)
  for _,name in ipairs(Caps.names) do v.capLong[name]=L[name..'Label'] or L[name] or name; v.capLabels[name]=L.capNames[name] or v.capLong[name]; v.capTips[name]={} end
  v.versionChip=nil; v.pillFor=nil; v.sessionFor=nil; v.guardFor=nil; v.navFor=nil; v.rulesResetFor=nil; v.capsFor=nil; v.apiFor=nil; v.carsFor=nil
  v.sectionsFor=nil; v.warnCountFor=nil; v.customCountFor=nil; v.bytesFor=nil; v.noteFor=nil; v.patternCountFor=nil; v.modFor=nil
- v.updateVersions=nil; v.updateHeaderFor=nil; v.updateAlertFor=nil; v.updateReportFor=nil; v.rollbackFor=nil; v.signFor=nil; v.flashFor=nil; v.cspFor=nil; v.perfFor=nil
+ v.updateVersions=nil; v.updateHeaderFor=nil; v.updateAlertFor=nil; v.updateReportFor=nil; v.rollbackFor=nil; v.flashFor=nil; v.cspFor=nil; v.journalFor=nil; v.perfFor=nil
  v.scaleFor=nil; v.opacityFor=nil; v.contentFor=nil; v.infoFor=nil; v.seedFor=nil; v.gripFor=nil; v.guardKind=nil
 end
 local function drawWindow(v,e,host)
@@ -2089,6 +2146,13 @@ local function drawWindow(v,e,host)
  elseif v.tab=='settings' then settingsTab(v,e)
  elseif v.tab=='rules' then rulesTab(v,e)
  else diagnosticTab(v,e,host) end
+end
+-- Onglet, section et vue des règles affichés (Beta 1.39), pour situer une image lente dans le journal ; texte fait
+-- seulement quand une image est lente.
+function M.where(v)
+ if v.tab=='settings' then return 'reglages/'..tostring(v.category) end
+ if v.tab=='rules' then return 'regles/'..tostring(v.rulesView) end
+ return tostring(v.tab)
 end
 function M.main(v)
  local e,host=v.e,v.host
@@ -2129,7 +2193,8 @@ local function panelPalette(alpha)
   local values={red={0.882,0.039,0.118,1},yellow={1,0.824,0.122,1},blue={0.184,0.482,1,1},green={0.18,0.878,0.498,1},pit={0.949,0.953,0.961,1},
    back={0.075,0.078,0.082,0.86},ink={0.067,0.071,0.078,1},over={1,0.353,0.306,1},amber={1,0.761,0.239,1},orange={1,0.478,0.102,1},
    under={0.18,0.878,0.498,1},overBack={0.227,0.086,0.078,0.94},underBack={0.055,0.165,0.106,0.94},amberBack={0.18,0.141,0.063,0.94},
-   off={0.165,0.18,0.212,1},best={0.698,0.424,1,1}}
+   off={0.165,0.18,0.212,1},best={0.698,0.424,1,1},
+   blueSide={0.122,0.373,0.878,1},underLabel={0.624,0.851,0.722,1},overLabel={1,0.706,0.678,1}}
   local out={}
   for key,c in pairs(values) do local ok,color=pcall(rgbm,c[1],c[2],c[3],c[4]*alpha); if not ok then return false end; out[key]=color end
   if pcall(vec2,0,0) and callable(ui.drawRectFilled) and callable(ui.windowSize) and callable(ui.getCursor)
@@ -2317,7 +2382,7 @@ local function deltaBox(v,colors,r,value,blink)
  ui.drawRectFilled(pv(r[1],r[2]),pv(r[3],r[4]),negative and (blink and colors.overBack or colors.pillBack) or colors.underBack,0)
  if callable(ui.drawRect) then ui.drawRect(pv(r[1],r[2]),pv(r[3],r[4]),negative and colors.over or colors.under,0,nil,1.5) end
  local h=r[4]-r[2]
- font('label',true); write(L.deltaLabel,h*0.16,box(R1,r[1],r[2]+2,r[3],r[2]+h*0.26),colors.dim,CENTER); font('label',false)
+ font('label',true); write(L.deltaLabel,h*0.16,box(R1,r[1],r[2]+2,r[3],r[2]+h*0.26),negative and colors.overLabel or colors.underLabel,CENTER); font('label',false)
  local text=deltaText(v,value)
  font('mono',true); write(text,math.min(h*0.5,fitSize(text,h*0.5,(r[3]-r[1])*0.92)),box(R2,r[1],r[2]+h*0.22,r[3],r[4]-2),negative and colors.over or colors.under,CENTER); font('mono',false)
 end
@@ -2328,6 +2393,17 @@ local function placeBox(colors,r,label,value)
  local h=r[4]-r[2]
  font('label',true); write(label,h*0.16,box(R1,r[1],r[2]+2,r[3],r[2]+h*0.26),colors.dim,CENTER); font('label',false)
  font('mono',true); write(value,math.min(h*0.42,fitSize(value,h*0.42,(r[3]-r[1])*0.9)),box(R2,r[1],r[2]+h*0.22,r[3],r[4]-2),colors.yellow,CENTER); font('mono',false)
+end
+-- Écart de la voiture qui prend un tour (drapeau bleu, Beta 1.39, maquette) : case en parallélogramme à droite du titre,
+-- centrée dans la place du delta.
+local function blueBox(colors,r,text,u)
+ local h=math.min(30*u,r[4]-r[2]); local size=15*u
+ font('cond',true)
+ local bw=math.min(r[3]-r[1],textWidth(text,size)+size*1.6)
+ local y1=r[2]+(r[4]-r[2]-h)*0.5; local x2=r[3]; local x1=x2-bw; local slant=h*0.27
+ quad(x1+slant,y1,x2,y1,x2-slant,y1+h,x1,y1+h,colors.blueSide)
+ write(text,size,box(R1,x1,y1,x2,y1+h),colors.text,CENTER)
+ font('cond',false)
 end
 -- Pastilles d'état, de gauche à droite (la plus urgente d'abord) : texte réduit pour qu'elles tiennent sur la ligne,
 -- jamais sous une taille lisible ; à défaut, les moins urgentes cèdent leur place.
@@ -2355,7 +2431,7 @@ end
 local function pill(v,count,text,color,fill,edge,blinking)
  count=count+1; local item=v.pillItems[count]
  if not item then item={}; v.pillItems[count]=item end
- item.text=text; item.color=color; item.fill=fill; item.edge=edge; item.blink=blinking==true
+ item.text=W.upper(text); item.color=color; item.fill=fill; item.edge=edge; item.blink=blinking==true
  return count
 end
 -- Textes des pastilles qui changent (secondes restantes, écart) : refaits seulement quand la valeur affichée change.
@@ -2406,10 +2482,11 @@ function M.overlayParts(v,force)
  parts.pitCall=not idle and panel.kind=='red' and panel.redPit==false
  parts.blueGap=not idle and panel.kind=='blue' and panel.blueGap or nil
  parts.closed=e.incidents.pitsClosed and panel.kind~='red'
- -- Beta 1.38 (maquette) : compteur d'infractions sous l'avertissement, rappel des stands sous la voiture endommagée.
+ -- Beta 1.38 (maquette) : compteur d'infractions sous l'avertissement, rappel des stands sous la voiture endommagée
+ -- et, depuis la Beta 1.39, sous l'arrêt obligatoire.
  parts.infraction=not idle and panel.decided=='warning' and (panel.infractions or 0)>0
- parts.repair=not idle and panel.kind=='meatball'
- parts.pills=parts.band and (not idle and (panel.noPass or panel.drsBlocked) or parts.notice or parts.giveBack~=nil or parts.pitCall or parts.blueGap~=nil or parts.closed or parts.infraction or parts.repair) and true or false
+ parts.repair=not idle and (panel.kind=='meatball' or panel.kind=='pit')
+ parts.pills=parts.band and (not idle and (panel.noPass or panel.drsBlocked) or parts.notice or parts.giveBack~=nil or parts.pitCall or parts.blueGap~=nil and e.delta.value~=nil or parts.closed or parts.infraction or parts.repair) and true or false
  return parts
 end
 -- Hauteur de l'overlay en unités de référence.
@@ -2499,7 +2576,8 @@ local function flags(v,force)
  if not p.band then v.drawnHeight=height; return height end
  local bandTop=y
  local place=not idle and kind=='standing' and panel.slotText~=nil
- local boxed=delta~=nil or place
+ local blueSide=not idle and kind=='blue' and panel.blueGap or nil
+ local boxed=delta~=nil or place or blueSide~=nil
  v.flagBoxes=v.flagBoxes or {}
  local l=M.flagLayout(w,y+K.hudBandH*u,y,boxed,false,top,3*u,v.flagBoxes)
  -- Clignotement à 2 Hz : rouge et bleu tout le temps, tout nouveau drapeau quelques secondes.
@@ -2530,7 +2608,8 @@ local function flags(v,force)
   if sigle and sigle~='' then font('display',true); write(sigle,(f[3]-f[1])*(#sigle>2 and 0.34 or #sigle>1 and 0.44 or 0.6),f,(kind=='red' or kind=='blue') and colors.text or colors.ink,CENTER); font('display',false) end
  end
  if place and l.delta then local label,value=placeText(v,panel.slotText,panel.slotDistance,panel.slotPlaced,panel.slotPassed); placeBox(colors,l.delta,label,value)
- elseif delta and l.delta then deltaBox(v,colors,l.delta,delta,blink) elseif delta then deltaText(v,delta) end
+ elseif delta and l.delta then deltaBox(v,colors,l.delta,delta,blink) elseif delta then deltaText(v,delta)
+ elseif blueSide and l.delta then blueBox(colors,l.delta,W.upper(blueText(v,blueSide)),u) end
  local title=idle and L.flagTitles.clear or panel.title; local short=idle and L.flagShort.clear or panel.short
  font('display',true); write(title,fitSize(title,l.fontTitle,l.title[3]-l.title[1]),l.title,idle and colors.dim or colors.text,START); font('display',false)
  -- Feux de départ (étape B) : à droite du titre, à la place du delta.
@@ -2564,12 +2643,12 @@ local function flags(v,force)
    count=pill(v,count,v.deltaPill,late and colors.over or colors.under,late and colors.overBack or colors.underBack,nil,late)
   end
   if p.pitCall then count=pill(v,count,L.pitPill,colors.ink,colors.pit,nil,true) end
-  if p.blueGap then count=pill(v,count,blueText(v,p.blueGap),colors.text,colors.blue,nil,false) end
+  if p.blueGap and delta then count=pill(v,count,blueText(v,p.blueGap),colors.text,colors.blue,nil,false) end
   if p.closed then count=pill(v,count,L.pitClosedPill,colors.ink,colors.amber,nil,false) end
-  if p.infraction then count=pill(v,count,infractionText(v,panel.infractions,panel.infractionMax),colors.amber,colors.amberBack,nil,false) end
+  if p.infraction then count=pill(v,count,infractionText(v,panel.infractions,panel.infractionMax),colors.ink,colors.amber,nil,false) end
   if p.repair then count=pill(v,count,L.pitPill,colors.ink,colors.pit,nil,false) end
   if panel.noPass and not idle then
-   if panel.passed then count=pill(v,count,panel.passBad,colors.text,colors.overBack,colors.over,true)
+   if panel.passed then count=pill(v,count,panel.passBad,colors.ink,colors.over,nil,true)
    else count=pill(v,count,panel.passOk,colors.under,colors.underBack,nil,false) end
   end
   if panel.drsBlocked and not idle then count=pill(v,count,panel.drsText,colors.over,colors.overBack,nil,false) end

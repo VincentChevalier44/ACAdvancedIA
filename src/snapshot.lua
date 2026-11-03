@@ -26,7 +26,7 @@ local function playerDamage(s,a)
  s.playerBlown=blown; s.damageRate=U.number(ac.getSim().mechanicalDamageRate,0,1000,1); s.playerDamageSlot=a.slot
 end
 function M.new()
- local s={cars={},count=0,player=0,errors=0,invalid=0,track='',patch='',conflict='',metaAt=-1,session=-1,
+ local s={cars={},count=0,player=0,errors=0,invalid=0,track='',trackName='',patch='',conflict='',metaAt=-1,session=-1,
   online=true,replay=false,paused=false,menu=false,started=false,finished=false,length=0,time=0,startIn=0,left=0,wet=0,rain=0,water=0,type=1,stamp=-1,configType=0,configTrackDay=false,configSession=-1,
   flag=0,fuelRate=1,pitWindowStart=0,pitWindowEnd=0,simTime=0,sessionLaps=0,sessionMinutes=0,timedRace=false,leaderLaps=0,
   playerDamageSlot=0,playerDamageAt=-1,playerBody=0,playerSuspension=0,playerEngine=1000,playerGearbox=0,playerBlown=false,damageRate=1}
@@ -223,6 +223,8 @@ function M.read(s,dt,now,light)
   if sessionOK then s.sessionLaps=math.floor(U.number(laps,0,100000,0)); s.sessionMinutes=U.number(minutes,0,100000,0); s.timedRace=timed==true end
   local patchOK,patch=pcall(ac.getPatchVersion); if patchOK and type(patch)=='string' then s.patch=patch:sub(1,K.metadataLength) end
   local trackOK,track=pcall(ac.getTrackID); if trackOK and type(track)=='string' then s.track=track end
+  -- Beta 1.39 : nom affiché du circuit (en-tête de la fenêtre) ; l'identifiant reste pour le diagnostic.
+  local nameOK,name=pcall(ac.getTrackName); if nameOK and type(name)=='string' then s.trackName=name:sub(1,K.metadataLength) end
   if not light then for i=1,s.count do
    local a=s.cars[i]
    local oldID,oldName=a.id,a.name
@@ -298,26 +300,42 @@ local function carName(root,folder)
  if name and name:find('%S') and not name:find('%c') then return name end
  return folder
 end
--- Voitures installées (content/cars), lues une fois à la demande : dossier, nom affiché, libellé « nom (dossier) » et
--- clé de recherche ; triées par nom affiché.
-function M.carDatabase()
- local list,folders={},{}
+-- Voitures installées (content/cars) : dossier, nom affiché et clé de recherche, triées par nom affiché. Beta 1.39 :
+-- lues par étapes (347 dossiers lus d'un coup figeaient la fenêtre 2,2 s en jeu) : dossiers listés au premier pas, puis
+-- au plus K.carReadMax noms affichés par pas, et pas au-delà de K.carReadBudget s lues par clock(arg) (au moins un ;
+-- sans horloge, le nombre seul) ; triées à la fin.
+function M.carLoader() return {folders={},list={},read=0,started=false,done=false,root=''} end
+local function byName(a,b) return a.sort<b.sort or a.sort==b.sort and a.id<b.id end
+function M.carStep(loader,clock,arg)
+ if loader.done then return true end
  local ok=pcall(function()
-  if not io or type(io.scanDir)~='function' or not ac.getFolder or not ac.FolderID or not ac.FolderID.ContentCars then return end
-  local root=ac.getFolder(ac.FolderID.ContentCars)
-  if type(root)~='string' then return end
-  io.scanDir(root,'*',function(name,attributes)
-   -- Attributs : structure FFI de CSP, lue directement (pas une table Lua).
-   if type(name)=='string' and attributes~=nil and attributes.isDirectory==true and #folders<K.maxCarList and name:match('^[%w_%-%.]+$') then folders[#folders+1]=name end
-  end)
-  for i,folder in ipairs(folders) do
-   local name=carName(root,folder)
-   list[i]={id=folder,name=name,label=name==folder and folder or name..' ('..folder..')',key=(name..' '..folder):lower(),sort=name:lower()}
+  local folders=loader.folders
+  if not loader.started then
+   loader.started=true
+   if not io or type(io.scanDir)~='function' or not ac.getFolder or not ac.FolderID or not ac.FolderID.ContentCars then loader.done=true; return end
+   local root=ac.getFolder(ac.FolderID.ContentCars)
+   if type(root)~='string' then loader.done=true; return end
+   loader.root=root
+   io.scanDir(root,'*',function(name,attributes)
+    -- Attributs : structure FFI de CSP, lue directement (pas une table Lua).
+    if type(name)=='string' and attributes~=nil and attributes.isDirectory==true and #folders<K.maxCarList and name:match('^[%w_%-%.]+$') then folders[#folders+1]=name end
+   end)
+   return
   end
+  local started=clock and clock(arg); local list=loader.list
+  for _=1,K.carReadMax do
+   local i=loader.read+1; local folder=folders[i]
+   if not folder then break end
+   local name=carName(loader.root,folder)
+   list[i]={id=folder,name=name,key=(name..' '..folder):lower(),sort=name:lower()}
+   loader.read=i
+   local now=started and clock(arg)
+   if now and now-started>=K.carReadBudget then break end
+  end
+  if loader.read>=#folders then table.sort(list,byName); loader.done=true end
  end)
- if not ok then list={} end
- table.sort(list,function(a,b) return a.sort<b.sort or a.sort==b.sort and a.id<b.id end)
- return list
+ if not ok then loader.list={}; loader.done=true end
+ return loader.done
 end
 local function menuVisible() local sim=ac.getSim(); return sim.isPaused==true or sim.isInMainMenu==true end
 function M.menu()

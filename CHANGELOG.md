@@ -1,5 +1,21 @@
 # Changelog
 
+## Beta 1.39 — 3 November 2026
+
+A 2.2-second freeze of the settings window fixed, and the last gaps of the fidelity review of Beta 1.38 closed; delivered through the in-app update.
+
+- **Freeze fixed (seen in game with 347 installed cars):** the **Safety Car** view read the name of every car of `content/cars` (`ui/ui_car.json`) in one frame (CSP logged *Slow script … 2156 ms*). The car base is now read a little at every frame (at most 24 files, never more than 4 ms of reading, at least one), with *Reading the car base… n / N* in place of the rows; it is read once per session and filtered in memory.
+- **Slow frames in the session log:** a frame of the window or of the overlay longer than 50 ms (500 ms for the first frame of each, while its fonts load) is logged once per place (`WARN interface lente: regles/safety, 85 ms`; tab, section or Racing-rules view; at most eight lines), so the next session pinpoints any remaining freeze.
+- **CSP AI flood setting:** a `new_behaviour.ini.bak` left in `Documents/Assetto Corsa/cfg/extension` by versions before Beta 1.38 is deleted at launch (that file only) and logged once (`nettoyage: new_behaviour.ini.bak efface`).
+- **Overlay:** pills in capitals; the blue-flag gap in a blue box to the right of the title (*0.8 S BEHIND*), with no pill row; the **PIT: RETURN TO THE PIT LANE** reminder under the mandatory stop too; the app's black flag says *Disqualified: 6 offences*; the offence-count pill in solid amber and *… you passed a car!* in solid red, dark text; the **Delta** label green or pale red like its value; *FUEL 14,2 t* in French; no explanation line under the start lights and the update notice.
+- **Window:** the circuit's display name in the header (*Spa-Francorchamps / Race*; Diagnostics keeps the identifier); the class pattern rows open by default; the *Messages hidden* note moved into the switch's tooltip; **Lock the position** neutral while unlocked; the duplicated paragraph of the Safety Car view removed; the veil of an unticked section covers its settings list (and the circuit status of the track light panels) only, never the Personalities block, the legend, the patterns or the car base; **Personalities** across the full width under the two columns of Global options.
+- **HOME:** after a built-in preset applied to another profile, the line stays *No active preset* (MainApplique), with *Preset applied to the Race profile*.
+- **Diagnostics:** short titles **Headlights** and **Zones**; *CSP 0.2.11 · track spa · spline 7004 m* with the values highlighted; the calibration line *Offset / side sign -1 / -1* (the state is in the chip, its long text in the tooltip); the last flash event in the field's tooltip; the track-light-panels line removed (HOME tile and its section); *…/logs/ACAdvancedIA.log · 48 212 bytes*; capabilities **27** / 29; the grip note shortened, the braking-zone note in the tooltip.
+- **Updates block:** release notes shown again while downloading; no message line when a version is available; with no published version, **Check now** is the full-width outline button in place of the action.
+- **Texts:** *Applied together to Practice, Qualifying and Race.*; no parenthesis in the Track day and Hotlap note; *·* instead of *|* in the mandatory-stop line; *Not equipped* before the first session; in English *offences* everywhere (*Offences allowed before disqualification*), *rolling start (RS)*, *Installation interrupted: Beta 1.38 restored at launch*.
+
+**Verification**: 449 checks; 121 integration cases; 1,124 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.38; 8-hour soak with 0 errors (memory between 8.7 and 9.9 MB, peak frame 0.82 ms); engine bench with 30 AI, median of five alternating runs: 0.207 ms (Beta 1.38: 0.222 ms). The interface is not in the engine bench; a test reads 347 cars from a slow fake disk (3 ms a file) without a frame over 0.25 s.
+
 ## Beta 1.38 — 3 November 2026
 
 The window and the overlay brought to the level of the final mockup (a fidelity review of Beta 1.37 found about forty visible gaps), delivered through the in-app update.

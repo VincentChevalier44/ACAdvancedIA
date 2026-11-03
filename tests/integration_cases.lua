@@ -656,7 +656,8 @@ return function(source)
   -- Fenêtre basse : titre en police normale, toujours sous la barre de titre ; police toujours rendue.
   HOST.windowHeight=110; HOST.textTop=nil; script.HUMANAI__FLAGS(); assert(HOST.textTop>=34 and HOST.fontDepth==0); HOST.windowHeight=nil
   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,e.panel.short) and e.panel.short~='','one-line instruction drawn')
-  local noPass; for k,text in ipairs(HOST.panelTexts) do if text==L.noPassing then noPass=HOST.panelColors[k] end end
+  -- Beta 1.39 (maquette) : pastilles en capitales.
+  local noPass; for k,text in ipairs(HOST.panelTexts) do if text==W.upper(L.noPassing) then noPass=HOST.panelColors[k] end end
   -- Refonte Racing 26 : vert du kit #2EE07F (composante verte 0,88).
   assert(noPass and noPass.g>0.8 and noPass.r<0.5,'no overtaking line drawn in green')
   -- Temps delta en direct : positif en vert, négatif en rouge (valeur signée, virgule décimale).
@@ -772,6 +773,8 @@ return function(source)
   HOST.carFolders[#HOST.carFolders+1]='quoted_car'; HOST.files['cars/quoted_car/ui/ui_car.json']='{"name": "F355 \\"Persephone\\" \\u00e9t\\u00e9", "tags": ["a"]}'
   assert(loadstring(source))(); local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.neutralization='sc'; E.changed(e); H.tick(HOST,0.5)
   HOST.space={x=1000,y=3000}; pause(true); go('home'); press('profile_C'); section('rules','safetyCarSpeedKmh'); main()
+  -- Beta 1.39 : base lue par étapes, quelques images.
+  for _=1,20 do main() end
   -- Beta 1.38 (maquette) : base en lignes (nom, dossier), huit au plus, les autres comptées.
   redraw(); assert(drawn('safety_pick_8') and not drawn('safety_pick_9') and begins(string.format(L.safetyMore,#HOST.carFolders-8)),'every installed car counted, eight rows shown')
   HOST.inputEdits['##aai_safety_filter']='persephone'; main(); redraw()
@@ -843,7 +846,7 @@ return function(source)
   local found=false; for _,m in ipairs(HOST.messages) do if m:find(L.messages.penaltyDelta[1],1,true) then found=true end end
   assert(found,'penalty announced on screen')
   HOST.draws=0; HOST.panelTexts={}; script.HUMANAI__FLAGS()
-  assert(has(HOST.panelTexts,e.panel.notice),'penalty pill on the flag panel')
+  assert(has(HOST.panelTexts,W.upper(e.panel.notice)),'penalty pill on the flag panel')
   H.tick(HOST,3); assert(#HOST.penalties==1,'never written twice for one decision')
  end)
  check('1.6.0 : DRS du joueur : bip du fichier de l app et panneau',function()
@@ -865,7 +868,7 @@ return function(source)
   assert(HOST.played==3 and HOST.beepVolume==4,'beep volume setting applied')
   -- Drapeau jaune natif dans la zone DRS : drapeau affiché, DRS interdit, pas de bip ; bip à la fin du drapeau.
   HOST.sim.raceFlagType=C.K.flagCaution; H.tick(HOST,0.5); HOST.panelTexts={}; script.HUMANAI__FLAGS()
-  local blocked=false; for _,text in ipairs(HOST.panelTexts) do if text==L.drsBlocked then blocked=true end end
+  local blocked=false; for _,text in ipairs(HOST.panelTexts) do if text==W.upper(L.drsBlocked) then blocked=true end end
   assert(e.panel.kind=='native' and blocked and HOST.played==3,'native yellow over DRS, DRS blocked line drawn, no beep')
   HOST.sim.raceFlagType=0; H.tick(HOST,0.5); assert(HOST.played==4,'beep once the flag is over in the DRS zone')
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false; assert(HOST.disposed==4,'sound released on unload')
@@ -1933,9 +1936,9 @@ return function(source)
   redraw(); assert(not lit('rules_view_stops') and lit('rules_view_all'),'stops view not selectable in J')
   local stops=e.profiles.C.mandatoryStops; press('mandatory_stop'); assert(e.profiles.C.mandatoryStops==stops,'switch inert in J')
   -- Motifs de classes : saisie puis effacement d'une ligne.
-  go('home'); press('profile_C'); e.profiles.C.section_endurance=true; section('endurance'); press('pattern_rows')
+  go('home'); press('profile_C'); e.profiles.C.section_endurance=true; section('endurance')
   HOST.inputEdits['##aai_pattern_1']='gt3'; main(); assert(e.profiles.C.classPatterns:find('gt3:',1,true),'pattern typed')
-  press('pattern_clear_1'); assert(not e.profiles.C.classPatterns:find('gt3',1,true),'pattern cleared'); press('pattern_rows')
+  press('pattern_clear_1'); assert(not e.profiles.C.classPatterns:find('gt3',1,true),'pattern cleared')
   -- Fenêtre basse : la molette sur la barre latérale amène les dernières sections.
   HOST.space={x=1000,y=420}; go('settings'); redraw(); assert(drawn('cat_general') and not drawn('cat_overlay'),'low window: last section below')
   local q=HOST.hits['##aai_cat_general']; HOST.mouse={x=q.x+5,y=q.y+5}
@@ -2026,7 +2029,7 @@ return function(source)
   HOST.sim.isReplayActive=false; HOST.sim.isInMainMenu=false; pause(true); script.update(1/60)
   -- Diagnostic : dernier événement des phares et panneaux lumineux du circuit.
   go('diagnostic'); redraw()
-  assert(starts(L.event) and starts(L.diagLights),'flash event and track lights lines')
+  assert(drawnText(L.patch) and drawnText(' · '..L.track),'CSP line (Beta 1.39 : panneaux lumineux dans leur section, événement des phares en infobulle)')
   -- Message d'un onglet effacé au changement d'onglet (jamais repris par l'onglet Règles de course).
   go('home'); HUMANAI.engine.g.loadedPreset=''; press('builtin_Course'); go('rules'); redraw()
   assert(not begins(string.format(L.presetAppliedTo,L.profiles.C)) ,'home message not shown in the rules tab')
@@ -2150,8 +2153,8 @@ return function(source)
   assert(drawnText(L.kpiLightsUnknown) and not drawnText(L.kpiLightsIdle),'lights not read yet: unknown')
   HUMANAI.host.trackLights=known
   -- Changement de langue : ligne des panneaux lumineux du diagnostic refaite.
-  go('diagnostic'); redraw(); assert(starts(L.diagLights),'lights line (fr)')
-  press('lang_en'); redraw(); assert(starts(L.diagLights),'lights line in English after the switch')
+  go('diagnostic'); redraw(); assert(drawnText(' · '..L.track) and drawnText(' · circuit '),'CSP line (fr)')
+  press('lang_en'); redraw(); assert(drawnText(' · '..L.track) and drawnText(' · track '),'CSP line in English after the switch')
   press('lang_fr'); redraw()
   -- Signatures des préréglages et jeu de règles : calculés une fois par modification, jamais à chaque image.
   go('home'); press('profile_C'); press('builtin_Course'); redraw()
@@ -2324,10 +2327,10 @@ return function(source)
   assert(drawnText(W.upper(L.stopsTitle)) and drawnText(L.zeroValues.minPitTime),'stops title, zero shown as free')
   press('rules_view_safety'); redraw(); assert(g.safetyCarModel=='' or drawnText(W.upper(L.safetyPhaseStrip[1])),'safety car phase strip')
   -- C : motifs de classes (colonne « Numéro de classe », « + Ajouter une ligne »).
-  q.section_endurance=true; go('settings'); press('cat_endurance'); press('pattern_rows'); redraw()
+  q.section_endurance=true; go('settings'); press('cat_endurance'); redraw()
   local rows=0; for i=1,8 do if drawn('pattern_clear_'..i) then rows=i end end
   assert(rows>=1 and rows<8 and drawnText(W.upper(L.classColumn)),'used rows and one more, class number column')
-  press('pattern_add'); redraw(); assert(drawn('pattern_clear_'..(rows+1)),'row added'); press('pattern_rows')
+  press('pattern_add'); redraw(); assert(drawn('pattern_clear_'..(rows+1)),'row added')
   -- A4 : diagnostic (libellés courts, noms des capacités).
   go('diagnostic'); redraw()
   assert(drawnText(W.upper(L.learnShort)) and drawnText(W.upper(L.markStartShort)) and drawnText(W.upper(L.exportZones)) and drawnText(W.upper(L.calibrateShort)),'short Diagnostic buttons')
@@ -2346,6 +2349,106 @@ return function(source)
   flag('meatball'); assert(has(HOST.panelTexts,L.pitPill),'pit pill under car damaged')
   panel.updateVersion='Beta 1.39'; flag('update'); assert(has(HOST.panelTexts,'1.39'),'version in the update flag')
   pause(false)
+ end)
+ -- Beta 1.39 (relevé en jeu : « Slow script … Drawing ACAdvancedIA, 2156 ms » avec 347 voitures installées) : base des
+ -- voitures lue par étapes, jamais d'un coup ; chaque image lit au plus K.carReadMax fichiers et s'arrête après
+ -- K.carReadBudget s de lecture.
+ check('Beta 1.39 : base de 347 voitures lue par étapes, aucune image figée',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
+  HOST.carFolders={}; for k=1,347 do local id=string.format('car_%03d',k); HOST.carFolders[k]=id; HOST.files['cars/'..id..'/ui/ui_car.json']='{"name": "Voiture '..k..'"}' end
+  assert(loadstring(source))(); local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.neutralization='sc'; E.changed(e); H.tick(HOST,0.5)
+  HOST.space={x=1000,y=3000}; pause(true); go('home'); press('profile_C'); go('rules')
+  -- Disque lent (3 ms par fichier) : lectures comptées image par image.
+  local load=io.load; local reads=0
+  io.load=function(path) if path:find('/ui/ui_car.json',1,true) then reads=reads+1; local t=os.clock(); while os.clock()-t<0.003 do end end; return load(path) end
+  local ok,err=pcall(function()
+   press('rules_view_safety'); redraw()
+   assert(begins(string.format(L.carLoading,0,347)) or begins(string.format(L.carLoading,reads,347)),'loading line shown')
+   local most,slowest,frames=0,0,0
+   while not drawn('safety_pick_1') and frames<400 do
+    local before=reads; local t=os.clock(); redraw(); slowest=math.max(slowest,os.clock()-t); most=math.max(most,reads-before); frames=frames+1
+   end
+   assert(drawn('safety_pick_1') and reads==347,'every car read once: '..reads)
+   assert(most>=1 and most<=2,'time budget per frame (3 ms reads, 4 ms budget): '..most)
+   assert(slowest<0.25,'no frozen frame: '..slowest)
+   assert(begins(string.format(L.safetyMore,347-8)) and drawnText('Voiture 1'),'sorted base, eight rows')
+   -- Gardée pour la session : aucune relecture.
+   go('home'); go('rules'); press('rules_view_safety'); redraw(); assert(reads==347,'read once per session')
+  end)
+  io.load=load; assert(ok,err)
+  -- Sans horloge : nombre seul.
+  local S=require('src/snapshot'); local loader=S.carLoader(); local steps=0
+  repeat local done=S.carStep(loader,nil); steps=steps+1; assert(loader.read<=(steps-1)*C.K.carReadMax and steps<100,'count cap without a clock: '..loader.read) until done
+  assert(#loader.list==347 and loader.list[1].name=='Voiture 1','loader without a clock')
+  pause(false); HOST.space={x=1000,y=780}
+ end)
+ check('Beta 1.39 : image lente de la fenêtre journalisée une fois par lieu',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
+  HOST.carFolders={'slow_car','slow_two'}; HOST.files['cars/slow_car/ui/ui_car.json']='{"name": "Slow"}'; HOST.files['cars/slow_two/ui/ui_car.json']='{"name": "Slow 2"}'
+  assert(loadstring(source))(); local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.neutralization='sc'; E.changed(e); H.tick(HOST,0.5)
+  HOST.space={x=1000,y=3000}; pause(true); go('home'); press('profile_C'); go('rules')
+  local load=io.load
+  io.load=function(path) if path:find('/ui/ui_car.json',1,true) then local t=os.clock(); while os.clock()-t<0.08 do end end; return load(path) end
+  local ok,err=pcall(function() press('rules_view_safety'); redraw(); redraw(); redraw() end)
+  io.load=load; assert(ok,err)
+  local function count(text) local n=0; for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find(text,1,true) then n=n+1 end end; return n end
+  assert(count('interface lente: regles/safety')==1,'slow frame logged with its place')
+  assert(count('interface lente:')==1,'logged once')
+  pause(false); HOST.space={x=1000,y=780}
+ end)
+ check('Beta 1.39 : reste new_behaviour.ini.bak des anciennes versions effacé au lancement',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.files['cfgext\\new_behaviour.ini.bak']='[AI_FLOOD]\r\nENABLED=0\r\n'
+  assert(loadstring(source))(); local e=HUMANAI.engine
+  local function count(text) local n=0; for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find(text,1,true) then n=n+1 end end; return n end
+  assert(HOST.files['cfgext\\new_behaviour.ini.bak']==nil and HOST.bakDeleted==1 and count('nettoyage: new_behaviour.ini.bak efface')==1,'leftover deleted and logged')
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); e=HUMANAI.engine
+  assert((HOST.bakDeleted or 0)==0 and count('nettoyage: new_behaviour.ini.bak')==0,'nothing to delete, nothing logged')
+ end)
+ check('Beta 1.39 : derniers écarts de la maquette',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; HOST.space={x=1000,y=3000}; assert(loadstring(source))(); H.tick(HOST,1); pause(true)
+  local e=HUMANAI.engine; local panel=e.panel; local P=require('src/panel')
+  local function flag(kind) panel.kind=kind; panel.decided=kind; panel.title=L.flagTitles[kind] or ''; panel.short=''; panel.explain=''; panel.changedAt=e.time; HOST.panelTexts={}; script.HUMANAI__FLAGS() end
+  -- N1 : pastilles en capitales ; N6 : PIT sous l'arrêt obligatoire ; N3 : écart du bleu dans sa case, sans pastilles.
+  P.infractions(panel,1,5); panel.noPass=true; panel.passed=false; flag('yellow'); assert(has(HOST.panelTexts,W.upper(panel.passOk)),'pills in capitals')
+  panel.noPass=false; flag('pit'); assert(has(HOST.panelTexts,W.upper(L.pitPill)),'pit pill under the mandatory stop')
+  panel.blueGap=0.8; e.delta.value=nil; flag('blue')
+  local gap=W.upper(string.format(L.blueGap,(string.format('%.1f',0.8):gsub('%.',L.decimalMark))))
+  assert(has(HOST.panelTexts,gap) and not package.loaded['src/ui'].overlayParts(HUMANAI.panel).pills,'blue gap boxed right of the title, no pill row')
+  -- N7 : drapeau noir de l'app : nombre d'infractions.
+  local own=P.new(); P.infractions(own,6,5); P.native(own,{flagOwned=false,flag=C.K.flagStop,player=0,cars={}},10,nil,'C')
+  assert(own.kind=='black' and own.short==string.format(L.flagShort.blackCount,6),'black flag: offences count')
+  P.infractions(own,7,5); P.native(own,{flagOwned=false,flag=C.K.flagStop,player=0,cars={}},20,nil,'C')
+  assert(own.short==string.format(L.flagShort.blackCount,7),'count refreshed')
+  local native=P.new(); P.infractions(native,2,5); P.native(native,{flagOwned=false,flag=C.K.flagStop,player=0,cars={}},10,nil,'C')
+  assert(native.short==L.flagShort.black,'AC black flag, not ours: plain instruction')
+  -- N9 : feux et mise à jour sans explication.
+  assert(L.flagExplain.lights==nil and L.flagExplain.update==nil,'no explanation for the lights and the update')
+  -- N2 : lignes des motifs ouvertes par défaut.
+  e.profiles.C.section_endurance=true; go('home'); press('profile_C'); go('settings'); press('cat_endurance'); redraw()
+  assert(drawn('pattern_clear_1'),'pattern rows open by default')
+  -- Section 4 : préréglage appliqué à un autre profil : « Aucun préréglage actif » ici.
+  go('home'); press('profile_Q'); redraw(); press('builtin_Endurance'); redraw()
+  assert(drawnText(L.noActivePreset) and begins(string.format(L.presetAppliedTo,L.profiles.C)),'other profile: no preset line here')
+  press('profile_C'); redraw(); assert(not drawnText(L.noActivePreset),'preset line on its own profile')
+  -- Préréglage du profil affiché chargé puis modifié, puis préréglage d'un autre profil : la marque est relue.
+  press('profile_Q'); press('builtin_Qualifications'); local q=e.profiles.Q
+  for _,s in ipairs(C.schema) do
+   if type(q[s.key])=='number' and s.min and s.max and not C.presetKeptKeySet[s.key] and not C.hidden('Q',s.key) then q[s.key]=q[s.key]~=s.min and s.min or s.max; break end
+  end
+  E.changed(e); redraw(); assert(not drawnText(L.noActivePreset),'own preset, modified')
+  press('builtin_Endurance'); redraw(); assert(drawnText(L.noActivePreset),'other profile again: mark read again')
+  -- N4 : nom affiché du circuit dans l'en-tête, identifiant dans la ligne CSP du diagnostic.
+  local function contains(part) for _,t in ipairs(HOST.drawnTexts) do if t:find(part,1,true) then return true end end return false end
+  assert(contains('TEST RACEWAY') and not contains('TEST /'),'track name in the header')
+  -- N11 : diagnostic (titres courts, ligne CSP, événement des phares en infobulle, journal).
+  -- Infobulle du champ des phares (au-dessus du bouton Apprendre) : dernier événement.
+  go('diagnostic'); redraw(); local r=HOST.hits['##aai_learn']; HOST.mouse={x=r.x+r.w/2,y=r.y-12}; HOST.lastTooltip=nil; redraw(); HOST.mouse={x=-1e6,y=-1e6}
+  local event=(HOST.lastTooltip or ''):sub(1,#L.event)==L.event
+  assert(drawnText(W.upper(L.diagFlash)) and drawnText(W.upper(L.diagZones)),'diagnostic: short titles')
+  assert(drawnText(L.patch) and drawnText(' · '..L.splineLabel) and drawnText('test'),'diagnostic: CSP line with the track identifier')
+  assert(event,'diagnostic: flash event tooltip')
+  assert(drawnText(L.signLabel) and not drawnText(W.upper(L.flash)),'calibration line, no long title')
+  pause(false); HOST.space={x=1000,y=780}
  end)
  return results
 end

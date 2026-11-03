@@ -835,6 +835,18 @@ function M.floodRead()
  if system then okSystem,defaults=pcall(io.load,system) end
  return ok and type(text)=='string' and text or '',okSystem and type(defaults)=='string' and defaults or nil,ok and type(io.save)=='function'
 end
+-- Beta 1.39 : reste new_behaviour.ini.bak laissé dans cfg/extension par les versions d'avant la 1.38 (io.replaceFile),
+-- effacé au lancement ; ce seul fichier. Vrai s'il a été effacé.
+function M.floodLeftover()
+ local path=floodPath('ExtCfgUser')
+ if not path or not io or type(io.fileExists)~='function' or type(io.deleteFile)~='function' then return false end
+ local bak=path..'.bak'
+ local okExists,present=pcall(io.fileExists,bak)
+ if not (okExists and present==true) then return false end
+ pcall(io.deleteFile,bak)
+ local okAfter,still=pcall(io.fileExists,bak)
+ return okAfter and still~=true
+end
 function M.floodWrite(text)
  local path=floodPath('ExtCfgUser')
  if not path or not io or type(io.save)~='function' or type(text)~='string' then return false end

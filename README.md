@@ -214,7 +214,7 @@ Since Beta 1.35 the window uses the **Racing 26** design shared with SetupLab: a
 - **HOME**: the session panel (profile in use, detection source, automatic profile switch), the built-in presets as tiles, live figures (AI driven, incidents, yellow zones, neutralisation, light panels), the **TO CHECK** list with a link to the section concerned, and the custom presets with their byte counter (64 bytes at most). A banner explains a disabled app, a panic, an online session or the wait for the first session, with a one-click action.
 - **SETTINGS**: the sidebar lists the 15 sections in four groups, each with its switch and the number of settings changed from the profile defaults. A section shows its settings in **sub-groups** on two columns (one when the window is narrow). Sliders show the profile default as a grey mark; changed settings get a cyan diamond; a right click restores the default. Choices with up to three values are segments (a ‹ value › button when their labels do not fit), longer ones a ‹ value › button. An unticked section, **Global options** included, shows why its settings do not apply instead of the settings.
 - **RACING RULES**: the three views (racing rules, mandatory stop, Safety Car) with their switches, then the championship rule sets with their main features and the reset. On a track-day or hotlap profile the mandatory-stop and Safety Car switches are greyed out and their views cannot be opened.
-- **DIAGNOSTICS**: updates, sign calibration, headlight flashes (learnt field, last event id and count) and zones, the track light panels, the session log, CSP capabilities (two columns), the AI functions CSP exposes (names only), the AI table, performance tiles and the circular log with its level filter.
+- **DIAGNOSTICS**: updates, sign calibration, headlight flashes (learnt field, with the last event id and count in its tooltip) and zones, the session log, CSP capabilities (two columns), the AI functions CSP exposes (names only), the AI table, performance tiles and the circular log with its level filter.
 - **Window size**: 900 × 700 by default. Wider windows widen the columns while the text keeps its size; narrower ones scale the whole window down. Columns, lists, the sidebar and the logs scroll with the wheel.
 - **CSP rendering**: flat colours only, no gradients, filters, letter spacing or animations; every state (rest, hover, pressed, disabled, selected) has its own colour. Tooltips stay the native ones, in the kit colours.
 
@@ -530,7 +530,7 @@ Section **Accidents** (sidebar **RACE & SAFETY**).
 - **Mandatory stops**: a stop missing when the window closes is penalised.
 - **The sanction.**
   - AC adds no time to the classification, so the penalty is a native **throttle cut** (5 s, **Penalty: throttle cut (s)**). It is announced on screen and on the overlay, and logged. It needs race settings that allow AC's throttle-cut penalty.
-  - Beyond **Infringements allowed before disqualification** (5), you are disqualified with AC's black flag. The overlay shows your count.
+  - Beyond **Offences allowed before disqualification** (5), you are disqualified with AC's black flag. The overlay shows your count, and its black flag says *Disqualified: 6 offences*.
 
 **AI sanctions** (**AI sanctions under flags**; Practice, Qualifying and Race):
 - An AI that overtakes under yellow, a neutralisation or a red flag lifts off for a few seconds. There is at most one sanction every 20 s, and a car that went off track during the pass does not count.
@@ -776,6 +776,7 @@ New in Beta 1.26. Settings in the **General** section of the profile shown.
   - Below that number, it switches AI flood **on**, with the chosen **CSP AI flood range, below the threshold (km)** (1 km = CSP's own setting, up to 5 km). The effect is not guaranteed beyond 2 km, the limit of CSP's settings page.
   - With **Native (game)**, it writes back the original values, saved before its first change.
 - **Next launch.** CSP reads this setting when the game starts, so a change takes effect at the **next launch**.
+- **Leftover.** CSP's safe file replacement used to leave `new_behaviour.ini.bak` next to the file; the app deletes it after each write (since Beta 1.38) and, since Beta 1.39, at launch when an older version left one.
   - The overlay announces it (**AI flood (CSP)**, for example *turned off for 45 AI: relaunch from Content Manager to spread them over the whole track*), and the log notes it.
   - If AI flood was active when the game started, that session's AI are placed by CSP and the app does not try to distribute them.
 - **In the log at each launch:** `AI flood de CSP au lancement: actif|inactif (circuits d au moins 7.0 km)` (*active or inactive at launch, minimum track length*).
@@ -1228,7 +1229,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Player penalties under flags** | on / off | n/a | on | on |
 | **Delta: mini-sector tolerance (s)** | 0 – 1 | n/a | 0.5 | 0.5 |
 | **Penalty: throttle cut (s)** | 2 – 15 | n/a | 5 | 5 |
-| **Infringements allowed before disqualification** | 1 – 20 | n/a | 5 | 5 |
+| **Offences allowed before disqualification** | 1 – 20 | n/a | 5 | 5 |
 | **AI sanctions under flags** | on / off | n/a | on | on |
 
 #### Endurance and classes (sidebar: **Classes / Endurance**)

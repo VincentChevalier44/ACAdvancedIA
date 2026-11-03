@@ -73,7 +73,9 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
  local info=panel.info
  if kind=='lap' and info then value=info.lapSerial elseif kind=='finish' and info then value=info.recapSerial end
  local session=profile=='P' or profile=='Q'
- local key=kind..'|'..value..'|'..extra..'|'..(double and 1 or 0)..(session and '|s' or '')
+ -- Beta 1.39 : drapeau noir de l'app (infractions au-delà du nombre toléré) : nombre d'infractions dans la consigne.
+ local ours=kind=='black' and panel.infractionMax>=0 and panel.infractions>panel.infractionMax
+ local key=kind..'|'..value..'|'..extra..'|'..(double and 1 or 0)..(session and '|s' or '')..(ours and '|'..panel.infractions or '')
  if key~=panel.key then
   panel.key=key
   -- Départ arrêté (Beta 1.35) : place et distance lues par la case de l'overlay.
@@ -96,8 +98,9 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
    local short=kind=='red' and (value==1 and (session and 'redSessionPit' or 'redPit') or (session and 'redSession' or 'red'))
     or kind=='green' and session and 'greenSession' or kind=='yellow' and double and 'yellow2'
     -- Beta 1.38 : départ hors course (séance), cinq feux allumés : consignes propres (maquette).
-    or kind=='start' and profile~=nil and profile~='C' and 'startSession' or kind=='lights' and value>=K.gridLights and 'lightsAll' or kind
-   panel.short=string.format(L.flagShort[short],value,extra)
+    or kind=='start' and profile~=nil and profile~='C' and 'startSession' or kind=='lights' and value>=K.gridLights and 'lightsAll'
+    or kind=='black' and ours and 'blackCount' or kind
+   panel.short=string.format(L.flagShort[short],short=='blackCount' and panel.infractions or value,extra)
    -- Explication de ce qui se passe (Beta 1.25), sous la consigne : jaune, double jaune, neutralisations, rouge...
    local explain=kind=='yellow' and double and 'yellow2' or kind=='red' and (session and 'redSession' or 'red') or kind
    panel.explain=L.flagExplain[explain] or ''
