@@ -22,13 +22,35 @@ local function callable(f)
  return known
 end
 M.callable=callable
-local function initClock()
- -- Compteur Windows en lecture seule, sans chargement de DLL et sans os.*.
+local function nativeClock()
+ -- Compteur Windows en lecture seule, sans chargement de DLL.
  pcall(ffi.cdef,'int QueryPerformanceCounter(int64_t*); int QueryPerformanceFrequency(int64_t*);')
  local counter,frequency=ffi.C.QueryPerformanceCounter,ffi.C.QueryPerformanceFrequency
  local buffer=ffi.new('int64_t[1]')
  if frequency(buffer)==0 or tonumber(buffer[0])<=0 then return nil end
- return {counter=counter,buffer=buffer,frequency=tonumber(buffer[0]),failures=0}
+ local scale=tonumber(buffer[0])
+ return {read=function() if counter(buffer)==0 then return nil end return tonumber(buffer[0])/scale end,source='compteur Windows',failures=0}
+end
+-- Beta 1.41 (journaux du 3 novembre : « cout non mesure » à chaque résumé, CSP n'expose pas le compteur Windows) : repli
+-- sur os.preciseClock s'il avance pendant une image (vérifié une fois, au lancement), sinon os.clock (pas d'une
+-- milliseconde : la moyenne reste juste, le maximum est arrondi à la milliseconde).
+local function osClock()
+ if type(os)~='table' then return nil end
+ local precise=os.preciseClock
+ if callable(precise) then
+  local first=precise(); local spin=0
+  for k=1,K.clockProbeLoops do spin=spin+k%7 end
+  if type(first)=='number' and spin>=0 and precise()>first then return {read=precise,source='os.preciseClock',failures=0} end
+ end
+ if callable(os.clock) then return {read=os.clock,source='os.clock (1 ms)',failures=0} end
+ return nil
+end
+M.osClock=osClock
+local function initClock()
+ local ok,timer=pcall(nativeClock)
+ if ok and timer then return timer end
+ local fallback,clock=pcall(osClock)
+ return fallback and clock or nil
 end
 local function present(name)
  local controls=name=='brake' or name=='flash'
@@ -84,12 +106,14 @@ end
 function M.clock(a)
  local timer=a.timer
  if not timer then return nil end
- local ok,result=pcall(timer.counter,timer.buffer)
- if not ok or result==0 then
+ local ok,result=pcall(timer.read)
+ if not ok or type(result)~='number' then
   timer.failures=timer.failures+1; if timer.failures>=K.capabilityFailures then a.timer=nil end
   return nil
  end
- timer.failures=0; return tonumber(timer.buffer[0])/timer.frequency
+ -- Source du chronomètre au journal, une fois (le journal est relié après la création de l'applicateur).
+ if not timer.announced and a.note then timer.announced=true; note(a,'INFO','cout par image mesure par: '..timer.source,-1) end
+ timer.failures=0; return result
 end
 function M.access(a)
  a.allowed=false
@@ -423,7 +447,9 @@ end
 -- la libère d'elle-même ; 0 la relâche dès que la piste derrière est libre.
 local function hold(a,s,car,cmd,now)
  if not car.valid or not car.control or car.player then return end
- if cmd.stopHold and not car.pit or cmd.pitHold and car.inPitBox then
+ -- Beta 1.41 : retenue au bout de la voie des stands (sortie, module merge), seule exception à la règle D12 avec la
+ -- retenue à l'emplacement.
+ if cmd.stopHold and not car.pit or cmd.pitHold and car.inPitBox or cmd.mergeHold and car.pit and not car.inPitBox then
   -- Retenue en cours : une restitution en attente (voiture sortie de la conduite, hors piste) est annulée, sinon elle
   -- lèverait l'arrêt à chaque image.
   claim(a,s,car,now); s.reset=false
@@ -525,48 +551,93 @@ end
 -- fichiers inclus voisins) et celles de CSP (config/tracks/<circuit>.ini, loaded/<circuit>.ini), une fois par
 -- circuit. Détecté : une section active s'allume sur une condition lue sur FLAG_TYPE. Rien d'écrit.
 local function folder(id) if not ac.FolderID or not ac.FolderID[id] then return nil end local ok,root=pcall(ac.getFolder,ac.FolderID[id]); return ok and type(root)=='string' and root~='' and root or nil end
+-- Beta 1.41 (Melbourne, layout_f1_2026 : « [INCLUDE: ../../common/...] » ignorées, panneaux non détectés) : fichiers
+-- inclus résolus comme CSP, par rapport au dossier du fichier qui les inclut (segments « .. » résolus), « common/... »
+-- dans la configuration des circuits de CSP, « extension/... » aussi depuis le dossier d'AC ; seulement dans le dossier
+-- du circuit ou dans la configuration de CSP (jamais un chemin absolu ni une sortie de ces dossiers).
+local function normalPath(path)
+ local parts={}
+ for part in path:gsub('/','\\'):gmatch('[^\\]+') do
+  if part=='..' then if #parts<=1 then return nil end; parts[#parts]=nil
+  elseif part~='.' then parts[#parts+1]=part end
+ end
+ return #parts>0 and table.concat(parts,'\\') or nil
+end
+local function inside(path,roots) local low=path:lower(); for _,r in ipairs(roots) do if low:sub(1,#r)==r then return true end end return false end
+local function lightsLoad(path)
+ local ok,text=pcall(io.load,path)
+ if ok and type(text)=='string' and text~='' and #text<=K.lightsBytes then return text end
+ return nil
+end
 local function lightsRead(track)
  if type(track)~='string' or track=='' or not track:match('^[%w_%-%.]+$') or track:find('..',1,true) or not io or type(io.load)~='function' then return nil,'' end
  local tracks,config=folder('ContentTracks'),folder('ExtCfgSys')
+ local root=folder('Root') or tracks and tracks:match('^(.*)\\[Cc][Oo][Nn][Tt][Ee][Nn][Tt]\\[Tt][Rr][Aa][Cc][Kk][Ss]$') or config and config:match('^(.*)\\[Ee][Xx][Tt][Ee][Nn][Ss][Ii][Oo][Nn]\\[Cc][Oo][Nn][Ff][Ii][Gg]$')
  local okLayout,layout=pcall(ac.getTrackLayout); if not okLayout or type(layout)~='string' or not layout:match('^[%w_%-%.]*$') or layout:find('..',1,true) then layout='' end
- local list={}
+ local list,roots={},{}
  if tracks then
   list[#list+1]=tracks..'\\'..track..'\\extension\\ext_config.ini'
   if layout~='' then list[#list+1]=tracks..'\\'..track..'\\'..layout..'\\extension\\ext_config.ini' end
+  local r=normalPath(tracks..'\\'..track); if r then roots[#roots+1]=r:lower()..'\\' end
  end
- if config then list[#list+1]=config..'\\tracks\\'..track..'.ini'; list[#list+1]=config..'\\tracks\\loaded\\'..track..'.ini' end
+ if config then
+  list[#list+1]=config..'\\tracks\\'..track..'.ini'; list[#list+1]=config..'\\tracks\\loaded\\'..track..'.ini'
+  local r=normalPath(config); if r then roots[#roots+1]=r:lower()..'\\' end
+ end
  -- Conditions communes de CSP (RACING_FLAG) : définitions seulement, jamais une section allumée à elles seules.
- local out={defs={},uses={},includes={}}; local found,seen,count='',{},0
- if config then local ok,text=pcall(io.load,config..'\\tracks\\common\\conditions.ini'); if ok and type(text)=='string' and #text<=K.lightsBytes then Lights.scan(text,{defs=out.defs,uses={},includes={}}) end end
+ local out={defs={},uses={},includes={}}; local found,seen='',{}
+ local info={read=0,bytes=0,missing=0,outside=0,limit=0}
+ if config then local text=lightsLoad(config..'\\tracks\\common\\conditions.ini'); if text then Lights.scan(text,{defs=out.defs,uses={},includes={}}) end end
+ -- File : fichiers à lire ; chaque inclusion forme un groupe de chemins possibles (le premier lu suffit).
+ local queue,groups={},{}
+ for _,path in ipairs(list) do queue[#queue+1]={path=normalPath(path) or path} end
  local k=1
- while k<=#list and count<K.lightsFiles do
-  local path=list[k]; k=k+1
-  if not seen[path:lower()] then
-   seen[path:lower()]=true
-   local ok,text=pcall(io.load,path)
-   if ok and type(text)=='string' and text~='' and #text<=K.lightsBytes then
-    count=count+1
+ while k<=#queue and found=='' do
+  local item=queue[k]; k=k+1
+  local g=item.group; local key=item.path:lower()
+  if g and g.hit then g.pending=g.pending-1
+  elseif seen[key]~=nil then if g then g.pending=g.pending-1; g.tried=true; g.hit=seen[key] end
+  elseif info.read<K.lightsFiles and info.bytes<K.lightsTotalBytes then
+   local text=lightsLoad(item.path)
+   seen[key]=text~=nil
+   if g then g.pending=g.pending-1; g.tried=true; g.hit=text~=nil end
+   if text then
+    info.read=info.read+1; info.bytes=info.bytes+#text
     local before=#out.includes
     Lights.scan(text,out)
-    if found=='' and Lights.equipped(out) then found=path:match('[^\\]+\\[^\\]+$') or path end
-    -- Fichiers inclus : voisins (même dossier), ou communs de CSP (common/..., dans sa configuration des circuits).
-    local dir=path:match('^(.*)\\[^\\]+$') or ''
+    if Lights.equipped(out) then found=item.path:match('[^\\]+\\[^\\]+$') or item.path end
+    local dir=item.path:match('^(.*)\\[^\\]+$') or ''
     for n=before+1,#out.includes do
-     local name=out.includes[n]:gsub('/','\\')
-     if not name:find('%.%.') and not name:find(':') then
-      if name:lower():find('^common\\') and config then list[#list+1]=config..'\\tracks\\'..name else list[#list+1]=dir..'\\'..name end
+     local name=(out.includes[n]:gsub('/','\\'))
+     local group={pending=0,hit=false}; groups[#groups+1]=group
+     if not name:find(':',1,true) and name:sub(1,1)~='\\' then
+      local low=name:lower(); local candidates
+      if low:find('^common\\') then candidates={config and config..'\\tracks\\'..name}
+      else candidates={dir..'\\'..name,low:find('^extension\\') and root and root..'\\'..name or nil} end
+      for c=1,2 do
+       local p=candidates[c] and normalPath(candidates[c])
+       if p and inside(p,roots) then group.pending=group.pending+1; queue[#queue+1]={path=p,group=group} end
+      end
      end
     end
    end
   end
  end
- return Lights.equipped(out),found
+ -- Diagnostic (journal, circuit non détecté) : inclusions jamais lues, et pourquoi.
+ for _,g in ipairs(groups) do
+  if not g.hit then
+   if g.pending>0 then info.limit=info.limit+1 elseif g.tried then info.missing=info.missing+1 else info.outside=info.outside+1 end
+  end
+ end
+ return Lights.equipped(out),found,info
 end
 function M.trackLights(a,track)
  if a.trackLightsFor==track then return a.trackLights end
  a.trackLightsFor=track
- local ok,detected,source=pcall(lightsRead,track)
+ local ok,detected,source,info=pcall(lightsRead,track)
  if ok then a.trackLights=detected; a.trackLightsSource=source or '' else a.trackLights=nil; a.trackLightsSource='' end
+ -- Beta 1.41 : non détecté, ce qui a été lu (texte construit une fois par circuit).
+ a.trackLightsDetail=ok and detected==false and type(info)=='table' and string.format(' (%d fichier(s) lu(s), inclusions non lues : %d introuvable(s), %d hors du circuit et de CSP, %d au-dela de la limite)',info.read,info.missing,info.outside,info.limit) or ''
  M.readFlagsHidden(a)
  return a.trackLights
 end
@@ -643,7 +714,10 @@ local function recover(a,s,car,cmd)
  if not cmd.recover then s.redTeleported=false; return end
  if car.valid and car.control and not car.player and not car.pit and not s.redTeleported and a.caps.teleport.available then
   if Caps.call(a.caps,'teleport',car.index,'PIT') then
-   s.redTeleported=true; note(a,'INFO',string.format('IA immobile depannee a son stand (%s, immobile depuis %.0f s)',cmd.recoverReason or '?',cmd.recoverStill or 0),car.index+1)
+   s.redTeleported=true
+   -- Relecture : une IA lente et endommagée roule encore (jamais « immobile ») ; le déplacement la répare.
+   if cmd.recoverReason=='lente et endommagee' then note(a,'INFO',string.format('IA lente et endommagee depannee a son stand, reparee par le deplacement (lente depuis %.0f s)',cmd.recoverStill or 0),car.index+1)
+   else note(a,'INFO',string.format('IA immobile depannee a son stand (%s, immobile depuis %.0f s)',cmd.recoverReason or '?',cmd.recoverStill or 0),car.index+1) end
   end
  end
 end

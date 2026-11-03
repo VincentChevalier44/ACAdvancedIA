@@ -80,7 +80,9 @@ function M.refresh(self,cars,count,i,length,stamp)
   local b=cars[j]
   local distance=abs(self.rank[j]-at)
   local selected=b.player or distance<=K.neighbors or distance>=count-K.neighbors
-  if j~=i and selected and b.valid and not b.pit and not b.offtrack then
+  -- Beta 1.41 : une voiture de la voie des stands près de la jonction (a.merging, moteur) est vue comme en piste (radar
+  -- avant, obstacle, dépassement) ; jamais dans l'occupation latérale (les voies des stands longent souvent la piste).
+  if j~=i and selected and b.valid and (not b.pit or b.merging) and not b.offtrack then
    local rel=row.neighbors[row.count+1]; M.relative(a,b,length,rel)
    if rel.same then
     row.count=row.count+1

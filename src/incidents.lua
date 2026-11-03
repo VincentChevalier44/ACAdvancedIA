@@ -437,7 +437,7 @@ function M.cap(t,frame,i,p,d,states,margin)
  local a=frame.cars[i]; local cap=K.unlimitedSpeed; local yellow=false; local length=frame.length
  local multi=p.multiClass==true
  local slow=(1-(margin or 0))*3.6
- local b=Delta.bin(a.spline)
+ local b=Delta.bin(a.spline,d.bins)
  if p.yellowEnabled and length>0 and a.splineValid then
   for z=1,t.zoneCount do
    local zone=t.zones[z]
@@ -446,7 +446,7 @@ function M.cap(t,frame,i,p,d,states,margin)
     if at>=-K.yellowApproach and at<=p.yellowBefore+p.yellowAfter then
      -- Double jaune : delta de zone (ou Slow Zone à vitesse fixe) ; simple jaune : allure un peu réduite. Approche :
      -- référence au début de la zone.
-     local rb=at>=0 and b or Delta.bin(zone.spline-p.yellowBefore/length)
+     local rb=at>=0 and b or Delta.bin(zone.spline-p.yellowBefore/length,d.bins)
      local v
      if zone.onTrack then v=Delta.zoneReference(d,states,i,rb,multi,p) else v=Delta.reference(d,states,i,rb,multi,K.singleYellowPct,0) end
      if at>=0 then

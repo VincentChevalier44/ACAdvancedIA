@@ -98,7 +98,12 @@ local function announce()
  if t.messageId==shownMessage then return end
  shownMessage=t.messageId
  local m=Lang.messages[t.messageKind]
- if m then Applier.message(m[1],t.messageText~='' and string.format(m[2],t.messageText) or string.format(m[2],t.messageValue,t.messageExtra)) end
+ if m then
+  local text=t.messageText~='' and string.format(m[2],t.messageText) or string.format(m[2],t.messageValue,t.messageExtra)
+  -- Beta 1.41 : annonce de l'app, revenue par ac.onMessage : jamais prise pour un bandeau de pénalité d'AC.
+  engine.ownTitle=m[1]; engine.ownText=text
+  Applier.message(m[1],text)
+ end
 end
 local function dirty()
  Applier.dirty(host,engine.time)
@@ -276,7 +281,7 @@ local function lightsCheck()
  local lights=Applier.trackLights(host,frame.track)
  -- Beta 1.34 : places de grille du circuit (départ arrêté), lues en même temps.
  engine.grid.nodes=Applier.gridNodes(host,frame.track)
- U.log(engine.log,engine.time,'INFO',lights==true and 'panneaux lumineux du circuit: detectes ('..host.trackLightsSource..')' or lights==false and 'panneaux lumineux du circuit: non detectes' or 'panneaux lumineux du circuit: configuration illisible',-1)
+ U.log(engine.log,engine.time,'INFO',lights==true and 'panneaux lumineux du circuit: detectes ('..host.trackLightsSource..')' or lights==false and 'panneaux lumineux du circuit: non detectes'..(host.trackLightsDetail or '') or 'panneaux lumineux du circuit: configuration illisible',-1)
 end
 local function update(dt)
  if released then return end
@@ -308,6 +313,8 @@ local function update(dt)
  Applier.baselines(host,frame)
  -- Départ arrêté (Beta 1.34) : retenue, plafond d'allure et décalage disponibles.
  engine.gridCaps=host.caps.stop.available and host.caps.speed.available and host.caps.offset.available
+ -- Beta 1.41 : retenue à la sortie des stands seulement si l'arrêt natif répond.
+ engine.stopCap=host.caps.stop.available==true
  local ready=Engine.step(engine,frame,dt)
  Applier.reportCaps(host)
  if engine.settingsChanged then engine.settingsChanged=false; dirty() end

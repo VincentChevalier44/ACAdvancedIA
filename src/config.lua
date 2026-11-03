@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.40',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights'}}
+local M={version=3,release='Beta 1.41',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -331,13 +331,61 @@ M.K={maxCars=61,paceBins=400,logLines=200,logRate=20,logDedup=5,maxZones=64,maxZ
  -- Mise à jour depuis GitHub (Beta 1.33) : vérification une fois par lancement, après updateDelay s de jeu ; lignes des
  -- notes de version montrées ; information de l'overlay aux stands, updateNotice s, une fois par lancement.
  updateDelay=10,bootFrames=10,bootUIFrames=3,updateNotes=8,updateNotice=6,
- queueGap=15,pillFontMin=11,deltaBoxMin=12,deltaStart=1,laneMin=0.5,laneBias=0.3,laneRelease=1,deltaCap=3,deltaJump=150,deltaMinKmh=30,miniSectorLength=250,miniSectorsMin=8,miniSectorsMax=60,fleetBinsPerFrame=4,scMergeMargin=30,singleYellowPct=15,passGiveBack=10,giveBackMin=5,giveBackDrop=25,queueKeep=15,queueClose=0.5,aiDeltaMarginMin=0.02,aiDeltaMarginMax=0.06,slipperyShow=30,slipperyGrace=30,lightsHold=1.5,lightsFiles=16,lightsBytes=4194304,slowVehicleRange=300,slowVehicleBehind=10,slowVehicleTime=3,slowVehicleRatio=0.5,meatballShow=20,meatballBody=100,meatballSuspension=0.2,meatballEngine=600,meatballGearbox=0.4,playerDamagePeriod=1,warningShow=10,safetySkinPattern='safety',drsLateLoad=60,drsLapsMax=99,drsAiBrake=0.2,drsAiCorner=0.5,drsAiKmh=80,drsAiRetry=1,drsAiCloseRetry=0.1,mistakeCheck=1,mistakeStartMin=60,mistakeArm=15,mistakeCooldown=180,mistakeGap=20,mistakeCalm=180,mistakeLapse=4,mistakeWet=2,mistakeWetCause=0.3,mistakeSkill=5,mistakeSkillMin=0.5,mistakeSkillMax=3,mistakeWeak=0.95,mistakePlayerGap=40,mistakeMinKmh=50,mistakeBrakePedal=0.6,mistakeBrakeKmh=120,mistakeGasPedal=0.8,mistakeCorner=0.6,mistakeTractionKmh=180,mistakeSeverity=1.4,mistakeSalt=80000,mistakeBrakeMin=0.4,mistakeBrakeMax=0.9,mistakeTractionMin=0.3,mistakeTractionMax=0.7,deltaBeepFile='sounds/delta-beep.wav',deltaBeepNegative=0.15,deltaBeepNear=0.2,deltaBeepFast=0.3,deltaBeepMid=0.5,deltaBeepMedium=0.6,deltaBeepFar=1,deltaBeepSlow=1.2,slipperyStripes=6,flagBlinkTime=5,pitRemindTime=15,pitRemindLate=0.2,aiPenaltyDecel=3,inviteLatMax=6,inviteCurve=0.001,passArmMax=20,carNameMax=96,passStallSa=2,passStallTime=8,pullOutTargetLat=1,pitGuardTime=15,pitGuardGap=80,pitGuardMin=12,pitGuardAllowance=15,pitGuardBack=5,pitGuardCaution=1.5,inviteLat=2,inviteGap=40,inviteTime=0.6,inviteSa=3,inviteClear=60,inviteRespite=20,aiPenaltyFactor=0.7,penaltyBlackFlag=4,penaltyReleaseBlackFlag=5,journalMarker='.ACAdvancedIA.journal',drsBeepFile='sounds/drs-available-beep.wav',penaltyBrakeMargin=2.5,incidentStopSpeed=10,obstacleClosing=15,penaltyCooldown=20,passWatch=40,noticeTime=8,penaltySlowDown=3,avoidClearMargin=10,avoidRecheck=1,crashWindow=30,neutralMax=600,neutralRecoverTime=20,stuckRecoverTime=30,trackRecoverTime=8,brokenRecoverTime=3,ruleDecision=5,calibrationRetry=60,laneMaxOffset=0.7,hudMessageTime=5,hudMessageMin=2,hudMessageMax=10,recapPassGap=40,recapPeriod=0.1,hudStripPeriod=0.25,hudFuelWarn=2,hudLapTime=5,hudWidth=600,hudTop=0.07,hudStripH=26,hudBandH=82,hudExplainLine=16,hudPillH=24,hudPad=8,hudHandle=18,hudGhost=0.5,scKickPeriod=2,startCorner=0.9,startCareRise=4,startCareFall=0.6,radarLaunchTTC=0.8,brokenSuspension=0.5,brokenEngine=50,brokenGearbox=0.9,damageReadSpeed=25,
+ queueGap=15,pillFontMin=11,deltaBoxMin=12,deltaStart=1,laneMin=0.5,laneBias=0.3,laneRelease=1,deltaCap=3,deltaJump=150,deltaMinKmh=30,miniSectorLength=250,miniSectorsMin=8,miniSectorsMax=60,fleetBinsPerFrame=4,scMergeMargin=30,singleYellowPct=15,passGiveBack=10,giveBackMin=5,giveBackDrop=25,queueKeep=15,queueClose=0.5,aiDeltaMarginMin=0.02,aiDeltaMarginMax=0.06,slipperyShow=30,slipperyGrace=30,lightsHold=1.5,lightsFiles=64,lightsBytes=4194304,slowVehicleRange=300,slowVehicleBehind=10,slowVehicleTime=3,slowVehicleRatio=0.5,meatballShow=20,meatballBody=100,meatballSuspension=0.2,meatballEngine=600,meatballGearbox=0.4,playerDamagePeriod=1,warningShow=10,safetySkinPattern='safety',drsLateLoad=60,drsLapsMax=99,drsAiBrake=0.2,drsAiCorner=0.5,drsAiKmh=80,drsAiRetry=1,drsAiCloseRetry=0.1,mistakeCheck=1,mistakeStartMin=60,mistakeArm=15,mistakeCooldown=180,mistakeGap=20,mistakeCalm=180,mistakeLapse=4,mistakeWet=2,mistakeWetCause=0.3,mistakeSkill=5,mistakeSkillMin=0.5,mistakeSkillMax=3,mistakeWeak=0.95,mistakePlayerGap=40,mistakeMinKmh=50,mistakeBrakePedal=0.6,mistakeBrakeKmh=120,mistakeGasPedal=0.8,mistakeCorner=0.6,mistakeTractionKmh=180,mistakeSeverity=1.4,mistakeSalt=80000,mistakeBrakeMin=0.4,mistakeBrakeMax=0.9,mistakeTractionMin=0.3,mistakeTractionMax=0.7,deltaBeepFile='sounds/delta-beep.wav',deltaBeepNegative=0.15,deltaBeepNear=0.2,deltaBeepFast=0.3,deltaBeepMid=0.5,deltaBeepMedium=0.6,deltaBeepFar=1,deltaBeepSlow=1.2,slipperyStripes=6,flagBlinkTime=5,pitRemindTime=15,pitRemindLate=0.2,aiPenaltyDecel=3,inviteLatMax=6,inviteCurve=0.001,passArmMax=20,carNameMax=96,passStallSa=2,passStallTime=8,pullOutTargetLat=1,pitGuardTime=15,pitGuardGap=80,pitGuardMin=12,pitGuardAllowance=15,pitGuardBack=5,pitGuardCaution=1.5,inviteLat=2,inviteGap=40,inviteTime=0.6,inviteSa=3,inviteClear=60,inviteRespite=20,aiPenaltyFactor=0.7,penaltyBlackFlag=4,penaltyReleaseBlackFlag=5,journalMarker='.ACAdvancedIA.journal',drsBeepFile='sounds/drs-available-beep.wav',penaltyBrakeMargin=2.5,incidentStopSpeed=10,obstacleClosing=15,penaltyCooldown=20,passWatch=40,noticeTime=8,penaltySlowDown=3,avoidClearMargin=10,avoidRecheck=1,crashWindow=30,neutralMax=600,neutralRecoverTime=20,stuckRecoverTime=30,trackRecoverTime=8,brokenRecoverTime=3,ruleDecision=5,calibrationRetry=60,laneMaxOffset=0.7,hudMessageTime=5,hudMessageMin=2,hudMessageMax=10,recapPassGap=40,recapPeriod=0.1,hudStripPeriod=0.25,hudFuelWarn=2,hudLapTime=5,hudWidth=600,hudTop=0.07,hudStripH=26,hudBandH=82,hudExplainLine=16,hudPillH=24,hudPad=8,hudHandle=18,hudGhost=0.5,scKickPeriod=2,startCorner=0.9,startCareRise=4,startCareFall=0.6,radarLaunchTTC=0.8,brokenSuspension=0.5,brokenEngine=50,brokenGearbox=0.9,damageReadSpeed=25,
  redFlagMax=300,compactWidth=900,compactHeight=700,fuelReserveLaps=0.6,fuelMargin=1.03,fuelAlpha=0.3,fuelLapShare=0.5,fuelLapTimeMin=20,fuelStep=1,redFlagMaxCap=1800,redLapFactor=1.25,redPitMargin=60,redRecoverTime=8,redStopSpeed=5,redStopTime=5,greenShow=5,greenZoneShow=3,panelPeriod=0.25,panelWrap=58,
  bopGain=0.5,bopPeriod=60,scCatchUp=40,scQueueGap=60,scCallTime=10,scEscalateCars=2,scEscalateTime=30,scMinOut=60,scExitMax=90,scStuckTime=20,scInMax=300,parkPeriod=2,maxCarList=4000,carReadMax=24,carReadBudget=0.004,uiSlowFrame=0.05,uiSlowFirst=0.5,uiSlowLogs=8,pitSpread=0.85,pitSalt=80000,pitConcurrent=3,pitLastStint=0.95,gradeSalt=70000,gradeLevel={1,0.99,0.975,0.96},gradeCaution={1,1,1.05,1.1},
  weatherPeriod=1,weatherConfirm=15,weatherWetOn=0.12,weatherWetOff=0.05,weatherRainOn=0.1,weatherRainOff=0.02,weatherWaterOn=0.03,weatherWaterOff=0.01,weatherHeavy=0.6,maxTyreCompounds=32,tyreCatalogBudget=2,tyreStopSpeed=1,tyreSalt=90000,spawnWindow=15,enduranceSuggestionSeconds=3600}
 M.timerFields={'since','aiFlashAt','stintStart','pitExitUntil','pitCautionUntil','pitGuardUntil','pendingUntil','holdUntil','ignoreUntil','restUntil','nextPerception',
  'defendUntil','defendCooldown','calmUntil','speedWindowStart','lastContact','lapseAt','errorUntil','lastDirectionAt','driveUntil','yieldStart'}
 M.optionalTimerFields={'pendingAt','lapseUntil'}
+-- Beta 1.41 (journées circuit du 3 novembre : île de Man, Nordschleife) : trafic des IA. Table à part, versée dans K.
+local traffic141={
+ -- Chronomètre du coût par image : boucle d'essai de os.preciseClock au lancement.
+ clockProbeLoops=20000,
+ -- IA anormalement lente en tête de file (dégâts, IA native) : obstacle au bout de slowObstacleTime s ; une voiture
+ -- devant à moins de slowLeadMargin km/h de plus fait partie de la même file. Derrière elle, dépassement permis dès
+ -- slowPassRatio fois sa vitesse ; endommagée (suspension, carrosserie) et lente slowPitTime s : rentrée aux stands.
+ slowObstacleTime=5,slowLeadMargin=5,slowPassRatio=0.8,slowPitTime=30,slowPitSuspension=0.2,slowPitBody=150,
+ -- Rythme relatif de longue durée de chaque IA (allure / allure de sa classe, constante longRatioTau s), connu après
+ -- longRatioMin s de conduite libre : « anormalement lente » = plus lente que slowRatio fois sa propre allure habituelle.
+ longRatioTau=60,longRatioMin=20,
+ -- Dépassement sur cession ou sur retenue : cible qui ne s'éloigne pas de plus de cessionSaMin km/h, allure libre plus
+ -- rapide de passFreeMargin ici, au plus retainLossMax m perdus sur elle (retenue).
+ cessionSaMin=2,passFreeMargin=0.03,retainLossMax=5,
+ -- Cible repartie plus vite : paire ignorée passIgnore s, multiplié par passIgnoreGrowth à chaque nouvel échec (au plus
+ -- passIgnoreMax s), compte oublié après passIgnoreForget s sans échec.
+ passIgnore=45,passIgnoreGrowth=4,passIgnoreMax=600,passIgnoreForget=600,
+ -- Cession : suiveur qui ne se rapproche plus (moins de followerStallSa km/h, au-delà de followerStallGap m) pendant
+ -- followerStallTime s : perdu.
+ followerStallTime=6,followerStallSa=1,followerStallGap=2,
+ -- IA qui cède, suiveur à moins de yieldCapGap m ou à sa hauteur, en ligne droite au-delà de yieldCapMinKmh km/h :
+ -- vitesse de pointe réduite de yieldTopCut km/h.
+ yieldTopCut=8,yieldCapGap=25,yieldCapMinKmh=80,
+ -- Allure apprise par endroit : au plus paceBinMeters m par endroit sur les longs circuits (400 endroits au moins,
+ -- paceBinsMax au plus).
+ paceBinMeters=50,paceBinsMax=1300,
+ -- Sortie des stands : jonction apprise (voie des stands quittée après mergeLearnPit s, à moins de mergeLearnKmh km/h,
+ -- moyenne mergeAlpha, écart de plus de mergeOutlier m écarté) ; voitures de la voie vues en piste de mergeBefore m
+ -- avant la jonction à mergeAfter m après ; IA retenue de mergeHoldZone à mergeHoldMin m avant la jonction tant qu'une
+ -- voiture en piste (au moins mergeTrafficKmh km/h) y arrive dans les mergeWindow s (plus le temps d'y rouler à
+ -- mergeCrawl m/s au moins, mergeWindowMax s au plus) ou la passe à moins de mergeClear m ; mergeHoldMax s au plus.
+ -- Relecture : journée circuit seulement ; retenue commencée seulement pour une IA qui roule (mergeHoldStartKmh km/h)
+ -- et a dépassé son emplacement de mergeBoxClear m ; vue en piste seulement si elle roule (mergeSeenKmh km/h), ou au
+ -- pas (mergeSeenCrawl km/h) à moins de mergeSeenNear m de la jonction.
+ mergeLearnPit=5,mergeLearnKmh=120,mergeAlpha=0.3,mergeOutlier=200,mergeBefore=100,mergeAfter=50,mergeHoldZone=80,mergeHoldMin=5,
+ mergeWindow=3,mergeWindowMax=5,mergeCrawl=10,mergeTrafficKmh=30,mergeClear=15,mergeHoldMax=10,
+ mergeHoldStartKmh=5,mergeBoxClear=15,mergeSeenKmh=15,mergeSeenCrawl=3,mergeSeenNear=30,
+ -- Panneaux lumineux du circuit : au plus lightsTotalBytes octets lus en tout (lightsFiles fichiers, lightsBytes chacun),
+ -- une fois par circuit (Melbourne, layout_f1_2026 : 23 inclusions, plus les leurs).
+ lightsTotalBytes=8388608,
+}
+for key,value in pairs(traffic141) do assert(M.K[key]==nil,key); M.K[key]=value end
+for _,key in ipairs({'passIgnoreUntil','yieldIgnoreUntil'}) do M.timerFields[#M.timerFields+1]=key end
+-- Beta 1.41 (sessions du 3 novembre, Beta 1.40) : bandeaux qu'AC dessine lui-même malgré l'option de CSP « Hide system
+-- messages » (coupe de piste, pénalités ; textes relevés dans acs.exe et dans les journaux) ; motifs Lua sur le titre
+-- ou la description en majuscules. L'overlay ne les reprend plus (pas de doublon).
+M.acDrawnMessages={'^CUT DETECTED','LAP WILL NOT COUNT','^PENALTY','SLOW DOWN FOR','SLOW DOWN TO','BEFORE THE END OF CURRENT LAP',
+ 'DRIVE ?%-?THROUGH','STOP ?& ?GO','STOP AND GO','JUMP ?%-?START','DISQUALIFIED'}
 function M.defaults(profile)
  local r={schemaVersion=M.version,classPatterns='',configured=false}
  for _,s in ipairs(M.schema) do r[s.key]=s.defaults[profile] end

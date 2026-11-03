@@ -53,7 +53,7 @@ local function slow(l,inc,frame,p,d,states,multi,dt,now)
   local candidate=track and j~=i and b.valid and not b.pit and not b.finished and b.splineValid and not b.safetyCar
    and c.moved and not c.incident and now>=(s.pitCautionUntil or 0)
   if candidate then
-   local pace=Delta.pace(d,states,j,Delta.bin(b.spline),multi)
+   local pace=Delta.pace(d,states,j,Delta.bin(b.spline,d.bins),multi)
    candidate=pace>0 and b.speed<pace*K.slowVehicleRatio or pace<=0 and b.kmh<p.obstacleSpeedKmh
   end
   local held=candidate and (l.slowFor[j] or 0)+dt or 0

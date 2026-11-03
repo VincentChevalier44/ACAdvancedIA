@@ -10,27 +10,39 @@ local M={}
 local function accumulator() return {on=false,kind='',delta=0,last=-1,sector=-1,pit=false} end
 function M.new()
  local lists={}; for class=1,K.classMax do lists[class]={} end
- return {course=accumulator(),zone=accumulator(),fleet={},fleetNext=1,lists=lists,counts={},value=nil,kind='',infraction=false,
+ return {course=accumulator(),zone=accumulator(),fleet={},fleetNext=1,bins=K.paceBins,lists=lists,counts={},value=nil,kind='',infraction=false,
   infractionKind='',infractionValue=0,onsetAt=-math.huge,onsetKmh=0,signalAt=-math.huge,signalKmh=0,zoneSlot=0,
   inside=false,wasZone=false}
 end
 function M.reset(d)
  d.course=accumulator(); d.zone=accumulator(); d.value=nil; d.kind=''; d.infraction=false; d.inside=false; d.wasZone=false
- for _,f in pairs(d.fleet) do for b=1,K.paceBins do f[b]=0 end end
+ for _,f in pairs(d.fleet) do for b=1,#f do f[b]=0 end end
 end
 function M.rebase(d,amount)
  if U.finite(d.onsetAt) then d.onsetAt=d.onsetAt-amount end
  if U.finite(d.signalAt) then d.signalAt=d.signalAt-amount end
 end
-local function bin(spline) return min(K.paceBins,floor((spline%1)*K.paceBins)+1) end
+-- Endroit de l'allure apprise : count endroits sur le tour (d.bins ; K.paceBins sans précision).
+local function bin(spline,count) count=count or K.paceBins; return min(count,floor((spline%1)*count)+1) end
 M.bin=bin
+-- Beta 1.41 (île de Man, 60,6 km : 152 m par endroit avec 400 endroits ; Nordschleife, 52 à 64 m) : au plus
+-- K.paceBinMeters m par endroit, K.paceBins endroits au moins (circuits ordinaires inchangés), K.paceBinsMax au plus.
+-- Nombre changé (autre longueur de piste) : allure de la flotte oubliée ; renvoie true (le moteur oublie aussi
+-- l'allure apprise de chaque voiture).
+function M.size(d,length)
+ local bins=length>0 and U.clamp(math.ceil(length/K.paceBinMeters),K.paceBins,K.paceBinsMax) or K.paceBins
+ if bins==d.bins then return false end
+ d.bins=bins; d.fleetNext=1; d.fleet={}
+ return true
+end
 -- Allure de la flotte : médiane, à chaque endroit, des IA de la même classe (toutes hors multi-classes) qui l'ont
 -- apprise ; quelques indices par image, toute la piste en moins de deux secondes.
 function M.refresh(d,frame,states,multi)
  local classes=multi and K.classMax or 1
  local lists,counts=d.lists,d.counts
- for _=1,K.fleetBinsPerFrame do
-  local b=d.fleetNext; d.fleetNext=b%K.paceBins+1
+ -- Beta 1.41 : autant de tours de flotte par seconde quel que soit le nombre d'endroits.
+ for _=1,math.ceil(K.fleetBinsPerFrame*d.bins/K.paceBins) do
+  local b=d.fleetNext; d.fleetNext=b%d.bins+1
   for class=1,classes do counts[class]=0 end
   -- Un seul passage sur les voitures, réparties par classe (toutes dans la classe 1 hors multi-classes).
   for i=1,frame.count do
@@ -48,7 +60,7 @@ function M.refresh(d,frame,states,multi)
   end
   for class=1,classes do
    local f=d.fleet[class]
-   if not f then f={}; for j=1,K.paceBins do f[j]=0 end; d.fleet[class]=f end
+   if not f then f={}; for j=1,d.bins do f[j]=0 end; d.fleet[class]=f end
    local count=counts[class]
    f[b]=count>0 and lists[class][floor(count/2)+1] or 0
   end
@@ -121,7 +133,7 @@ function M.update(d,frame,p,inc,states,now,dt,queued)
  local a=frame.cars[i]
  local multi=p.multiClass==true
  local count=sectors(frame.length)
- local b=bin(a.spline)
+ local b=bin(a.spline,d.bins)
  local tolerance=p.deltaTolerance
  -- Neutralisation ou drapeau rouge.
  local c=d.course

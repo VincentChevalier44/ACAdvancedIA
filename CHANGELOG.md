@@ -1,5 +1,52 @@
 # Changelog
 
+## Beta 1.41 — 3 November 2026
+
+AI traffic fixes from an exhaustive audit of the 3 November track days (Fonteny, Isle of Man 60.6 km, Nordschleife Touristenfahrten): slow damaged AI, overtaking loops, pit-exit collisions and the anti-zigzag count.
+
+- **Slow damaged AI:**
+  - What was wrong: an AI crawling at 30 km/h where its class runs at 200 (damage) was too fast to be an obstacle and too slow to be overtaken, so a queue formed behind it for minutes. The app did not brake those cars: they were damaged by AC (suspension, body).
+  - What changes: the car at the head of such a queue (below 60 % of *its own* usual pace, so a slow road car among GT cars is never concerned) becomes an obstacle the cars behind drive around after 5 s, and can be passed at any speed. It slows no further when it yields.
+  - Damaged (suspension or body) and slow for 30 s, it is brought back to its pit in track day, practice and qualifying (the move itself repairs it), or called in during a race (once per session when the Rules tab is unticked, since such a stop repairs nothing).
+  - In track day, practice and qualifying, a damaged AI that reaches its pit by itself is now repaired there.
+  - A new log line `IA lente a contourner:` says when a slow AI becomes an obstacle. A slow spot that ends before 5 s is never added to the next one.
+  - Until an AI's own usual pace is known (its first 20 s of free driving), the slow-AI line of Beta 1.39 is still written from its class pace, for the log only: nothing is commanded then.
+- **Overtaking loops:**
+  - What was wrong: up to 100 % of the attempts in a session ended because the target was faster, the same two cars trying up to 16 times.
+  - What changes: an AI now overtakes a yielding car or the car holding it up only if that car is not pulling away and the AI is really faster at that spot (its learned free pace, 3 % margin).
+  - After a failed attempt the pair is left alone for 45 s, then 3 min, then 10 min. This wait never delays a blue flag or a yield to a faster class.
+  - An AI no longer yields to an equally fast AI that is merely close behind. A yield another AI does not use ends after 6 s on a straight; a yield to you is never ended that way.
+  - While yielding, the AI's top speed on the straights is held 8 km/h under its usual pace, so the follower can get by. In track day with the Traffic tab, its speed limit then rises back gradually after the yield, at the Traffic tab's usual rate.
+  - The overtaking corridor (free space needed ahead) is judged on the free pace only behind an abnormally slow AI; elsewhere it is unchanged.
+- **Long tracks:** the learned pace now has one point every 50 m at most (Isle of Man: 1,213 points instead of 400).
+- **Pit exit:**
+  - The app learns where the pit lane joins the track.
+  - Cars moving in the last 100 m of the pit lane (or rolling within 30 m of the merge) are seen by the cars on track (forward radar, avoidance). A car stopped in the pit lane, you included, is not.
+  - **Track day only:** an AI driving out of the pit lane, past its own pit box, waits at the end of the lane, 10 s at most, while a car on track will reach the merge within about 5 s. It uses the same native stop as the hold in the pit box; the app still sends no line, speed or level command in the pit lane. In practice, qualifying and races, the pit exit stays AC's.
+  - The first pit exit of each session is not covered yet: the merge point is learned from it.
+- **Anti-zigzag limit:** a return to the AI's own line is no longer counted as a move to the other side, and a target frozen on the current offset (braking, car alongside) is never counted.
+- **Track day:** the Safety Car is identified before the AI are spread on the track, so it is never placed on track and sent back.
+- **AC's cut and penalty banners shown once:**
+  - What was wrong: in your Beta 1.40 sessions, AC still drew its red banners *CUT DETECTED: LAP WILL NOT COUNT* and *PENALTY, SLOW DOWN FOR 9 SECONDS OR SLOW DOWN TO 35 KMH* although the app had ticked CSP's **Hide system messages** (and CSP had re-read it). The overlay showed them too, so you saw them twice.
+  - Honest note: CSP has no option or function that hides these banners; AC keeps drawing them.
+  - What changes: the overlay no longer shows AC's cut and penalty messages again (cut, slow-down, drive-through, stop and go, jump start, disqualification; matched on AC's own texts, any case). Every other message (other apps, votes, assists) is still shown as before. They are all still written to the session log, with one line per session: `messages d AC: penalites et coupes laissees a l affichage d AC (CSP ne permet pas de les masquer)`.
+  - The overlay's own flags, signals and infractions are unchanged, and so are the app's own announcements (its *Penalty* messages in English are recognised as its own and still shown).
+  - Limit: a message from another app that starts with *Penalty* or names a drive-through, a stop and go, a jump start or a disqualification is treated like AC's and not shown again (it stays in the log).
+- **Track light panels (Melbourne 2026 layout):**
+  - What was wrong: the panels stayed green under the app's yellow flags (log `panneaux lumineux du circuit: non detectes`). The layout's configuration includes its flag panels with paths such as `../../common/…`, and the app skipped every include containing `..`.
+  - What changes: included files are now found the way CSP finds them: from the folder of the file that includes them (`..` allowed), `common/…` in CSP's track configurations, and `extension/…` also from the Assetto Corsa folder. A file is read only if it stays inside the track's own folder or CSP's configuration folder; absolute paths and anything outside are refused.
+  - At most 64 files and 8 MB are read, once per track. When nothing is found, the log says how many files were read and how many includes were not read, and why.
+  - On the author's installation, 25 of 46 tracks are now detected (76 of 151 layouts, 68 before): the 2026 layouts of Melbourne, Baku, Barcelona, Silverstone, Montreal, Monza, Shanghai and the Red Bull Ring.
+- **Session log:**
+  - **Minute summary:** contacts now counts real contacts between cars; yields where nobody passed are counted apart from completed ones.
+  - **Slow AI lines:** the slow-AI line gives the AI's usual pace, its position, its pedals and the reason the episode ended.
+  - **Plain-language reasons:** every overtake end reason is in plain words.
+  - **Frame cost:** the cost per frame is measured again (with a fallback clock), and the clock used is logged.
+  - **Pit exit:** new `jonction des stands:` lines.
+- **No new setting:** settings, profiles and presets are unchanged.
+
+**Verification**: 487 checks; 122 integration cases; 1,230 mutations, all detected; clean lint, parameter audit; golden scenes changed only as intended (*cible plus rapide* share of the attempts: track day 4 % to 0 %, race with 30 AI 24 % to 6 %, race with 60 AI 17 % to 4 %; completed passes stable or slightly up); 8-hour soak with 0 errors (memory between 8.2 and 9.5 MB, peak frame 0.99 ms); engine bench with 30 AI, median of five alternating runs: 0.218 ms (Beta 1.40: 0.221 ms); long track (60.6 km, 46 AI, 1213 pace points, pit exit merge learned and holds running), median of five alternating runs: 0.254 ms, P99 0.568 ms (Beta 1.40: 0.206 ms, P99 0.484 ms). Not yet checked in the game: the targets above come from decision-rule tests and must be confirmed with real session logs (see docs/VALIDATION.md), and the pit exit hold has not run in the game yet.
+
 ## Beta 1.40 — 3 November 2026
 
 AC's own displays that the overlay takes over are now hidden while the app is active (your request: *every basic Assetto Corsa function we take over must no longer be shown*).

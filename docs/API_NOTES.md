@@ -49,7 +49,7 @@ The local apps and the SDK use `[CORE] LAZY`, `[WINDOW_...] FUNCTION_MAIN` and a
 ## Cautious resolutions of the PDR's contradictions
 
 1. D2: the core never touches CSP. `snapshot` reads, `applier` writes and hosts the lifecycle/storage ports; `caps` only receives these ports, never the `ac`/`physics` globals.
-2. D12 takes precedence over the generic IDLE transition: on entering the pits, no offset command, not even a reset to zero. A pending reset to zero is carried out at the controllable exit.
+2. D12 takes precedence over the generic IDLE transition: on entering the pits, no offset command, not even a reset to zero. A pending reset to zero is carried out at the controllable exit. Beta 1.41 exception: the pit exit hold through the native stop counter (see *Beta 1.41: pit exit merge*).
 3. D18 and §10.13: zones use a table parser **without code execution**, without `load`/`loadstring`. Only a bounded local read of a data file from the `tracks` subfolder, via the snapshot port; no disk writes, no network access.
 4. D7 and §14.1: zone shown with its mode; in emulation mode the control carries the requested explanation. No fake native function is created.
 5. Calibrations: if the observation is inconclusive, no behavioural lateral offset; the available longitudinal modulators remain usable.
@@ -204,6 +204,27 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 - Between the app's write and a re-read by CSP, the applied value is the one read at the first app start of the game process (kept in `ac.store('humanai:cspgui')`, which survives app reloads but not a game restart), never the file's.
 - State file outside the update work folder: `ac.FolderID.ExtCfgState` + `ACAdvancedIA-cspgui.ini`. It holds `v1`, one line per held key (`KEY=original` or `KEY` when absent), then `original <bytes>` and `written <bytes>` blocks (`-` when the file did not exist). The updater's clean-up only touches `ACAdvancedIA-update/`.
 - Writes use `io.save(path, data, true)`; the `.bak` CSP's safe replacement leaves is deleted after each write, as for `new_behaviour.ini`.
+
+## Beta 1.41: AC's cut and penalty banners
+
+- With CSP's `[HIDE] HIDE_SYSTEM_MESSAGES=1` applied (re-read live) and `ac.blockSystemMessages('.')` active, AC still draws its red banners *CUT DETECTED* / *LAP WILL NOT COUNT* and *PENALTY, SLOW DOWN FOR n SECONDS OR SLOW DOWN TO 35 KMH* / *BEFORE THE END OF CURRENT LAP* (Beta 1.40 sessions, 3 November), and they also reach `ac.onMessage`. No documented CSP option or function hides them (gui.ini defaults, `lib.lua`).
+- AC's own texts (UTF-16 strings in `acs.exe`): `CUT DETECTED`, `LAP WILL NOT COUNT`, `PENALTY, SLOW DOWN FOR`, `OR SLOW DOWN TO`, `BEFORE THE END OF CURRENT LAP`, `DRIVE THROUGH PENALTY`, `Jump-start: Drive-through`, `DISQUALIFIED`, `You have been disqualified for not clearing the … penalty`. The app matches them in upper case (`Config.acDrawnMessages`) on the title or the description, whatever the message kind, and never shows them on the overlay; other messages are unaffected.
+
+## Beta 1.41: included track configuration files
+
+- CSP track configurations include other files with `[INCLUDE: file]` section headers or `INCLUDE = a, b` keys. The F1 2026 layouts (Melbourne, Monza, Silverstone…) use `[INCLUDE: ../../common/…]`, `[INCLUDE: ../../extension/ext_config.ini]` and `[INCLUDE: extension/config/tracks/loaded/<track>.ini]`.
+- The app resolves an include from the folder of the including file with `.` and `..` segments resolved; `common/…` in `extension/config/tracks/common`; `extension/…` also from the Assetto Corsa folder (`ac.FolderID.Root` when present, else derived from `content/tracks` or `extension/config`). A resolved path is read only inside `content/tracks/<track>/` or `extension/config/`; absolute paths, drive letters and escapes are refused. Paths are compared without case.
+- At most 64 files (`K.lightsFiles`), 4 MB each (`K.lightsBytes`) and 8 MB in all (`K.lightsTotalBytes`), once per track, and reading stops at the first match.
+
+## Beta 1.41: pit exit merge (D12 exception) and frame clock
+
+- Rule D12 (pits and off-track cars never driven) has one exception since Beta 1.41, in track day only. An AI driving out of the pit lane (at least 5 km/h when the hold begins, at least 15 m past its own pit box of this visit), 80 m to 5 m before the learned merge point, is held while a car on track, the player included, reaches the merge within 3 s plus its own time to get there (5 s at most), or is past it by less than 15 m. The hold lasts 10 s at most, once per exit, never for the player or the Safety Car, never under a red flag, and only while the native stop counter works (`host.caps.stop.available`, `engine.stopCap`). A car driving to its own pit box is never held.
+- It uses the same native stop counter as the pit-box hold (`physics.setAIStopCounter`, `cmd.mergeHold` in the applier's `hold()`). No offset, speed, brake or level command is written in the pit lane; pit stop requests (`physics.setAIPitStopRequest`) stay active there until the stop, as before.
+- Pit lane state: `ac.StateCar.isInPitlane` or `isInPit` (frame field `pit`), `isInPit` alone for the pit box (`inPitBox`). The merge point is learned from cars leaving the pit lane while driving (at least 5 s in the lane, at most 120 km/h, never a teleport): a moving average, replaced after three exits in a row more than 200 m away. Nothing is read from the track files.
+- Pit-lane cars from 100 m before to 50 m after the merge, unless held, are listed by perception for the cars on track (forward radar, obstacle, pass) when they move at 15 km/h or more, or at 3 km/h or more within 30 m of the merge; never in lateral occupancy or the corridor. A stopped car (a queue, the waiting player) stays invisible.
+- `physics.teleportCarTo(index, 'PIT')` without `preserveDamage` repairs the car it moves: a slow damaged AI recovered in track day, practice or qualifying arrives repaired (log `IA lente et endommagee depannee a son stand, reparee par le deplacement`).
+- Yield top-speed cut: released as soon as the yield ends. In track day with the Traffic tab, the next speed limit starts from the last cut and rises at `K.trafficAccelKmh` per second, a short carry-over by design.
+- Frame cost clock: `QueryPerformanceCounter` through `ffi` when CSP allows it, else `os.preciseClock` if it advances within a short probe loop at launch, else `os.clock` (1 ms steps: the mean stays right, the maximum is rounded). The source is logged once (`cout par image mesure par: …`).
 
 ## Beta 1.26: CSP AI flood and AI placement
 

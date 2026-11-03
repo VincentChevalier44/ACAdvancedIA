@@ -43,8 +43,8 @@ function M.summary(e)
  -- Événements de la minute écoulée : transitions des IA (par raison), appels, blocages, incidents ; puis remise à zéro.
  local n=e.stats or {}
  local function c(key) return n[key] or 0 end
- local minute=string.format(' | sur la minute : depassements tentes %d, reussis %d, annules %d (cote ferme %d, cible plus rapide %d, sans rapprochement %d, suiveur rapide %d, cible perdue %d, jaune %d), invitations du joueur %d, passages sur cession %d, cessions %d, abouties %d, defenses %d, evitements %d, contacts %d, appels de phares %d, blocages %d, manoeuvres interrompues par blocage %d, incidents %d, IA arretees %d',
-  c('pass')+c('chain')+c('invited')+c('yielded'),c('clear')+c('chain'),c('abort_blocked')+c('abort_slow')+c('abort_stall')+c('abort_follower')+c('target_lost')+c('abort_yellow'),c('abort_blocked'),c('abort_slow'),c('abort_stall'),c('abort_follower'),c('target_lost'),c('abort_yellow'),c('invited'),c('yielded'),c('yield'),c('passed'),c('attacker'),c('obstacle'),c('contact'),c('flash'),c('limit'),c('direction_limit'),t.started,t.held)
+ local minute=string.format(' | sur la minute : depassements tentes %d, reussis %d, annules %d (cote ferme %d, cible plus rapide %d, sans rapprochement %d, suiveur rapide %d, cible perdue %d, jaune %d), invitations du joueur %d, passages sur cession %d, cessions %d, abouties %d, cessions sans passage %d, defenses %d, evitements %d, contacts %d, reprises au calme %d, appels de phares %d, blocages %d, manoeuvres interrompues par blocage %d, incidents %d, IA arretees %d',
+  c('pass')+c('chain')+c('invited')+c('yielded'),c('clear')+c('chain'),c('abort_blocked')+c('abort_slow')+c('abort_stall')+c('abort_follower')+c('target_lost')+c('abort_yellow'),c('abort_blocked'),c('abort_slow'),c('abort_stall'),c('abort_follower'),c('target_lost'),c('abort_yellow'),c('invited'),c('yielded'),c('yield'),c('passed'),c('lost'),c('attacker'),c('obstacle'),c('contactEvent'),c('contact'),c('flash'),c('limit'),c('direction_limit'),t.started,t.held)
  -- Règles d'arrêt de la 1.6.0 : voitures lentes écartées des incidents et bouchons suivis sans évitement.
  minute=minute..string.format(' | arrets ecartes : file %d, depart ou stands %d, au pas %d | bouchons suivis sans evitement %d',
   t.suppressed.queue,t.suppressed.spawn,t.suppressed.crawl,c('jam'))
@@ -73,6 +73,6 @@ function M.summary(e)
   ..string.format(' | DRS des IA : ouvertures %d, dont demandees par l app %d',drsOpen,drsAsk)
  return string.format('resume: profil %s, garde %s, IA %d, gerees %d | conduite %d, cession %d, depassement %d, evitement %d, recuperation %d | sous jaune %d, incidents %d, zones %d, IA arretees %d, neutralisation %s | cout moyen %.3f ms, max %.3f ms, erreurs %d',
   e.profile,e.guard,ai,managed,drive,yield,pass,avoid,calm,yellow,t.activeCount,t.zoneCount,t.holdCount,t.neutral and t.neutralMode or 'aucune',e.meanFrame,e.maxFrame,e.errors)
-  ..(e.maxFrame==0 and ' (cout non mesure : chronometre natif indisponible)' or '')..(#unmanaged>0 and ' | hors gestion : '..table.concat(unmanaged,', ') or '')..minute
+  ..(e.maxFrame==0 and ' (cout non mesure : aucun chronometre disponible)' or '')..(#unmanaged>0 and ' | hors gestion : '..table.concat(unmanaged,', ') or '')..minute
 end
 return M

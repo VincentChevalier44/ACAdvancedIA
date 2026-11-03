@@ -3150,12 +3150,18 @@ tests.DIRECTION_LIMIT_DIAGNOSTIC=function()
  local h=s3.directionHead
  a3.leftWidth=0.95; a3.rightWidth=11; D.lateral(s3,s3.offset,row,a3,e.run,e.runtimeG,1/60,now+60)
  assert(s3.directionHead==h and s3.direction==-1 and not s3.newDirectionLimit,'collapse of the width bound is not a change of side')
- -- Vrai changement de côté, cible figée sur le décalage du moment et bornée par la largeur : noté avec la cible voulue
- -- (avant la borne) et marqué figé.
+ -- Beta 1.41 : cible figée sur le décalage du moment (bornée par la largeur) : jamais notée, le côté gardé reste celui
+ -- de la dernière vraie manœuvre (avant : notée et marquée figée, un changement de plus).
  s3.direction=0; s3.offset=-0.5; s3.filtered=-0.5; s3.velocity=0; s3.lastDirectionAt=-math.huge; for j=1,C.K.directionLimit do s3.directions[j]=-math.huge end
- D.lateral(s3,s3.offset,row,a3,e.run,e.runtimeG,1/60,now+120)
  local h3=s3.directionHead
- assert(s3.directionSides[h3]==-1 and s3.directionIntended[h3]==-0.5 and s3.directionFrozen[h3]==true,'change noted with the wanted target, frozen')
+ D.lateral(s3,s3.offset,row,a3,e.run,e.runtimeG,1/60,now+120)
+ assert(s3.directionHead==h3 and s3.direction==0,'frozen target never noted')
+ -- Vraie manœuvre bornée par la largeur (bord proche) : notée avec la cible voulue, avant la borne.
+ s3.offset=0; s3.filtered=0; s3.velocity=0; s3.lastDirectionAt=-math.huge; a3.leftWidth=2.6
+ local bound=D.reachable(s3,a3,e.run,e.runtimeG,-0.6)
+ assert(bound>-0.55 and bound<-0.06,'width bound partial: '..bound)
+ D.lateral(s3,-0.6,row,a3,e.run,e.runtimeG,1/60,now+180)
+ assert(s3.directionHead~=h3 and s3.directionSides[s3.directionHead]==-1 and s3.directionIntended[s3.directionHead]==-0.6,'wanted target noted, not the bound')
  -- Moteur : la ligne du journal porte le détail.
  local e2,f2=F.scene('J',3); local s2=e2.states[2]
  for j=1,C.K.directionLimit do s2.directions[j]=e2.time-j; s2.directionStates[j]='OVT_IN'; s2.directionSides[j]=j%2==0 and 1 or -1 end
@@ -4113,7 +4119,9 @@ tests.PIT_REPAIR=function()
  p.pitRepair=true; p.section_rules=false; E.changed(e); revisit(); assert(not e.commands[2].pitRepair,'rules tab unchecked: no repair')
  p.section_rules=true; E.changed(e); revisit(); assert(e.commands[2].pitRepair,'on again at the next visit')
  local q,fq=F.scene('Q',3); local c=fq.cars[2]; c.pit=true; c.inPitBox=true; c.kmh=0; c.speed=0; c.damageBody=200
- F.tick(q,fq,0.5); assert(not q.commands[2].pitRepair and not q.commands[2].pitHold,'race only')
+ -- Beta 1.41 : hors course, réparée à son emplacement (dépannage de l'app ou arrêt natif), jamais retenue.
+ F.tick(q,fq,0.5); assert(q.commands[2].pitRepair and not q.commands[2].pitHold,'outside the race: repaired, never held')
+ q.profiles.Q.section_accidents=false; E.changed(q); F.tick(q,fq,0.5); assert(not q.commands[2].pitRepair,'accidents tab unchecked: no repair')
  -- Drapeau rouge : réparations seulement si les règles y permettent le travail (F1), comme les pneus.
  local red=Pits.new(); local cmds={}; for i=1,fq.count do cmds[i]={} end
  local run={}; for k,v in pairs(q.run) do run[k]=v end; run.pitRepair=true; run.redFlagWork=false
@@ -4888,7 +4896,8 @@ tests.SLOW_CAR_DIAGNOSTIC=function()
  local function scene(follower,learned)
   local e,f=F.scene('J',6); E.select(e,'J'); e.profiles.J.section_traffic=true; E.changed(e)
   f.length=20000
-  for i=2,6 do local s=e.states[i]; s.paceCount=K.paceBins; for b=1,K.paceBins do s.pace[b]=learned==false and 0 or 50 end end
+  -- Beta 1.41 : rythme relatif habituel connu (allure de sa classe), la référence de l'IA elle-même.
+  for i=2,6 do local s=e.states[i]; s.paceCount=K.paceBins; for b=1,K.paceBins do s.pace[b]=learned==false and 0 or 50 end; s.longRatio=1; s.longRatioTime=K.longRatioMin end
   F.place(f,1,-9000,0); F.place(f,2,0,100); F.place(f,3,follower and -30 or -3000,100)
   F.place(f,4,5000,180); F.place(f,5,9000,180); F.place(f,6,13000,180)
   F.tick(e,f,2)
@@ -4900,7 +4909,7 @@ tests.SLOW_CAR_DIAGNOSTIC=function()
  F.tick(e,f,4)
  local name=f.cars[2].name
  assert(count(e,'IA anormalement lente: '..name..' ('..f.cars[2].id..') a 100 km/h')==1,'slow car logged with its model and speed')
- assert(count(e,'allure de sa classe ici 180 km/h, 1 voiture(s) derriere')==1,'class pace and queue logged')
+ assert(count(e,'allure de sa classe ici 180 km/h (habituelle de l IA 180 km/h), 1 voiture(s) derriere')==1,'class pace and queue logged')
  assert(count(e,'limite de vitesse app ')==1,'app speed limit reported')
  assert(f.cars[2].watchDamage==true,'damage watched while slow')
  F.tick(e,f,10); assert(count(e,'IA anormalement lente: '..name..' (')==1,'once per episode')
@@ -5905,4 +5914,6 @@ tests.PANEL_LIGHTS_ALL_138=function()
  t.gridLit=C.K.gridLights; Panel.update(e.panel,t,f,e.run,'C',e.time+2)
  assert(e.panel.kind=='lights' and e.panel.short==L.flagShort.lightsAll,'five lights: own instruction')
 end
+-- Beta 1.41 : trafic des IA (fichier à part).
+for name,test in pairs(require('tests/ai141')) do assert(tests[name]==nil,name); tests[name]=test end
 return tests

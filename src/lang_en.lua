@@ -205,7 +205,7 @@ return {
   cspHideMessages='Hide AC system messages (CSP option)',cspHideFlags='Hide AC’s own flags (CSP option)'},
  cspWaiting='CSP options written to cfg/extension/gui.ini: waiting for CSP.',
  cspPending='CSP options written: they take effect at the next game launch (CSP reads them at launch).',
- cspApplied='CSP options applied by the app; your original values are kept and restored as soon as the app or the option is switched off.',
+ cspApplied='CSP options applied by the app; your original values are kept and restored as soon as the app or the option is switched off. Cuts and penalties: AC’s own banners (cannot be hidden), never duplicated.',
  cspReadonly='CSP options cannot be changed (cfg/extension/gui.ini): set them in Content Manager › Custom Shaders Patch › GUI.',
  cspCapped='CSP options left as they are until the next game launch (too many writes in this session).',
  cspLost='AC system messages shown again: hidden by CSP, they no longer reached the overlay. Tick the option again to retry.',

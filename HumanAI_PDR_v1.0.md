@@ -49,7 +49,7 @@ Online multiplayer (app **inert** online) · control of the player's car · modi
 | D9 | `overrideAwareness` of `setAISplineOffset` exposed, default **false**. |
 | D10 | Persistence in `ac.storage`, per profile. Per-track settings: **outside v1.0** (planned for v1.1). |
 | D11 | Detection of another active AI mod (Realistic Trackday, Full Send AI, AI Whisperer, Verve…): warning in the debug window; the app does not attempt to coexist. |
-| D12 | Pits and off-track cars: never driven, never taken as targets. |
+| D12 | Pits and off-track cars: never driven, never taken as targets. Exception (Beta 1.41): in track day only, an AI driving out of the pit lane past its own pit box is held at the end of the lane, 10 s at most, while a car on track reaches the merge; moving pit-lane cars within 100 m of the merge that are not held are seen by the cars on track (radar, avoidance, overtaking). |
 | D13 | **Deterministic** randomness (persisted seed): an AI keeps the same personality from one session to the next; “Regenerate personalities” button. |
 | D14 | No AI is ever moved **towards an occupied side** (universal safety rule, §7.5). |
 | D15 | Safety braking through `ac.overrideCarControls`: **optional**, disabled by default until validated in game (§12.4). |
@@ -402,6 +402,7 @@ Activation: “Endurance” checkbox per profile (Race, Track day); automatic su
 - The AI never yields to a stopped/slow player car; it passes it (R3/AVOID).
 - No lateral manoeuvre towards a side where the player is (§7.5, the player is included among the neighbours).
 - Player in the pits, in the garage or in replay: no reaction; on returning to the track, the states are re-evaluated with the normal `confirmTime`.
+- Note (Beta 1.41, P02): a player moving in the last 100 m of the pit lane (at least 15 km/h, or 3 km/h within 30 m of the merge) is seen by the AI on track (forward radar, avoidance) like a pit-lane AI there; stopped, the player stays invisible (D12 exception).
 
 ### 10.19 Pits and pit exit
 Cars in `inPit`/`inPitlane`: `IDLE` (no setting changed). On exit: see §10.15 item 6; outside Endurance mode: `IDLE` extended by 2 s. An AI entering the pits during a yield/overtake: immediate abort, offset untouched (the AI follows the pit lane).

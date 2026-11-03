@@ -7,6 +7,7 @@ local Zones=require('src/zones')
 local Incidents=require('src/incidents')
 local Penalties=require('src/penalties')
 local Flash=require('src/flash')
+local Delta=require('src/delta')
 local K=C.K
 local abs,min,max=math.abs,math.min,math.max
 local M={}
@@ -22,15 +23,22 @@ function M.newState()
   nextPerception=0,defendUntil=0,defendCooldown=0,defendAttacker=0,defendLap=-1,defendUsed=false,
   straight=0,calmUntil=0,speedBefore=0,speedWindow=0,speedWindowStart=0,lastContact=0,
   lapseAt=0,lapseUntil=0,lapseCount=0,brakeDemand=0,radarBrake=0,startCare=0,radarLogAt=-math.huge,blueWait=0,blueYieldLogged=false,blueWaitLogged=false,slipTime=0,errorCount=0,errorUntil=0,excluded=false,
-  direction=0,lastDirectionAt=-math.huge,directions={},directionStates={},directionSides={},directionIntended={},directionFrozen={},limitState='',limitSide=0,directionCount=0,directionHead=0,driveUntil=0,returning=false,trafficLimit=K.unlimitedSpeed,trafficGap=math.huge,trafficTarget=0,
+  direction=0,lastDirectionAt=-math.huge,directions={},directionStates={},directionSides={},directionIntended={},limitState='',limitSide=0,directionCount=0,directionHead=0,driveUntil=0,returning=false,trafficLimit=K.unlimitedSpeed,trafficGap=math.huge,trafficTarget=0,
   playerGap=math.huge,playerSa=0,lappedByPlayer=false,bluePending=false,gap=math.huge,sa=0,ttc=math.huge,spinHold=false,trafficReference=0,trafficApplied=false,
   alongside=false,passAlongside=false,aborts=0,previousIdentity='',fatigue=1,yellow=false,aiFlashAt=-math.huge,overtakeArmed=false,overtakeSpline=-1,yieldClass=false,bop=0,
   hazardRel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},
   scanRel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},avoidClear=0,invited=0,avoidSide=0,passStall=0,holdStall=0,holdLong=math.huge,
   lane=0,laneActive=false,laneLatched=false,laneSeen=-math.huge,laneMeters=0,laneAt=0,laneLogged=false,passedByPlayerAt=-math.huge,playerBehind=false,inviteWait=0,inviteLogged=false,appBrake=0,baseCaution=1,baseAggression=0,maneuverAt=-math.huge,passStartAt=-math.huge,passMinGap=0,passName='',closeFront=0,closeMeters=0,lastPassTarget=0,lastPassAt=-math.huge,frontWas=0}
  for j=1,K.paceBins do s.pace[j]=0 end
+ -- Beta 1.41 : IA anormalement lente (moteur), dépassements ignorés après un échec, cession perdue, vitesse de pointe
+ -- réduite pour laisser passer.
+ s.abnormal=false; s.abnormalFor=0; s.abnormalCalm=0; s.slowPitSent=false; s.longRatio=1; s.longRatioTime=0
+ s.passIgnore=0; s.passIgnoreUntil=0; s.passIgnoreCount=0; s.followerStall={}; s.yieldPassed=false; s.yieldOrdinary=false; s.yieldStalled=false; s.yieldCap=nil; s.yieldCapNow=nil
+ -- Relecture : suiveur que l'IA n'attend plus (cession perdue, échec « cible plus rapide ») ; jamais un drapeau bleu ni
+ -- une classe. Demande d'arrêt d'une IA lente et endommagée (course).
+ s.yieldIgnore=0; s.yieldIgnoreUntil=0; s.slowPitAsked=false; s.slowPitDone=false
  for j=1,K.directionLimit do s.directions[j]=-math.huge; s.directionStates[j]=''; s.directionSides[j]=0 end
- for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0 end
+ for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0; s.followerStall[j]=0 end
  return s
 end
 function M.reset(s,now,keepOffset,preserveErrors)
@@ -38,13 +46,14 @@ function M.reset(s,now,keepOffset,preserveErrors)
  s.pendingAt=0; s.pendingUntil=0; s.pendingTarget=0; s.pressure=0; s.pressureLost=0; s.pressureTarget=0
  s.holdUntil=0; s.linger=0; s.stuck=0; s.blocked=0; s.passBlocked=0; s.invited=0; s.passStall=0; s.abortSlow=0; s.clear=0; s.passAlongside=false
  s.calmUntil=0; s.spinHold=false; s.postPass=false; s.alongside=false; s.velocity=0; s.filtered=keepOffset and s.offset or 0
- for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0 end
+ for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0; s.followerStall[j]=0 end
  if not preserveErrors then s.errorUntil=0; s.excluded=false; s.errorCount=0 end
  s.direction=0; s.directionCount=0; s.directionHead=0; s.driveUntil=0; s.returning=keepOffset==true
  s.passConfirm=0; s.passCandidate=0; s.passLost=0; s.targetLost=0; s.holdStall=0; s.holdLong=math.huge
  s.lastDirectionAt=-math.huge; for j=1,K.directionLimit do s.directions[j]=-math.huge end
  s.defendUntil=0; s.defendCooldown=0; s.defendAttacker=0; s.defendLap=-1; s.defendUsed=false
  s.ignoreTarget=0; s.ignoreUntil=0; s.lapseUntil=0; s.bluePending=false; s.yieldBlue=false; s.urgent=false
+ s.passIgnore=0; s.passIgnoreUntil=0; s.passIgnoreCount=0; s.yieldPassed=false; s.yieldCap=nil; s.yieldCapNow=nil; s.yieldIgnore=0; s.yieldIgnoreUntil=0
  s.blockedYield=0; s.brakeDemand=0; s.radarBrake=0; s.speedWindowStart=now; s.speedWindow=0; s.cornerBefore=nil
  s.trafficReference=0; s.trafficApplied=false; s.yellow=false; s.overtakeArmed=false; s.overtakeSpline=-1; s.yieldClass=false
  if not keepOffset then s.offset=0 end
@@ -54,8 +63,10 @@ function M.configure(s,g,profile,p,now)
  Persona.fill(s.persona,g.seed,s.slot or 0,profile,p,s.stint)
  s.lapseAt=now+s.persona.lapseInterval
 end
+-- Beta 1.41 : toutes les raisons d'une fin de tentative en clair (« guard » et « yield » restaient en anglais).
 local passEnd={clear='reussi',chain='reussi, enchaine',abort_slow='cible plus rapide',abort_blocked='cote ferme',abort_stall='sans rapprochement',abort_follower='suiveur rapide',
- target_lost='cible perdue',abort_yellow='drapeau jaune',hold_limit='cote a cote sans progres',direction_limit='plafond anti-zigzag'}
+ target_lost='cible perdue',abort_yellow='drapeau jaune',hold_limit='cote a cote sans progres',direction_limit='plafond anti-zigzag',
+ guard='rendue a AC (stands, hors piste ou hors commande)',yield='cede a son suiveur',obstacle='evitement d un obstacle',contact='contact, reprise au calme',spun='tete-a-queue'}
 local function transition(e,s,state,reason,now)
  if s.state==state then return end
  -- Beta 1.31 : fin d'une tentative de dépassement de l'app (sortie des états de passage), avec sa raison.
@@ -73,6 +84,26 @@ end
 -- Classe plus rapide (numéro plus petit) : seulement entre deux voitures déjà classées.
 local function faster(p,a,b) return p.multiClass and a.classified and b.classified and a.class<b.class end
 local function sideFree(row,side) return side<0 and not row.left or side>0 and not row.right end
+-- Endroit de l'allure apprise (plus fin sur les longs circuits, module delta).
+local function paceBin(spline,bins) return Delta.bin(spline,bins) end
+-- Allure libre apprise d'une voiture à l'endroit b (m/s) : la sienne, sinon celle de sa classe corrigée de son rythme
+-- relatif (comme s.freePace) ; 0 inconnue. Jamais le maximum des deux (Delta.pace), qui rendrait deux voitures égales.
+local function freeAt(e,s,b,p)
+ local v=s.pace[b] or 0
+ if v>0 then return v end
+ local fleet=e.delta.fleet[p.multiClass and s.class or 1]
+ if fleet and s.paceRatioCount>=K.paceRatioMin and (fleet[b] or 0)>0 then return fleet[b]*s.paceRatio end
+ return 0
+end
+-- Beta 1.41 (journées circuit du 3 novembre : 72 à 100 % des dépassements finis sur « cible plus rapide », la même paire
+-- jusqu'à 16 fois de suite) : vraie avance de la voiture s sur la voiture o à l'endroit de a, allure libre plus rapide
+-- d'au moins K.passFreeMargin ; nil si l'une des deux allures y est inconnue.
+local function realAdvantage(e,s,o,a,p)
+ local b=paceBin(a.spline,e.delta.bins)
+ local mine,theirs=freeAt(e,s,b,p),freeAt(e,o,b,p)
+ if mine<=0 or theirs<=0 then return nil end
+ return mine>=theirs*(1+K.passFreeMargin)
+end
 -- Côté de l'interface, convention SDK (+1 = droite), converti dans le repère latéral interne calibré.
 local function userSide(side,g) return g.offsetSign<0 and -side or side end
 local function fixedSide(value,fallback,g) return userSide(value=='left' and -1 or value=='right' and 1 or fallback,g) end
@@ -110,7 +141,13 @@ end
 -- Changement de direction (PDR §7.5) = changement du côté visé : gauche, ligne, droite. Suivre un but qui varie du
 -- même côté (écart réduit en virage, demande urgente) n'en est pas un : ni compté, ni retenu par le délai.
 local function directionAllowed(s,desired,now,p,emergency,intended,frozen)
- local direction=desired>K.sideDeadband and 1 or desired<-K.sideDeadband and -1 or 0
+ -- Beta 1.41 (journées circuit du 3 novembre : 16 cibles figées sur 156 changements notés, 41 retours à la ligne notés
+ -- du côté opposé) : une cible figée sur le décalage du moment (freinage, voiture à côté) n'est ni un changement ni un
+ -- côté visé, le côté gardé reste celui de la dernière vraie manœuvre ; la ligne est la ligne personnelle de l'IA (sa
+ -- variation va jusqu'à K.baseMax d'un côté, et le retour vise exactement s.base), pas seulement le centre.
+ if frozen and not emergency then return true end
+ local line=desired==s.base or abs(desired)<=K.sideDeadband
+ local direction=line and 0 or desired>0 and 1 or -1
  if direction==s.direction then return true end
  -- Évitement, récupération et relâchement d'urgence : jamais retenus ni comptés par le plafond (PDR §7.5).
  if emergency then s.direction=direction; s.lastDirectionAt=now; return true end
@@ -118,9 +155,9 @@ local function directionAllowed(s,desired,now,p,emergency,intended,frozen)
  local active=0
  for j=1,K.directionLimit do if now-s.directions[j]<K.directionWindow then active=active+1 end end
  -- Avertissement une fois par déclenchement, pas à chaque refus pendant le repos.
- if active>=K.directionLimit then if now>=s.driveUntil then s.newDirectionLimit=true; s.limitState=s.state; s.limitSide=direction end; s.limitIntended=intended or desired; s.limitFrozen=frozen==true; s.driveUntil=now+K.directionRest; return false end
+ if active>=K.directionLimit then if now>=s.driveUntil then s.newDirectionLimit=true; s.limitState=s.state; s.limitSide=direction end; s.limitIntended=intended or desired; s.driveUntil=now+K.directionRest; return false end
  s.directionHead=s.directionHead%K.directionLimit+1; s.directions[s.directionHead]=now; s.directionStates[s.directionHead]=s.state; s.directionSides[s.directionHead]=direction; s.directionCount=active+1
- s.directionIntended[s.directionHead]=intended or desired; s.directionFrozen[s.directionHead]=frozen==true
+ s.directionIntended[s.directionHead]=intended or desired
  s.direction=direction; s.lastDirectionAt=now
  return true
 end
@@ -136,14 +173,14 @@ end
 -- récent, puis le changement refusé ; la cause d'un déclenchement se lit dans le journal.
 -- Cible voulue avant la borne de largeur, et cible figée sur le décalage du moment (freinage, voiture à côté) : un vrai
 -- changement de côté se distingue d'une borne qui s'effondre dans un virage (diagnostic).
-local function wanted(value,frozen) return value and string.format(' (voulu %+.2f%s)',value,frozen and ', fige' or '') or '' end
+local function wanted(value) return value and string.format(' (voulu %+.2f)',value) or '' end
 local function limitText(s,now)
  local parts={}
  for k=1,K.directionLimit do
   local j=(s.directionHead+k-1)%K.directionLimit+1
-  if now-s.directions[j]<K.directionWindow then parts[#parts+1]=string.format('%s>%+d -%.0fs',s.directionStates[j],s.directionSides[j],now-s.directions[j])..wanted(s.directionIntended[j],s.directionFrozen[j]) end
+  if now-s.directions[j]<K.directionWindow then parts[#parts+1]=string.format('%s>%+d -%.0fs',s.directionStates[j],s.directionSides[j],now-s.directions[j])..wanted(s.directionIntended[j]) end
  end
- return string.format('direction_limit: %s ; refuse %s>%+d',table.concat(parts,', '),s.limitState,s.limitSide)..wanted(s.limitIntended,s.limitFrozen)
+ return string.format('direction_limit: %s ; refuse %s>%+d',table.concat(parts,', '),s.limitState,s.limitSide)..wanted(s.limitIntended)
 end
 M.limitText=limitText
 function M.reachable(s,a,p,g,desired)
@@ -242,8 +279,8 @@ local function busy(frame,player,i)
 end
 -- fleet : allure médiane de la classe à chaque endroit (module delta), pour estimer l'allure libre là où l'IA n'a jamais
 -- roulé seule (rythme relatif appris ailleurs, au moins K.paceRatioMin endroits).
-local function pace(s,a,row,dt,p,fleet)
- local bin=min(K.paceBins,math.floor(a.spline*K.paceBins)+1)
+local function pace(s,a,row,dt,p,fleet,bins)
+ local bin=paceBin(a.spline,bins)
  -- Allure habituelle apprise seulement en conduite libre : jamais sous drapeau jaune, neutralisation ou espacement.
  if s.state=='DRIVE' and row.free and s.lapseUntil<=0 and a.splineValid and not a.pit and not a.offtrack and not s.yellow and not s.trafficApplied then
   local old=s.pace[bin]
@@ -253,6 +290,9 @@ local function pace(s,a,row,dt,p,fleet)
   if median>0 then
    local ratio=a.speed/median
    s.paceRatio=s.paceRatioCount>0 and s.paceRatio+(ratio-s.paceRatio)*K.paceRatioAlpha or ratio; s.paceRatioCount=s.paceRatioCount+1
+   -- Beta 1.41 : rythme relatif de longue durée, figé dès que l'IA roule anormalement lente (moteur) : la référence d'une
+   -- IA endommagée reste son allure d'avant les dégâts.
+   if s.abnormalFor==0 then s.longRatio=s.longRatioTime>0 and U.ema(s.longRatio,ratio,dt,K.longRatioTau) or ratio; s.longRatioTime=s.longRatioTime+dt end
   end
  end
  local free=s.pace[bin]
@@ -314,6 +354,7 @@ local function yieldTrigger(e,s,a,row,p,profile,now,dt)
  local ordinary=p.yieldEnabled and profile~='C' and clear
  if not ordinary and not blue and not classYield and not permittedFlash and not aiAccepted then return nil end
  if s.ignoreTarget==back.index and now<s.ignoreUntil then return nil end
+ if s.yieldIgnore==back.index and now<s.yieldIgnoreUntil and not blue and not classYield then return nil end
  local margin=p.yieldBehindMargin*U.lerp(K.courtesyMin,K.courtesyMax,s.persona.courtesy)*U.lerp(K.gapMarginMin,1,back.gap/K.yieldMarginRange)
  local horizon=p.yieldHorizon
  if acceptedFlash then margin=margin*K.flashMargin; horizon=horizon*K.flashHorizon end
@@ -327,7 +368,10 @@ local function yieldTrigger(e,s,a,row,p,profile,now,dt)
  elseif back.gap>p.pressureGap*K.pressureResetRange then
   s.pressureLost=s.pressureLost+dt; if s.pressureLost>K.pressureResetTime then s.pressure=0 end
  end
- local c3=ordinary and p.pressureEnabled and s.pressure>=p.pressureTime
+ -- Beta 1.41 : pression (suiveur collé à la même allure) refusée à une IA dont l'allure libre ici n'est pas plus rapide
+ -- (connue) : avant, l'IA cédait à une IA aussi rapide qu'elle, qui ne passait jamais, puis recommençait. Allure inconnue
+ -- et joueur : cession comme avant (PDR T05).
+ local c3=ordinary and p.pressureEnabled and s.pressure>=p.pressureTime and (back.index==e.frame.player or realAdvantage(e,e.states[back.index],s,a,p)~=false)
  local c4=permittedFlash
  local c5=aiAccepted
  local trigger=c1 or c2 or c3 or c4 or c5 or blue or classYield
@@ -356,10 +400,11 @@ local function yieldTrigger(e,s,a,row,p,profile,now,dt)
  if blocked then if blue then s.blueReason=blocked end; return nil end
  s.target=back.index; s.targetSide=side; s.gap=back.gap; s.sa=back.sa; s.ttc=back.ttc
  s.yieldDetection=max(detection,blue and blueRange or 0); s.yieldMargin=margin
- for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0 end
- s.followers[back.index]=true; s.multiLeader=false
+ for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0; s.followerStall[j]=0 end
+ s.followers[back.index]=true; s.multiLeader=false; s.yieldPassed=false
  s.confirm=0; s.pendingAt=0; s.pendingTarget=0; s.bluePending=false; s.holdUntil=now+p.yieldHoldMin
  s.linger=0; s.postPass=false; s.yieldStart=now; s.yieldBlue=blue or classYield; s.urgent=c4 and flash.urgent
+ s.yieldOrdinary=not (blue or classYield or c4 or c5); s.yieldStalled=false
  s.yieldClass=(classYield or c5 and upper) and not blue
  if c5 then U.log(e.log,now,'INFO','cede sur appel de phares de '..other.name,a.slot) end
  if c4 then U.log(e.log,now,'INFO',string.format('cede sur appel de phares du joueur (%.0f m, %+.0f km/h)',back.gap,back.sa),a.slot) end
@@ -389,8 +434,11 @@ function M.step(e,i,dt,now)
  end
  local identity=a.identity or a.id
  if a.teleport or s.previousIdentity~=identity then
+  -- Beta 1.41 : le rythme relatif de longue durée ne dépend pas de l'endroit : gardé après un déplacement (dépannage,
+  -- placement), oublié au changement de voiture.
+  if s.previousIdentity~=identity then s.longRatio=1; s.longRatioTime=0 end
   M.reset(s,now,false); s.previousIdentity=identity; s.bop=0
-  for j=1,K.paceBins do s.pace[j]=0 end
+  for j=1,#s.pace do s.pace[j]=0 end
   s.paceCount=0; s.paceMean=0; s.paceRatio=0; s.paceRatioCount=0; s.freePace=0
  end
  if s.pitBefore then
@@ -488,10 +536,14 @@ function M.step(e,i,dt,now)
     for j=1,row.count do
      local r=row.neighbors[j]; local other=frame.cars[r.index]
      if r.long>0 and r.gap<p.obstacleDetect and abs(r.lat)<=K.latPass and (not other.player or other.kmh<=p.obstacleSpeedKmh) then
-      local slow=other.kmh<p.obstacleSpeedKmh and other.stopped>=K.obstacleTime or other.stopped>=K.stoppedTime
+      -- Beta 1.41 : une IA anormalement lente en tête de file (dégâts : 30 km/h là où sa classe roule à 200) est un
+      -- obstacle, même suivie à sa vitesse ; avant, elle était trop rapide pour un obstacle et trop lente pour un
+      -- dépassement (zone morte).
+      local abnormal=e.states[r.index].abnormal==true
+      local slow=other.kmh<p.obstacleSpeedKmh and other.stopped>=K.obstacleTime or other.stopped>=K.stoppedTime or abnormal
       -- Bouchon : une voiture lente que l'on suit déjà au pas n'est pas un obstacle à contourner, sauf incident ;
       -- une voiture en travers l'est toujours.
-      local approach=r.sa>=K.obstacleClosing or e.incidents.cars[r.index].incident
+      local approach=r.sa>=K.obstacleClosing or e.incidents.cars[r.index].incident or abnormal
       if slow and not approach and other.slip<=K.slipDegrees then jam=true end
       if (other.slip>K.slipDegrees or slow and approach) and (not obstacle or r.gap<obstacle.gap) then obstacle=r end
      end
@@ -527,7 +579,7 @@ function M.step(e,i,dt,now)
      else level=level*K.obstacleBlockedLevel; desired=s.offset end
      -- Cible repartie à vive allure, sans glisser ni être un incident, pendant une seconde : l'évitement s'achève.
      local other=frame.cars[target.index]
-     local moving=not e.incidents.cars[target.index].incident and other.kmh>=p.obstacleSpeedKmh+K.avoidClearMargin and other.slip<=K.slipDegrees and other.stopped<K.obstacleTime
+     local moving=not e.incidents.cars[target.index].incident and not e.states[target.index].abnormal and other.kmh>=p.obstacleSpeedKmh+K.avoidClearMargin and other.slip<=K.slipDegrees and other.stopped<K.obstacleTime
      s.avoidClear=moving and s.avoidClear+dt or 0
      if target.long<-K.obstacleClear or s.avoidClear>=K.avoidRecheck then transition(e,s,'DRIVE','obstacle_clear',now) end
     else transition(e,s,'DRIVE','obstacle_lost',now) end
@@ -546,12 +598,13 @@ function M.step(e,i,dt,now)
      if p.predictableSlowClass and s.yieldClass then desired=s.base end
      if s.state=='YIELD_IN' and abs(s.offset-M.reachable(s,a,p,g,desired))<K.yieldReachedEpsilon then transition(e,s,'YIELD_HOLD','yield_position',now) end
      if s.state~='YIELD_OUT' then
-      level=level*(1-(s.yieldBlue and K.blueSlowdown or p.yieldSlowdownPct/100)); aggression=aggression*K.yieldAggression
+      -- Beta 1.41 : IA déjà anormalement lente (dégâts) : pas de ralentissement de plus pour céder.
+      if not s.abnormal then level=level*(1-(s.yieldBlue and K.blueSlowdown or p.yieldSlowdownPct/100)) end; aggression=aggression*K.yieldAggression
       if s.state=='YIELD_HOLD' then caution=caution*K.yieldHoldCaution end
      end
      if target and target.long<0 and target.gap<K.invitationGap then
       s.linger=s.linger+dt
-      if s.linger>K.invitationTime or s.urgent then level=level*(1-p.inviteSlowdownPct/100*U.clamp((s.linger-K.invitationTime)/K.invitationRamp+(s.urgent and 1 or 0),0,1)) end
+      if (s.linger>K.invitationTime or s.urgent) and not s.abnormal then level=level*(1-p.inviteSlowdownPct/100*U.clamp((s.linger-K.invitationTime)/K.invitationRamp+(s.urgent and 1 or 0),0,1)) end
      end
      local remaining=0
      for j=1,row.count do
@@ -566,15 +619,31 @@ function M.step(e,i,dt,now)
       if s.followers[j] then
        local r=P.find(row,j)
        if r and r.long<0 and r.sa<K.lostSaRatio*s.yieldMargin and r.gap>K.slowLostGap then s.followerSlow[j]=s.followerSlow[j]+dt else s.followerSlow[j]=0 end
+       -- Beta 1.41 : cession ordinaire (ni drapeau bleu, ni classe, ni appel de phares), suiveur qui ne se rapproche plus en
+       -- ligne droite, même collé (à moins de K.slowLostGap m) : perdu au bout de K.followerStallTime s (avant, l'IA restait
+       -- écartée et ralentie jusqu'à la durée maximale de cession) ; en virage, le compte attend la ligne droite.
+       -- Relecture : jamais le joueur (une cession à son appel ou à sa pression n'est jamais perdue ainsi).
+       if j==frame.player or not (r and r.long<0 and r.sa<K.followerStallSa and r.gap>K.followerStallGap) or not s.yieldOrdinary then s.followerStall[j]=0
+       elseif a.corner>=p.cornerMin then s.followerStall[j]=s.followerStall[j]+dt end
        local passed=r and r.long>(a.length+frame.cars[j].length)*0.5+K.passBuffer
-       local lost=not r or r.gap>s.yieldDetection*K.lostRange or s.followerSlow[j]>K.slowLostTime
+       local stalled=s.followerStall[j]>K.followerStallTime
+       local lost=not r or r.gap>s.yieldDetection*K.lostRange or s.followerSlow[j]>K.slowLostTime or stalled
+       if passed then s.yieldPassed=true elseif stalled and j==s.target then s.yieldStalled=true end
        if passed or lost then s.followers[j]=false else remaining=remaining+1 end
       end
      end
      if remaining>=2 and s.yieldBlue then s.multiLeader=true end
      if remaining==0 and s.state~='YIELD_OUT' then
       if not s.postPass then s.holdUntil=max(s.holdUntil,now+s.persona.holdAfter+(s.multiLeader and K.blueTrainHold or 0)); s.postPass=true end
-      if now-s.yieldStart>=max(K.holdFloor,p.yieldHoldMin) and now>=s.holdUntil then transition(e,s,'YIELD_OUT','passed',now) end
+      if now-s.yieldStart>=max(K.holdFloor,p.yieldHoldMin) and now>=s.holdUntil then
+       -- Beta 1.41 : « passed » (abouties) seulement si un suiveur est vraiment passé ; suiveurs perdus : « lost » ; perdu
+       -- faute de se rapprocher (cession ordinaire), le suiveur principal n'est plus attendu pendant K.passIgnore s.
+       if s.yieldPassed then transition(e,s,'YIELD_OUT','passed',now)
+       else
+        if s.yieldStalled then s.yieldIgnore=s.target; s.yieldIgnoreUntil=max(s.yieldIgnoreUntil,now+K.passIgnore) end
+        transition(e,s,'YIELD_OUT','lost',now)
+       end
+      end
      end
      if now-s.yieldStart>p.yieldMaxHold then s.ignoreTarget=s.target; s.ignoreUntil=now+K.ignoreFollower; transition(e,s,'YIELD_OUT','hold_limit',now) end
      if s.state=='YIELD_OUT' then desired=s.base; if abs(s.offset-M.reachable(s,a,p,g,s.base))<K.centerEpsilon then transition(e,s,'DRIVE','yield_end',now); s.target=0 end end
@@ -612,7 +681,20 @@ function M.step(e,i,dt,now)
         and (profile~='C' or Classes.laps(a,frame.cars[back.index],back,frame.length)>0 or faster(p,e.states[back.index],s))
        if s.passBlocked>K.abortBlocked or s.abortSlow>K.abortSlowTime or s.passStall>K.passStallTime or fastBack or s.holdStall>K.passHoldMax then
         s.aborts=s.aborts+1
-        transition(e,s,'OVT_OUT',s.passBlocked>K.abortBlocked and 'abort_blocked' or s.abortSlow>K.abortSlowTime and 'abort_slow' or s.passStall>K.passStallTime and 'abort_stall' or fastBack and 'abort_follower' or 'hold_limit',now)
+        local why=s.passBlocked>K.abortBlocked and 'abort_blocked' or s.abortSlow>K.abortSlowTime and 'abort_slow' or s.passStall>K.passStallTime and 'abort_stall' or fastBack and 'abort_follower' or 'hold_limit'
+        transition(e,s,'OVT_OUT',why,now)
+        -- Beta 1.41 : cible repartie plus vite : plus de dépassement sur cession ni sur retenue de cette cible pendant
+        -- K.passIgnore s, multiplié par K.passIgnoreGrowth à chaque nouvel échec sur elle (au plus K.passIgnoreMax s,
+        -- compte oublié K.passIgnoreForget s après la fin de la dernière attente) ; hors course, elle ne lui cède plus
+        -- pendant ce temps (jamais un drapeau bleu ni une classe : en course, rien n'est ignoré par elle).
+        if why=='abort_slow' then
+         if s.passIgnore~=s.target or now>s.passIgnoreUntil+K.passIgnoreForget then s.passIgnore=s.target; s.passIgnoreCount=0 end
+         s.passIgnoreCount=s.passIgnoreCount+1
+         local hold=min(K.passIgnoreMax,K.passIgnore*K.passIgnoreGrowth^(s.passIgnoreCount-1))
+         s.passIgnoreUntil=now+hold
+         local o=e.states[s.target]
+         if profile~='C' and not o.yieldBlue then o.yieldIgnore=i; o.yieldIgnoreUntil=max(o.yieldIgnoreUntil,now+hold) end
+        end
        end
       end
       if s.state=='OVT_ARM' then
@@ -662,8 +744,12 @@ function M.step(e,i,dt,now)
      -- virages compris : une suite de virages ne le remet pas à zéro.
      if front and front.index==s.closeFront then s.closeMeters=s.closeMeters+(front.sa/3.6-s.closeMeters/K.closeMemory)*dt
      else s.closeFront=front and front.index or 0; s.closeMeters=0 end
+     -- Beta 1.41 : derrière une IA anormalement lente, dépassement permis dès K.slowPassRatio fois sa vitesse (à 30 km/h
+     -- derrière elle, K.speedMinPass n'était jamais atteinte).
+     local slowAhead=front and e.states[front.index].abnormal==true
+     local minPass=slowAhead and min(K.speedMinPass,K.slowPassRatio*frame.cars[front.index].kmh) or K.speedMinPass
      local canPass=not s.returning and not startPhase and not s.yellow and not braking and s.lapseUntil<=now and p.overtakeEnabled and front and front.gap>=0 and now>=s.restUntil and directionBudget(s,now,p) and not s.zone.noOvertake and not s.alongside
-      and a.kmh>=K.speedMinPass and a.corner>=(profile=='C' and K.passCornerC or p.cornerMin) and ownBrake<K.passBrakeMax
+      and a.kmh>=minPass and a.corner>=(profile=='C' and K.passCornerC or p.cornerMin) and ownBrake<K.passBrakeMax
      -- Beta 1.30 : joueur écarté juste devant (invitation) sans dépassement engagé au bout de K.inviteReport s : la raison
      -- au journal, une fois par épisode.
      local inviting=front and front.index==frame.player and front.long>0 and front.gap<=K.inviteGap and abs(front.lat)>=K.inviteLat and abs(front.lat)<=K.inviteLatMax
@@ -673,7 +759,7 @@ function M.step(e,i,dt,now)
        s.inviteLogged=true
        local why=s.yellow and 'drapeau jaune' or startPhase and 'depart' or s.returning and 'retour a la ligne' or (braking or ownBrake>=K.passBrakeMax) and 'freinage'
         or a.corner<(profile=='C' and K.passCornerC or p.cornerMin) and 'virage' or now<s.restUntil and 'repos apres manoeuvre' or not directionBudget(s,now,p) and 'plafond anti-zigzag'
-        or s.alongside and 'voiture a cote' or a.kmh<K.speedMinPass and 'trop lent' or not p.overtakeEnabled and 'depassements coupes' or s.zone.noOvertake and 'zone sans depassement'
+        or s.alongside and 'voiture a cote' or a.kmh<minPass and 'trop lent' or not p.overtakeEnabled and 'depassements coupes' or s.zone.noOvertake and 'zone sans depassement'
         or s.lapseUntil>now and 'inattention' or 'conditions de passage'
        U.log(e.log,now,'INFO',string.format('invitation du joueur non suivie: %s derriere a %.0f m (ecart lateral %.1f m, %+.0f km/h, lacet IA %.3f, joueur %.3f rad/s) : %s',
         a.name,front.gap,abs(front.lat),front.sa,abs(a.yawRate),abs(frame.cars[front.index].yawRate),why),i)
@@ -690,15 +776,29 @@ function M.step(e,i,dt,now)
       local closing=front.gap<=p.overtakeDetectAhead and front.sa>=margin and front.ttc<=p.overtakeHorizon
       local trigger=closing
       local stuck=s.stuck>=p.stuckTime*s.persona.patience
-      local stuckTrigger=front.gap<=max(K.stuckGapMin,K.stuckGapTime*a.speed) and stuck
+      local otherState=e.states[front.index]
+      -- Beta 1.41 : cible anormalement lente (dégâts) : dépassement sans rapprochement exigé (suivie à sa vitesse, l'IA
+      -- ne gagnait jamais de terrain), avance et couloir jugés sur l'allure libre ; jamais ignorée.
+      local slowTarget=otherState.abnormal==true and front.gap<=p.overtakeDetectAhead
+      -- Beta 1.41 : paire ignorée après un échec « cible plus rapide » ; vraie avance ici (allure libre).
+      local ignored=front.index==s.passIgnore and now<s.passIgnoreUntil and not slowTarget
+      local adv=realAdvantage(e,s,otherState,a,p)
+      -- Beta 1.41 : retenue seulement derrière une cible qui ne s'éloigne pas (au plus K.cessionSaMin km/h, K.retainLossMax m
+      -- perdus) et pas plus rapide ici en allure libre (inconnue : permise).
+      local stuckTrigger=front.gap<=max(K.stuckGapMin,K.stuckGapTime*a.speed) and stuck and not ignored and front.sa>=-K.cessionSaMin
+       and s.closeMeters>-K.retainLossMax and adv~=false
       trigger=trigger or stuckTrigger
       local free=s.freePace
-      local potential=max(front.sa,stuck and (free-a.speed)*3.6 or 0)
+      trigger=trigger or slowTarget
+      local potential=max(front.sa,(stuck or slowTarget) and (free-a.speed)*3.6 or 0)
       -- Invitation à passer, course comprise : le joueur juste devant, les deux voitures en ligne droite, s'écarte nettement
       -- de la trajectoire de l'IA qui le suit sans doubler lui-même, ou l'IA de devant lui cède la place. Aucune avance de
       -- vitesse exigée (l'IA native se cale sur la voiture de devant), dépassement direct du côté libéré.
-      local otherState=e.states[front.index]
-      local yieldingToMe=(otherState.state=='YIELD_IN' or otherState.state=='YIELD_HOLD') and otherState.target==i
+      -- Beta 1.41 : une cession lance le dépassement si l'IA qui cède ne s'éloigne pas (au plus K.cessionSaMin km/h) et, cession
+      -- ordinaire, si l'IA est vraiment plus rapide ici (allure libre ; inconnue : avance du moment) ; drapeau bleu et
+      -- classe : l'écart de vitesse seul. L'invitation du joueur reste sans condition de vitesse.
+      local yieldingToMe=(otherState.state=='YIELD_IN' or otherState.state=='YIELD_HOLD') and otherState.target==i and (not ignored or otherState.yieldBlue) and front.sa>=-K.cessionSaMin
+       and (otherState.yieldBlue or adv==true or adv==nil and front.sa>=advantage)
       local invited=yieldingToMe or front.index==frame.player and abs(front.lat)>=K.inviteLat and front.gap<=K.inviteGap and front.sa>-K.inviteSa
        and abs(a.yawRate)<=K.inviteCurve*a.speed and abs(other.yawRate)<=K.inviteCurve*other.speed and not busy(frame,front.index,i)
       s.invited=invited and s.invited+dt or 0
@@ -711,10 +811,14 @@ function M.step(e,i,dt,now)
        -- Beta 1.31 (journaux du 2 novembre : 12 tentatives sur 14 abandonnées, la cible repartant plus vite) : engagé sur
        -- un seul rapprochement, le dépassement attend que l'IA ait vraiment gagné K.passCloseMin m sur la cible (terrain
        -- gagné suivi en continu) ; un écart de vitesse passager (sortie de virage, freinage plus tôt) ne suffit plus.
-       local closingOnly=closing and not stuckTrigger and not invited
+       local closingOnly=closing and not stuckTrigger and not invited and not slowTarget
        s.passConfirm=s.passConfirm+dt; s.passLost=0
        local side=invited and (front.lat>0 and 1 or -1) or passSide(p,profile,s,front,row,other,g)
-       local req=U.clamp((front.gap+a.length+other.length+2*p.overtakeClearMargin)*a.speed/max(a.speed-other.speed,K.corridorSpeedMin),K.corridorMin,K.corridorMax)
+       -- Beta 1.41 : cible anormalement lente (zone morte) : écart de vitesse du dépassement = allure libre moins la
+       -- vitesse de la cible (suivie à sa vitesse, l'écart du moment, nul, exigeait le couloir le plus long) ; ailleurs,
+       -- l'écart du moment, comme avant (relecture).
+       local closingSpeed=max(a.speed-other.speed,slowTarget and free-other.speed or 0,K.corridorSpeedMin)
+       local req=U.clamp((front.gap+a.length+other.length+2*p.overtakeClearMargin)*a.speed/closingSpeed,K.corridorMin,K.corridorMax)
        if p.overtakeSide=='auto' and yieldStates[otherState.state] and sideFree(row,-otherState.targetSide) then side=-otherState.targetSide end
        local yieldingSame=yieldStates[otherState.state] and otherState.targetSide==side
        if s.passConfirm>=p.confirmTime and (not closingOnly or s.closeMeters>=K.passCloseMin) and sideFree(row,side) and not yieldingSame and P.corridor(frame.cars,frame.count,i,side,req,front.index,g.occLatMax) then
@@ -722,7 +826,7 @@ function M.step(e,i,dt,now)
         s.passConfirm=0; s.passCandidate=0
         if invited then s.ignoreTarget=front.index; s.ignoreUntil=now+K.inviteRespite end
         -- Beta 1.31 : chaque tentative au journal (déclencheur, écart, avance), et sa fin à la sortie des états de passage.
-        U.log(e.log,now,'INFO',string.format('depassement: %s -> %s (%s, %.0f m, %+.0f km/h)',a.name,other.name,yieldingToMe and 'cession' or invited and 'invitation' or closingOnly and 'rapprochement' or 'retenue',front.gap,front.sa),i)
+        U.log(e.log,now,'INFO',string.format('depassement: %s -> %s (%s, %.0f m, %+.0f km/h)',a.name,other.name,yieldingToMe and 'cession' or invited and 'invitation' or slowTarget and 'cible lente' or closingOnly and 'rapprochement' or 'retenue',front.gap,front.sa),i)
         s.passStartAt=now; s.passMinGap=front.gap; s.passName=other.name; s.lastPassTarget=front.index; s.lastPassAt=now
         transition(e,s,profile=='C' and not invited and 'OVT_ARM' or 'OVT_IN',yieldingToMe and 'yielded' or invited and 'invited' or 'pass',now)
        end
@@ -815,7 +919,7 @@ function M.step(e,i,dt,now)
   caution=caution*(1+K.brakeEmulationGain*(p.brakeZonePct-100)/100)*s.persona.brakeMargin
  end
  if s.state~='DRIVE' then s.blockedYield=0 end
- if s.blockedYield>K.blockedYieldTime and back and back.gap<K.blockedYieldGap then level=level*(1-p.yieldSlowdownPct/100) end
+ if s.blockedYield>K.blockedYieldTime and back and back.gap<K.blockedYieldGap and not s.abnormal then level=level*(1-p.yieldSlowdownPct/100) end
  -- Appel de phares d'une IA réellement retenue sous son allure derrière la voiture de devant (en course : tour ou
  -- classe). Une classe rapide qui s'approche sans être gênée n'appelle pas : la lutte de la classe lente continue.
  if p.aiFlashEnabled and front and front.gap>=0 and not s.yellow and not startPhase and now-s.aiFlashAt>=K.aiFlashCooldown
@@ -869,6 +973,21 @@ function M.step(e,i,dt,now)
  cmd.aggressionOwned=p.section_general or abs(cmd.aggression-(a.baseAggression or a.aiAggression))>=K.aggrEpsilon
  cmd.cautionOwned=p.section_general or abs(cmd.caution-K.defaultCaution)>=K.cautionEpsilon
  M.trafficCap(cmd,s,a,p,profile,dt)
+ -- Beta 1.41 (journées circuit du 3 novembre : cessions sans fin en ligne droite, le niveau ne change pas la vitesse de
+ -- pointe) : en cession (pas en sortie), un suiveur à moins de K.yieldCapGap m derrière ou à sa hauteur, en ligne droite
+ -- au-delà de K.yieldCapMinKmh km/h : vitesse de pointe réduite de K.yieldTopCut km/h sous l'allure libre apprise à
+ -- chaque endroit (inconnue : sous la vitesse du début de la réduction), atteinte en douceur, montant librement avec
+ -- elle, rendue dès que la cession s'achève, au virage ou sans suiveur proche.
+ local close=false
+ if s.state=='YIELD_IN' or s.state=='YIELD_HOLD' then
+  for j=1,row.count do local r=row.neighbors[j]; if s.followers[r.index] and (r.alongside or r.long<0 and r.gap<K.yieldCapGap) then close=true; break end end
+ end
+ if close and a.corner>=p.cornerMin and a.kmh>=K.yieldCapMinKmh then
+  if not s.yieldCap then s.yieldCap=a.kmh-K.yieldTopCut; s.yieldCapNow=a.kmh end
+  local target=max(K.trafficMinSpeed,s.freePace>0 and s.freePace*3.6-K.yieldTopCut or s.yieldCap)
+  s.yieldCapNow=target>=s.yieldCapNow and target or U.approach(s.yieldCapNow,target,K.trafficDecelKmh*dt)
+  cmd.speedLimit=min(cmd.speedLimit,s.yieldCapNow)
+ else s.yieldCap=nil; s.yieldCapNow=nil end
  -- Sortie des stands : une fois le limiteur levé, jamais de rattrapage brutal de la voiture de devant. Écart de
  -- vitesse permis de 7,5 à 15 km/h selon l'assurance, réduit avec la distance, négatif si elle est trop près.
  if pitGuard then
@@ -892,7 +1011,7 @@ function M.step(e,i,dt,now)
    U.log(e.log,now,'INFO',string.format('drapeau bleu: %s devant le joueur depuis %.0f s sans le laisser passer (%s, %.0f m, %+.0f km/h)',a.name,s.blueWait,s.blueReason or 'en attente',s.playerGap,s.playerSa),i)
   end
  elseif s.playerGap>p.blueFlagRange*2 or not s.lappedByPlayer then s.blueWait=0; s.blueYieldLogged=false; s.blueWaitLogged=false; s.blueReason=nil end
- pace(s,a,row,dt,p,e.delta.fleet[p.multiClass and s.class or 1])
+ pace(s,a,row,dt,p,e.delta.fleet[p.multiClass and s.class or 1],e.delta.bins)
  if front then s.gap=front.gap; s.sa=front.sa; s.ttc=front.ttc end
 end
 M.pace=pace
