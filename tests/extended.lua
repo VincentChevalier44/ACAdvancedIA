@@ -4599,6 +4599,118 @@ tests.FLOOD_CONFIG_EDIT=function()
  assert(Flood.state('[AI_FLOOD]\nENABLED=0\n',defaults)==false and Flood.state(nil,nil)==true,'user setting first; enabled when unknown')
  assert(Flood.decide({spawnMode='track',spawnMinCars=10},10)=='off' and Flood.decide({spawnMode='pits',spawnMinCars=10},9)=='on' and Flood.decide({spawnMode='native',spawnMinCars=10},45)=='restore','decision')
 end
+-- Beta 1.40 : options de CSP de gui.ini tenues par l'app (module pur, port imité) : fichier réel du pilote rendu à
+-- l'octet près, option déjà masquée jamais touchée, fichier absent recréé puis effacé, état gardé avant d'écrire,
+-- écriture refusée : état rendu, valeur changée par le pilote laissée, plafond d'écritures, état appliqué figé
+-- jusqu'à la relecture de CSP, déchargement avant relecture : options gardées, relance : rien de réécrit.
+local function cspPort(files)
+ local p={ready=true,files=files,mem=nil,reads=0,writes=0,applied={},guiFails=false,stateFails=false}
+ p.read=function() p.reads=p.reads+1; local t=files.gui; if t==nil then return '',false end return t,true end
+ p.write=function(text) if p.guiFails then return false end p.writes=p.writes+1; files.gui=text; return true end
+ p.remove=function() p.writes=p.writes+1; files.gui=nil; return true end
+ p.loadState=function() return files.state or '' end
+ p.saveState=function(text) if p.stateFails then return false end if text=='' then files.state=nil else files.state=text end return true end
+ p.loadSession=function() return p.mem end
+ p.saveSession=function(text) p.mem=text end
+ p.loaded=function(key) return p.applied[key] end
+ return p
+end
+local BOTH={HIDE_SYSTEM_MESSAGES=true,HIDE_RACE_FLAGS=true}
+tests.CSPGUI_DRIVER_FILE_RESTORED=function()
+ local G=require('src/cspgui')
+ local original='[NEW_UI]\r\nUI_SCALE=1.05\r\n\r\n[HIDE]\r\nHIDE_RACE_FLAGS=1\r\n'
+ local files={gui=original}; local p=cspPort(files); p.applied.HIDE_RACE_FLAGS=true; p.applied.HIDE_SYSTEM_MESSAGES=false
+ local c=G.new(); G.start(c,p); assert(G.view(c)=='idle')
+ G.step(c,p,BOTH,0)
+ assert(files.gui=='[NEW_UI]\r\nUI_SCALE=1.05\r\n\r\n[HIDE]\r\nHIDE_RACE_FLAGS=1\r\nHIDE_SYSTEM_MESSAGES=1\r\n','added in its section, CRLF kept: '..files.gui)
+ assert(c.owned.HIDE_SYSTEM_MESSAGES==false and c.owned.HIDE_RACE_FLAGS==nil,'flags hidden by the driver: never held')
+ local owned,orig,written=G.parse(files.state); assert(owned.HIDE_SYSTEM_MESSAGES==false and orig==original and written==files.gui,'state kept: original file and value')
+ assert(G.frozen(c,'HIDE_SYSTEM_MESSAGES')==false and G.frozen(c,'HIDE_RACE_FLAGS')==true and G.view(c)=='waiting','applied by CSP: before the write')
+ G.step(c,p,BOTH,1); assert(p.writes==1 and p.reads==1,'nothing re-read or re-written while the wish is unchanged')
+ G.step(c,p,BOTH,20); assert(G.view(c)=='pending' and #c.events==2,'not reloaded by CSP: next launch, said once')
+ G.step(c,p,BOTH,40); assert(#c.events==2)
+ G.step(c,p,{},50)
+ assert(files.gui==original and files.state==nil and p.writes==2,'original file back byte for byte, state cleared')
+ assert(G.view(c)=='idle')
+end
+tests.CSPGUI_MISSING_FILE_AND_SECTION=function()
+ local G=require('src/cspgui')
+ local files={}; local p=cspPort(files)
+ local c=G.new(); G.start(c,p); G.step(c,p,BOTH,0)
+ assert(files.gui=='[HIDE]\nHIDE_SYSTEM_MESSAGES=1\nHIDE_RACE_FLAGS=1\n','file created: '..tostring(files.gui))
+ assert(G.parse(files.state)~=nil and select(2,G.parse(files.state))==false,'original: absent')
+ G.step(c,p,{HIDE_RACE_FLAGS=true},1)
+ assert(files.gui=='[HIDE]\nHIDE_RACE_FLAGS=1\n' and c.owned.HIDE_SYSTEM_MESSAGES==nil and c.owned.HIDE_RACE_FLAGS==false,'one option given back: '..files.gui)
+ G.step(c,p,{},2); assert(files.gui==nil and files.state==nil,'everything back: file absent again')
+ -- Fichier changé entre-temps (Content Manager) : seules les options tenues reviennent.
+ G.step(c,p,BOTH,3); files.gui=files.gui..'[OTHER]\nX=1\n'
+ G.step(c,p,{},4); assert(files.gui=='[HIDE]\n[OTHER]\nX=1\n' and files.state==nil,'only the held keys removed: '..tostring(files.gui))
+ -- Valeur changée par le pilote pendant que l'app la tenait : laissée telle quelle, plus tenue.
+ files.gui='[HIDE]\nHIDE_SYSTEM_MESSAGES=0\n'; local d=G.new(); G.start(d,p); G.step(d,p,BOTH,0)
+ assert(files.gui=='[HIDE]\nHIDE_SYSTEM_MESSAGES=1\nHIDE_RACE_FLAGS=1\n' and d.owned.HIDE_SYSTEM_MESSAGES=='0')
+ files.gui='[HIDE]\nHIDE_SYSTEM_MESSAGES=1\nHIDE_RACE_FLAGS=0\n'
+ G.step(d,p,{HIDE_SYSTEM_MESSAGES=true},1)
+ assert(files.gui=='[HIDE]\nHIDE_SYSTEM_MESSAGES=1\nHIDE_RACE_FLAGS=0\n' and d.owned.HIDE_RACE_FLAGS==nil and d.owned.HIDE_SYSTEM_MESSAGES=='0','driver change left alone')
+ local said=false; for _,ev in ipairs(d.events) do if ev[2]:find('modifie par vous',1,true) then said=true end end; assert(said,'logged')
+end
+tests.CSPGUI_CRASH_AND_FAILURES=function()
+ local G=require('src/cspgui')
+ -- Plantage après l'écriture : options reprises au lancement suivant, rendues si l'app est coupée.
+ local files={gui='[HIDE]\nHIDE_RACE_FLAGS=0\n'}; local p=cspPort(files)
+ local c=G.new(); G.start(c,p); G.step(c,p,BOTH,0)
+ assert(files.gui=='[HIDE]\nHIDE_RACE_FLAGS=1\nHIDE_SYSTEM_MESSAGES=1\n')
+ local q=cspPort(files); q.applied.HIDE_SYSTEM_MESSAGES=true; q.applied.HIDE_RACE_FLAGS=true
+ local d=G.new(); G.start(d,q)
+ assert(d.owned.HIDE_SYSTEM_MESSAGES==false and d.owned.HIDE_RACE_FLAGS=='0' and G.view(d)=='applied' and #d.events==1,'resumed from the state file')
+ G.step(d,q,{},0); assert(files.gui=='[HIDE]\nHIDE_RACE_FLAGS=0\n' and files.state==nil and q.writes==1,'app off: original back')
+ -- Fichier d'état non modifiable : gui.ini jamais écrit.
+ local f2={gui=''}; local p2=cspPort(f2); p2.stateFails=true
+ local e=G.new(); G.start(e,p2); G.step(e,p2,BOTH,0); assert(f2.gui=='' and p2.writes==0 and G.view(e)=='readonly','no state: no write')
+ -- gui.ini non modifiable : état rendu tel qu'avant, plus aucune tentative.
+ local f3={gui=''}; local p3=cspPort(f3); p3.guiFails=true
+ local h=G.new(); G.start(h,p3); G.step(h,p3,BOTH,0)
+ assert(f3.gui=='' and f3.state==nil and not next(h.owned) and G.view(h)=='readonly','state rolled back')
+ G.step(h,p3,{},1); assert(p3.reads==1,'no more attempts')
+ -- Fichier d'état illisible : rien n'est touché.
+ local f4={gui='',state='v1\ngarbage\n'}; local p4=cspPort(f4); local k=G.new(); G.start(k,p4); G.step(k,p4,BOTH,0)
+ assert(f4.gui=='' and p4.writes==0 and G.view(k)=='readonly','unreadable state: nothing written')
+ assert(G.parse(G.serialize({HIDE_SYSTEM_MESSAGES='0 ',HIDE_RACE_FLAGS=false},'a\r\nb\n','c'))~=nil,'serialized state read back')
+ local o,orig,w=G.parse(G.serialize({HIDE_SYSTEM_MESSAGES='0 '},'a\r\nb\n',false))
+ assert(o.HIDE_SYSTEM_MESSAGES=='0 ' and orig=='a\r\nb\n' and w==false and G.serialize({},'x','y')=='','round trip')
+ assert(G.parse(G.serialize({HIDE_SYSTEM_MESSAGES=false},'abc','d'):sub(1,-3))==nil,'truncated state refused')
+end
+tests.CSPGUI_SESSION_AND_RELEASE=function()
+ local G=require('src/cspgui'); local K=require('src/config').K
+ local files={}; local p=cspPort(files)
+ local c=G.new(); G.start(c,p); G.step(c,p,BOTH,0)
+ assert(G.frozen(c,'HIDE_RACE_FLAGS')==false,'written, not applied: AC flags still counted as shown')
+ p.applied.HIDE_RACE_FLAGS=true; assert(G.frozen(c,'HIDE_RACE_FLAGS')==false,'the file is never taken for the applied value')
+ -- Déchargement sans relecture de CSP : gardées (fichier d'état), relance dans la même partie : rien de réécrit.
+ G.release(c,p,5); assert(files.gui:find('HIDE_SYSTEM_MESSAGES=1',1,true) and files.state~=nil and p.writes==1,'kept until the next launch')
+ local d=G.new(); G.start(d,p); assert(G.frozen(d,'HIDE_RACE_FLAGS')==false,'same game: still frozen')
+ G.step(d,p,BOTH,0); assert(p.writes==1,'relaunched: no write, no loop')
+ -- Relecture par CSP : état appliqué relu ; déchargement : valeurs d'origine rendues, sauf relecture à l'instant.
+ G.step(d,p,{},1); assert(files.gui==nil and p.writes==2)
+ G.step(d,p,BOTH,2); assert(p.writes==3 and G.view(d)=='waiting')
+ p.applied.HIDE_SYSTEM_MESSAGES=true; G.reloaded(d,p,3)
+ assert(G.frozen(d,'HIDE_RACE_FLAGS')==nil and G.applied(d,'HIDE_SYSTEM_MESSAGES') and d.live and G.view(d)=='applied','reloaded by CSP')
+ G.release(d,p,3+K.cspReloadRelease/2); assert(files.gui~=nil,'reload just before: CSP restarting the apps, kept')
+ G.release(d,p,3+K.cspReloadRelease); assert(files.gui==nil and files.state==nil and p.writes==4,'unloaded after a live reload: restored')
+ -- Retour arrière vers une version sans ces options : rendues même sans relecture de CSP.
+ local r=G.new(); G.start(r,p); G.step(r,p,BOTH,10); G.release(r,p,11); assert(files.gui~=nil,'not reloaded: kept')
+ G.release(r,p,11,true); assert(files.gui==nil and files.state==nil,'rollback: restored anyway')
+ -- Plafond d'écritures par partie (mémoire de la partie) : plus rien d'écrit, état affiché.
+ local e=G.new(); G.start(e,p)
+ for i=1,K.cspWritesMax do G.step(e,p,i%2==1 and BOTH or {},i) end
+ assert(p.writes==K.cspWritesMax and G.view(e)=='capped','capped at '..K.cspWritesMax..' writes per game: '..p.writes..' '..G.view(e))
+ -- Option déjà appliquée par CSP sans être dans gui.ini : jamais touchée.
+ local f5={}; local p5=cspPort(f5); p5.applied.HIDE_RACE_FLAGS=true
+ local h=G.new(); G.start(h,p5); G.step(h,p5,{HIDE_RACE_FLAGS=true},0); assert(f5.gui==nil and p5.writes==0,'applied by CSP: untouched')
+ -- Option déjà cochée dans gui.ini, état appliqué inconnu : jamais tenue.
+ local f6={gui='[HIDE]\nHIDE_RACE_FLAGS=1\n'}; local p6=cspPort(f6)
+ local k=G.new(); G.start(k,p6); G.step(k,p6,BOTH,0)
+ assert(f6.gui=='[HIDE]\nHIDE_RACE_FLAGS=1\nHIDE_SYSTEM_MESSAGES=1\n' and k.owned.HIDE_RACE_FLAGS==nil and k.owned.HIDE_SYSTEM_MESSAGES==false,'ticked in gui.ini: never held')
+end
 -- Beta 1.26 : journée circuit : AI flood coupé à partir du seuil, rétabli en dessous avec la portée choisie, réglage
 -- d'origine rendu en mode natif ; une écriture par changement, annoncée ; jamais hors journée circuit ; écriture
 -- impossible : plus aucune tentative, avertissement.

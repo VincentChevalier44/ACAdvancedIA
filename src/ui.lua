@@ -15,6 +15,7 @@ local W=require('src/widgets')
 local Locale=require('src/locale')
 local Update=require('src/update')
 local Groups=require('src/groups')
+local Cspgui=require('src/cspgui')
 local K=C.K
 local M={}
 -- Identifiant « préfixe..clé » mémorisé : même chaîne à chaque image, aucune concaténation dans le dessin.
@@ -796,20 +797,36 @@ end
 -- Réglages de l'overlay en jeu (Beta 1.25, refonte Racing 26) : taille et fond, apparence, contenu, affichages
 -- d'Assetto Corsa, comportement, puis les panneaux lumineux du circuit (Beta 1.32).
 local overlayContentKeys={'overlaySession','overlayExplain','overlayRecap'}
-local overlayNativeKeys={'overlayNativeBox','overlayMessages','overlayBlockMessages'}
+local overlayNativeKeys={'overlayNativeBox','overlayMessages','overlayBlockMessages','cspHideMessages','cspHideFlags'}
 local overlayBehaviourKeys={'overlayClickThrough','overlayHideReplay','overlayHidePits'}
 local overlayResetKeys={'overlayX','overlayY','overlayScale','overlayLocked','overlayBackground','overlayContent','panelOpacity','panelShow','panelInfoTime',
- 'overlaySession','overlayExplain','overlayRecap','overlayNativeBox','overlayMessages','overlayBlockMessages','overlayClickThrough','overlayHideReplay','overlayHidePits'}
+ 'overlaySession','overlayExplain','overlayRecap','overlayNativeBox','overlayMessages','overlayBlockMessages','cspHideMessages','cspHideFlags','cspMessagesLost',
+ 'overlayClickThrough','overlayHideReplay','overlayHidePits'}
 local backgroundKeys={'solid','ghost','transparent'}
 local function switchList(v,g,keys,titles,x,y,w)
  if W.visible(y,24) then W.heading(titles[1],x,y,w,titles[2]) end
  y=y+30
  for _,key in ipairs(keys) do
-  if W.visible(y,28) then globalSwitch(v,g,idOf('overlay_',key),key,L.overlayShort[key] or L.overlaySwitches[key],x,y,w,v.globalTips[key]) end
+  if W.visible(y,28) then
+   local before=g[key]
+   globalSwitch(v,g,idOf('overlay_',key),key,L.overlayShort[key] or L.overlaySwitches[key],x,y,w,v.globalTips[key])
+   -- Beta 1.40 : recocher l'option rend une nouvelle chance au masquage par CSP (messages perdus par l'overlay).
+   if key=='cspHideMessages' and g[key]~=before then g.cspMessagesLost=false end
+  end
   y=y+28
  end
  return y
 end
+-- Options de CSP tenues par l'app (Beta 1.40) : état sous leurs interrupteurs, texte et genre ; nil s'il n'y a rien à dire.
+local cspTexts={waiting={'cspWaiting','mut'},pending={'cspPending','wn'},readonly={'cspReadonly','wn'},capped={'cspCapped','wn'},applied={'cspApplied','gr'}}
+local function cspStatus(host,g)
+ if g.cspMessagesLost and g.cspHideMessages then return L.cspLost,'wn' end
+ local t=host.cspgui and cspTexts[Cspgui.view(host.cspgui)]
+ if t then return L[t[1]],t[2] end
+ return nil
+end
+-- Drapeaux d'AC masqués par l'app, pas encore appliqués par CSP (effet au prochain lancement du jeu).
+local function flagsNext(host) return host.cspgui~=nil and Cspgui.pending(host.cspgui,'HIDE_RACE_FLAGS') end
 local function overlayBlock(v,e,x,y,w)
  local c=W.colors(); local g=e.g; local tips=v.globalTips
  local two=w>=560; local cw=two and (w-18)/2 or w
@@ -850,7 +867,10 @@ local function overlayBlock(v,e,x,y,w)
  local rx=two and x+cw+18 or x
  if not two then yr=yl+8 end
  yr=switchList(v,g,overlayContentKeys,L.subgroups.overlayContents,rx,yr,cw)+8
- yr=switchList(v,g,overlayNativeKeys,L.subgroups.overlayNative,rx,yr,cw)+8
+ yr=switchList(v,g,overlayNativeKeys,L.subgroups.overlayNative,rx,yr,cw)
+ local cspText,cspKind=cspStatus(v.host,g)
+ if cspText then yr=yr+4+W.message(cspText,rx,yr+4,cw,cspKind)+4 end
+ yr=yr+8
  yr=switchList(v,g,overlayBehaviourKeys,L.subgroups.overlayBehaviour,rx,yr,cw)
  y=math.max(yl,yr)+10
  -- Panneaux lumineux du circuit : réglés dans leur section (Beta 1.37), une ligne y mène.
@@ -929,7 +949,7 @@ local function lightsLegend(v,p,x,y,w)
   y=y+h+7
  end
  y=y+2
- if host.trackLights==true and C.on(p,'lights') and p.lightsRed~=false and host.raceFlagsHidden~=true then y=y+W.message(L.trackLightsRed,x,y,w,'wn')+6 end
+ if host.trackLights==true and C.on(p,'lights') and p.lightsRed~=false and host.raceFlagsHidden~=true then y=y+W.message(flagsNext(host) and L.trackLightsRedNext or L.trackLightsRed,x,y,w,'wn')+6 end
  return y
 end
 -- « Active pour : » et une puce par profil (cyan : section cochée dans ce profil) ; un clic coche ou décoche la section
@@ -1510,13 +1530,13 @@ local function homeTab(v,e,host)
  if e.g.offsetSign==0 and C.needsOffset(C.effective(view,p,v.derived)) then addWarning(v,L.unavailableSigns,'signs') end
  if e.frame and e.frame.left>K.enduranceSuggestionSeconds and not p.enduranceOverlay and view~='Q' and view~='P' and view~='H' then addWarning(v,L.enduranceSuggestion,'endurance') end
  if C.any(p) and not C.on(p,'weather') then addWarning(v,L.weatherOff,'weather') end
- if host.raceFlagsHidden==false then addWarning(v,L.nativeFlagsShown) end
+ if host.raceFlagsHidden==false then addWarning(v,flagsNext(host) and L.nativeFlagsNext or L.nativeFlagsShown) end
  if p.configured and not C.on(p,'accidents') and not C.on(p,'rules') then addWarning(v,L.newTabsOff,'tabs') end
  if host.upgraded and #host.upgraded>0 then
   if v.upgradedFor~=host.upgraded or v.upgradedCount~=#host.upgraded then v.upgradedFor=host.upgraded; v.upgradedCount=#host.upgraded; v.upgradedList=table.concat(host.upgraded,', ') end
   addWarning(v,fmt(v,'upgraded','%s%s',L.upgraded,v.upgradedList))
  end
- if host.trackLights==true and C.on(e.p,'lights') and e.p.lightsRed~=false and host.raceFlagsHidden==false then addWarning(v,L.lightsRedWarning,'lights') end
+ if host.trackLights==true and C.on(e.p,'lights') and e.p.lightsRed~=false and host.raceFlagsHidden==false then addWarning(v,flagsNext(host) and L.lightsRedNext or L.lightsRedWarning,'lights') end
  -- Mise à jour (Beta 1.33) : nouvelle version (bouton d'un clic) ou compte rendu de la dernière opération.
  local u=host.updater; local offered=u~=nil and host.updatePort~=nil and host.updatePort.ready and Update.offered(u)
  local report=u~=nil and u.updated~=nil and not offered

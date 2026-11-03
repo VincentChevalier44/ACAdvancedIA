@@ -197,6 +197,14 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 - `physics.teleportCarTo(index, 'PIT')` (`ac.SpawnSet.Pits`) without `preserveDamage`: the car brought back to its pit box is repaired (stranded AI car recovered, disqualified AI car, Safety Car).
 - Deliberate deviation from the PDR: contact detection through a yaw jump (additional criterion) was removed in 1.8.0; on a smoothed yaw, it could not trigger. Contact is still recognised by the sharp loss of speed near a car.
 
+## Beta 1.40: CSP display options (gui.ini)
+
+- `ac.blockSystemMessages('.')` does not hide AC's own top banner (*CUT DETECTED: LAP WILL NOT COUNT*): it was still drawn in Beta 1.39 while `ac.onMessage` received it. CSP's `[HIDE] HIDE_SYSTEM_MESSAGES` (*Hide system messages (like ABS)*, `extension/config/gui.ini`) is the switch for that display; `HIDE_RACE_FLAGS` hides AC's flags.
+- User file: `ac.getFolder(ac.FolderID.ExtCfgUser)` + `gui.ini` (written by Content Manager; absent until something is changed). Applied values: `ac.INIConfig.cspModule(ac.CSPModuleID.GUI):get('HIDE', key, false)`. `ac.onCSPConfigChanged(ac.CSPModuleID.GUI, fn)` reports a re-read. Whether CSP applies a changed `[HIDE]` key live is **not confirmed** on CSP 0.3.2-preview2: the app handles both cases.
+- Between the app's write and a re-read by CSP, the applied value is the one read at the first app start of the game process (kept in `ac.store('humanai:cspgui')`, which survives app reloads but not a game restart), never the file's.
+- State file outside the update work folder: `ac.FolderID.ExtCfgState` + `ACAdvancedIA-cspgui.ini`. It holds `v1`, one line per held key (`KEY=original` or `KEY` when absent), then `original <bytes>` and `written <bytes>` blocks (`-` when the file did not exist). The updater's clean-up only touches `ACAdvancedIA-update/`.
+- Writes use `io.save(path, data, true)`; the `.bak` CSP's safe replacement leaves is deleted after each write, as for `new_behaviour.ini`.
+
 ## Beta 1.26: CSP AI flood and AI placement
 
 - `io.save(path, data, true)` goes through `io.replaceFile` when the file exists, which keeps the old content as `<path>.bak` (CSP's safe replacement). The updater deletes that `.bak` right after each write and on each deletion (Beta 1.37); `boot.txt`, rewritten at the launch that counts the start, was the source of the `boot.txt.bak` left by Beta 1.36.

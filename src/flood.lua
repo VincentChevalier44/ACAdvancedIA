@@ -30,9 +30,10 @@ function M.get(text,section,key)
  end
  return value
 end
--- Clés de values (texte, ou false pour la retirer) écrites dans la section, dans l'ordre de M.keys ; les autres lignes
--- restent intactes. Section ajoutée en fin de fichier si elle manque.
-function M.edit(text,section,values)
+-- Clés de values (texte, ou false pour la retirer) écrites dans la section, dans l'ordre de order (M.keys par défaut ;
+-- Beta 1.40 : aussi pour les options de CSP de gui.ini) ; les autres lignes restent intactes. Section ajoutée en fin de
+-- fichier si elle manque.
+function M.edit(text,section,values,order)
  text=text or ''
  local eol=text:find('\r\n',1,true) and '\r\n' or '\n'
  local target=section:upper()
@@ -52,7 +53,7 @@ function M.edit(text,section,values)
   end
  end
  local add={}
- for _,key in ipairs(M.keys) do if values[key] and not done[key] then add[#add+1]=key..'='..values[key] end end
+ for _,key in ipairs(order or M.keys) do if values[key] and not done[key] then add[#add+1]=key..'='..values[key] end end
  if #add>0 then
   if last then for k=#add,1,-1 do table.insert(out,last+1,add[k]) end
   else
@@ -64,11 +65,12 @@ function M.edit(text,section,values)
  if #out==0 then return '' end
  return table.concat(out,eol)..eol
 end
-local function truthy(v) if v==nil then return nil end v=v:lower(); return not (v=='0' or v=='false' or v=='no' or v=='off') end
+-- Booléen d'une valeur d'INI (nil si absente) ; aussi pour les options de CSP de gui.ini (Beta 1.40).
+function M.truthy(v) if v==nil then return nil end v=v:lower(); return not (v=='0' or v=='false' or v=='no' or v=='off') end
 -- État d'AI flood : actif ou non, longueur minimale du circuit (m) ; réglage de l'utilisateur, sinon défaut de CSP.
 function M.state(user,system)
- local enabled=truthy(M.get(user,M.section,'ENABLED'))
- if enabled==nil then enabled=truthy(M.get(system,M.section,'ENABLED')) end
+ local enabled=M.truthy(M.get(user,M.section,'ENABLED'))
+ if enabled==nil then enabled=M.truthy(M.get(system,M.section,'ENABLED')) end
  if enabled==nil then enabled=true end
  local length=tonumber(M.get(user,M.section,'MIN_TRACK_LENGTH') or '') or tonumber(M.get(system,M.section,'MIN_TRACK_LENGTH') or '') or K.floodMinLength
  return enabled,length

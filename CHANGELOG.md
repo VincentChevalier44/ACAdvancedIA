@@ -1,5 +1,36 @@
 # Changelog
 
+## Beta 1.40 — 3 November 2026
+
+AC's own displays that the overlay takes over are now hidden while the app is active (your request: *every basic Assetto Corsa function we take over must no longer be shown*).
+
+- **AC's top message banner** (*CUT DETECTED: LAP WILL NOT COUNT*, assists…) stayed on screen although the overlay already showed it: `ac.blockSystemMessages` does not hide it. The app now ticks CSP's own option **Hide system messages** (`Documents/Assetto Corsa/cfg/extension/gui.ini`, section `[HIDE]`) while the overlay takes over the messages.
+- **AC's own flags** (top left corner): the app ticks CSP's **Hide race flags** while it is active. This also allows red on the track light panels.
+- **Your settings are kept:**
+  - an option you already ticked is never touched;
+  - before the first write, the app saves the original file and values in its own state file (`cfg/extension/state/ACAdvancedIA-cspgui.ini`, never read by CSP), so a crash loses nothing;
+  - the values come back when the app, **PANIC** or the switch stops hiding: the original file byte for byte when nothing else changed it, otherwise only the two keys;
+  - a value you change yourself while the app holds it is left as it is;
+  - no `.bak` is left behind, and there are at most 8 writes of `gui.ini` per game session (no write loop).
+- **When it takes effect:**
+  - if CSP re-reads `gui.ini` during the session, at once;
+  - otherwise at the next game launch. The window says so, and the options are then kept until that launch, because restoring them on exit would mean they never apply.
+  - Until CSP has applied **Hide race flags**, the app still counts AC's flags as shown: no red (AC's black flag) on the panels. **TO CHECK** says *effective at the next game launch*.
+- **The test message also checks CSP's option:**
+  - once it applies, a test message must still reach the overlay;
+  - if it does not, the option is restored, the choice is kept, and the window says so;
+  - ticking the switch again retries.
+- **Overlay › Assetto Corsa displays:** two new switches, both on by default.
+  - **Hide AC system messages (CSP option)**;
+  - **Hide AC's own flags (CSP option)**;
+  - a status line under them: waiting for CSP, next launch, applied, cannot be changed, or messages lost.
+- **Other AC HUD elements stay as they are:** fuel, starting lights, damage, leaderboard, proximity, mirror, wrong way and ping. The overlay does not fully replace them:
+  - fuel is shown only once its consumption is known;
+  - the start lights only for the app's own standing restart.
+  - Only the session box was already hidden.
+
+**Verification**: 453 checks; 122 integration cases; 1,159 mutations, all detected; clean lint, parameter audit; golden scenes identical to Beta 1.39; 8-hour soak with 0 errors (memory between 7.6 and 8.8 MB, peak frame 1.17 ms); engine bench with 30 AI, median of five alternating runs: 0.210 ms (Beta 1.39: 0.223 ms). Not yet checked in the game: whether CSP's *Hide system messages* removes the *CUT DETECTED* banner, and whether CSP applies it live or at the next launch (see docs/VALIDATION.md).
+
 ## Beta 1.39 — 3 November 2026
 
 A 2.2-second freeze of the settings window fixed, and the last gaps of the fidelity review of Beta 1.38 closed; delivered through the in-app update.

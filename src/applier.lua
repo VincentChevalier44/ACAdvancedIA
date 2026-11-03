@@ -145,12 +145,19 @@ function M.deletePreset(a,index)
  if ok then a.presets[index]=nil end
  return ok
 end
--- Option CSP « Hide race flags » (gui.ini, [HIDE] HIDE_RACE_FLAGS) : true ou false, nil si illisible.
-local function readRaceFlagsHidden()
- return ac.INIConfig.cspModule(ac.CSPModuleID.GUI):get('HIDE','HIDE_RACE_FLAGS',false)
+-- Options CSP de gui.ini, section [HIDE] (« Hide race flags » : HIDE_RACE_FLAGS) : true ou false, nil si illisible.
+local function readOption(key)
+ return ac.INIConfig.cspModule(ac.CSPModuleID.GUI):get('HIDE',key,false)
+end
+-- Beta 1.40 : option masquée par l'app et pas encore relue par CSP : la valeur appliquée par CSP reste celle d'avant
+-- (a.cspFrozen, src/cspgui.lua) ; jamais celle du fichier, que CSP n'applique pas encore.
+local function readRaceFlagsHidden(a)
+ local frozen=a.cspFrozen and a.cspFrozen('HIDE_RACE_FLAGS')
+ if frozen~=nil then return frozen end
+ return readOption('HIDE_RACE_FLAGS')
 end
 function M.readFlagsHidden(a)
- local ok,value=pcall(readRaceFlagsHidden)
+ local ok,value=pcall(readRaceFlagsHidden,a)
  if ok and type(value)=='boolean' then a.raceFlagsHidden=value elseif ok and type(value)=='number' then a.raceFlagsHidden=value~=0 else a.raceFlagsHidden=nil end
 end
 function M.menu(a,visible)
@@ -445,7 +452,7 @@ local function redHidden(a,now)
  local t=now or 0
  if t>=(a.hiddenReadAt or -math.huge) then
   a.hiddenReadAt=t+K.flagsHiddenRead
-  local ok,value=pcall(readRaceFlagsHidden)
+  local ok,value=pcall(readRaceFlagsHidden,a)
   if ok and type(value)=='boolean' then a.raceFlagsHidden=value elseif ok and type(value)=='number' then a.raceFlagsHidden=value~=0 end
  end
  return a.raceFlagsHidden==true
@@ -819,13 +826,15 @@ function M.loadText(key) if not ac.load then return nil end local ok,text=pcall(
 function M.message(title,text) if callable(ac.setMessage) then return pcall(ac.setMessage,title,text) end return false end
 -- Message témoin du masquage des messages d'AC (Beta 1.26), le plus bref possible.
 function M.probeMessage(title) if callable(ac.setMessage) then return pcall(ac.setMessage,title,'',nil,K.probeTime) end return false end
--- AI flood de CSP (Beta 1.26) : réglage de l'utilisateur (cfg/extension/new_behaviour.ini, absent tant qu'il n'a rien
--- changé) et défauts de CSP (extension/config/new_behaviour.ini) ; écriture sûre (fichier temporaire, puis remplacement).
-local function floodPath(id)
+-- Fichier d'un dossier de CSP (cfg/extension, cfg/extension/state, extension/config) ; nil sans ce dossier.
+local function folderFile(id,name)
  if not ac.getFolder or not ac.FolderID or not ac.FolderID[id] then return nil end
  local ok,root=pcall(ac.getFolder,ac.FolderID[id])
- return ok and type(root)=='string' and root~='' and root..'\\new_behaviour.ini' or nil
+ return ok and type(root)=='string' and root~='' and root..'\\'..name or nil
 end
+-- AI flood de CSP (Beta 1.26) : réglage de l'utilisateur (cfg/extension/new_behaviour.ini, absent tant qu'il n'a rien
+-- changé) et défauts de CSP (extension/config/new_behaviour.ini) ; écriture sûre (fichier temporaire, puis remplacement).
+local function floodPath(id) return folderFile(id,'new_behaviour.ini') end
 function M.floodRead()
  if not io or type(io.load)~='function' then return nil,nil,false end
  local user,system=floodPath('ExtCfgUser'),floodPath('ExtCfgSys')
@@ -847,18 +856,57 @@ function M.floodLeftover()
  local okAfter,still=pcall(io.fileExists,bak)
  return okAfter and still~=true
 end
-function M.floodWrite(text)
- local path=floodPath('ExtCfgUser')
+-- Écriture sûre d'un fichier de cfg/extension. Beta 1.38 : io.save(…, true) passe par io.replaceFile, qui laisse
+-- l'ancien contenu en <fichier>.bak : ce reste est effacé après chaque écriture.
+local function saveClean(path,text)
  if not path or not io or type(io.save)~='function' or type(text)~='string' then return false end
  local ok,done=pcall(io.save,path,text,true)
- -- Beta 1.38 : io.save(…, true) passe par io.replaceFile, qui laisse l'ancien contenu en new_behaviour.ini.bak dans
- -- cfg/extension : ce reste est effacé après chaque écriture.
  if type(io.fileExists)=='function' and type(io.deleteFile)=='function' then
   local bak=path..'.bak'
   local okExists,present=pcall(io.fileExists,bak)
   if okExists and present==true then pcall(io.deleteFile,bak) end
  end
  return ok and done~=false
+end
+function M.floodWrite(text) return saveClean(floodPath('ExtCfgUser'),text) end
+-- Options de CSP de gui.ini tenues par l'app (Beta 1.40, src/cspgui.lua) : réglage de l'utilisateur
+-- (cfg/extension/gui.ini, absent tant qu'il n'a rien changé), fichier d'état de l'app (cfg/extension/state, que CSP ne
+-- relit pas, hors du dossier de la mise à jour), mémoire de la partie (ac.store) et options appliquées par CSP.
+local function fileText(path)
+ local okExists,present=pcall(io.fileExists,path)
+ if not okExists then return nil,false end
+ if present~=true then return '',false end
+ local ok,text=pcall(io.load,path)
+ return ok and type(text)=='string' and text or nil,true
+end
+local function removeFile(path)
+ pcall(io.deleteFile,path)
+ local ok,present=pcall(io.fileExists,path)
+ return ok and present~=true
+end
+function M.cspPort()
+ local gui,state=folderFile('ExtCfgUser','gui.ini'),folderFile('ExtCfgState','ACAdvancedIA-cspgui.ini')
+ local ready=gui~=nil and state~=nil and io~=nil and callable(io.load) and callable(io.save) and callable(io.fileExists) and callable(io.deleteFile)
+  and ac.INIConfig~=nil and callable(ac.INIConfig.cspModule) and ac.CSPModuleID~=nil
+ return {ready=ready,
+  read=function() return fileText(gui) end,
+  write=function(text) return saveClean(gui,text) end,
+  remove=function() return removeFile(gui) end,
+  loadState=function() return (fileText(state)) end,
+  saveState=function(text) if text=='' then return removeFile(state) end return saveClean(state,text) end,
+  loadSession=function() return M.loadText('humanai:cspgui') end,
+  saveSession=function(text) M.storeText('humanai:cspgui',text) end,
+  loaded=function(key)
+   local ok,value=pcall(readOption,key)
+   if ok and type(value)=='boolean' then return value elseif ok and type(value)=='number' then return value~=0 end
+   return nil
+  end}
+end
+-- Relecture de gui.ini par CSP (réglage changé en jeu, ou écrit par l'app).
+function M.watchGui(fn)
+ if not callable(ac.onCSPConfigChanged) or not ac.CSPModuleID then return nil end
+ local ok,d=pcall(ac.onCSPConfigChanged,ac.CSPModuleID.GUI,fn)
+ return ok and d or nil
 end
 function M.apply(a,frame,commands,g,now)
  if not a.allowed or frame.online or frame.replay or frame.paused then return end

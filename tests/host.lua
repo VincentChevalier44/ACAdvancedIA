@@ -39,7 +39,11 @@ function M.create(native110,options)
  h.mainWindow={x=1000,y=780}; h.resizes=0
  ac.accessAppWindow=function(name) if name~='IMGUI_LUA_ACAdvancedIA_main' then return nil end
   return {size=function() return {x=h.mainWindow.x,y=h.mainWindow.y} end,resize=function(_,v) h.resizes=h.resizes+1; h.mainWindow={x=v.x,y=v.y} end} end
- ac.INIConfig={cspModule=function(id) assert(id=='gui'); return {get=function(_,section,key,fallback) assert(section=='HIDE' and key=='HIDE_RACE_FLAGS'); if h.hideRaceFlags==nil then return fallback end return h.hideRaceFlags end} end,
+ -- Options de gui.ini telles que CSP les applique (Beta 1.40 : aussi HIDE_SYSTEM_MESSAGES) ; h.guiWatchers : relecture.
+ ac.INIConfig={cspModule=function(id) assert(id=='gui'); return {get=function(_,section,key,fallback)
+  assert(section=='HIDE' and (key=='HIDE_RACE_FLAGS' or key=='HIDE_SYSTEM_MESSAGES'))
+  local value; if key=='HIDE_RACE_FLAGS' then value=h.hideRaceFlags else value=h.hideSystemMessages end
+  if value==nil then return fallback end return value end} end,
   raceConfig=function() return {get=function(_,section,key,fallback)
   if h.raceIni then local entry=h.raceIni[section]; return entry and entry[key] or fallback end
   -- Beta 1.19 : nom de Content Manager selon le type (« Track Day » pour les essais par défaut, comme une journée circuit).
@@ -59,7 +63,10 @@ function M.create(native110,options)
  rawset(_G,'vec3',function(x,y,z) return {x=x or 0,y=y or 0,z=z or 0} end)
  rawset(_G,'vec4',function(x,y,z,w) return {x=x or 0,y=y or 0,z=z or 0,w=w or 0} end)
  ac.getAppWindows=function() return h.windows end
- ac.FolderID={ScriptOrigin=1,Logs=7,ContentCars=13,ContentTracks=15,ExtCfgSys=17,ExtCfgUser=18}; ac.getFolder=function(id) return id==7 and 'logs' or id==13 and 'cars' or id==15 and 'tracks' or id==17 and 'cfgsys' or id==18 and 'cfgext' or 'local' end
+ ac.FolderID={ScriptOrigin=1,Logs=7,ContentCars=13,ContentTracks=15,ExtCfgSys=17,ExtCfgUser=18,ExtCfgState=25}; ac.getFolder=function(id) return id==7 and 'logs' or id==13 and 'cars' or id==15 and 'tracks' or id==17 and 'cfgsys' or id==18 and 'cfgext' or id==25 and 'cfgstate' or 'local' end
+ h.guiWatchers={}
+ ac.onCSPConfigChanged=function(id,fn) assert(id=='gui' and type(fn)=='function'); h.guiWatchers[#h.guiWatchers+1]=fn
+  return function() for k,f in ipairs(h.guiWatchers) do if f==fn then table.remove(h.guiWatchers,k) end end end end
  io.scanDir=function(root,mask,callback)
   assert(type(root)=='string' and mask=='*' and type(callback)=='function')
   local model=root:match('^cars/(.+)/skins$')
@@ -70,9 +77,25 @@ function M.create(native110,options)
  ac.findNodes=function(query) assert(type(query)=='string'); return {applySkin=function(self,skin) assert(type(skin)=='string'); h.appliedSkins=h.appliedSkins or {}; h.appliedSkins[query]=skin; return self end} end
  io.load=function(path) assert(type(path)=='string'); return h.files[path] end
  -- Réglage d'AI flood de CSP (Beta 1.26) : seule écriture permise hors du dossier des journaux.
- io.save=function(path,data,ensure) assert(path=='cfgext\\new_behaviour.ini' and type(data)=='string' and ensure==true,'write outside the CSP user config: '..tostring(path)); if ensure and h.files[path]~=nil then h.files[path..'.bak']=h.files[path] end; h.files[path]=data; h.cfgWrites=(h.cfgWrites or 0)+1; return true end
+ -- Beta 1.40 : aussi gui.ini (options de CSP) et le fichier d'état de l'app (cfg/extension/state) ; h.guiReadonly,
+ -- h.stateReadonly : écriture refusée.
+ -- Fichier d'état dans le dossier d'état du moment (aussi celui de l'imitation de la mise à jour, tests/updatefake.lua).
+ local gui='cfgext\\gui.ini'
+ local function isState(path) local root=ac.getFolder(ac.FolderID.ExtCfgState); return root~=nil and (path==root..'\\ACAdvancedIA-cspgui.ini' or path==root..'\\ACAdvancedIA-cspgui.ini.bak') end
+ io.save=function(path,data,ensure)
+  assert((path=='cfgext\\new_behaviour.ini' or path==gui or isState(path)) and type(data)=='string' and ensure==true,'write outside the CSP user config: '..tostring(path))
+  if path==gui and h.guiReadonly or isState(path) and h.stateReadonly then return false end
+  if ensure and h.files[path]~=nil then h.files[path..'.bak']=h.files[path] end; h.files[path]=data
+  if path==gui then h.guiWrites=(h.guiWrites or 0)+1 elseif isState(path) then h.stateWrites=(h.stateWrites or 0)+1 else h.cfgWrites=(h.cfgWrites or 0)+1 end
+  return true
+ end
  -- Comme io.replaceFile de CSP : l'ancien contenu reste en .bak ; seul ce reste peut être effacé (Beta 1.38).
- io.deleteFile=function(path) assert(path=='cfgext\\new_behaviour.ini.bak','delete outside the CSP user config: '..tostring(path)); h.files[path]=nil; h.bakDeleted=(h.bakDeleted or 0)+1; return true end
+ io.deleteFile=function(path)
+  assert(path=='cfgext\\new_behaviour.ini.bak' or path==gui or path==gui..'.bak' or isState(path),'delete outside the CSP user config: '..tostring(path))
+  h.files[path]=nil
+  if path=='cfgext\\new_behaviour.ini.bak' then h.bakDeleted=(h.bakDeleted or 0)+1 end
+  return true
+ end
  -- Journal de session : fichiers en mémoire, seulement dans le dossier des journaux.
  io.open=function(path,mode)
   assert(type(path)=='string' and path:sub(1,5)=='logs/','journal outside the logs folder: '..tostring(path))
@@ -135,7 +158,8 @@ function M.create(native110,options)
  -- Comme CSP : les écouteurs reçoivent aussi les messages de l'app ; h.blockSwallows : un masquage les leur retire.
  ac.setMessage=function(title,text,kind,time)
   h.messages[#h.messages+1]=title..' | '..text
-  if not (h.blockSwallows and h.blocked>0) then for _,fn in ipairs(h.messageListeners) do fn(title,text,kind,time or 5) end end
+  -- Beta 1.40 : h.hideSwallows : l'option de CSP « Hide system messages » appliquée les leur retire aussi.
+  if not (h.blockSwallows and h.blocked>0) and not (h.hideSwallows and h.hideSystemMessages) then for _,fn in ipairs(h.messageListeners) do fn(title,text,kind,time or 5) end end
  end
  -- Voiture garée sans pilote et retour au stand : IA seulement, jamais en ligne.
  physics.setAINoInput=function(index,value) weatherVerify(index); h.parked[index]=value end
@@ -317,6 +341,8 @@ function M.create(native110,options)
  ui.setTooltip=function(text) assert(type(text)=='string' and text~=''); h.pendingTipped=true; h.lastTooltip=text; h.tooltips[#h.tooltips+1]=text end
  return h
 end
+-- CSP relit gui.ini (Beta 1.40) : écouteurs de ac.onCSPConfigChanged appelés.
+function M.reloadGui(h) for _,fn in ipairs(h.guiWatchers) do fn() end end
 function M.tick(h,seconds)
  for _=1,math.floor(seconds*60+0.5) do
   h.sim.gameTime=h.sim.gameTime+1/60; h.sim.currentSessionTime=h.sim.currentSessionTime+1000/60

@@ -65,6 +65,7 @@ local Penalties=require('src/penalties')
 local Journal=require('src/journal')
 local Locale=require('src/locale')
 local Lights=require('src/lights')
+local Cspgui=require('src/cspgui')
 local K=Config.K
 -- Cache des traces du compilateur JIT agrandi (machine virtuelle de l'app) : avec les 1 000 traces et 512 Ko de code
 -- machine par défaut, le moteur vide et recompile tout son code toutes les une à deux minutes (pics d'image). Sans
@@ -109,6 +110,37 @@ local messages
 local panel=UI.new(engine,host,calibration,dirty)
 messageListener=Applier.listenMessages(function(title,description,kind,time) if not released then pcall(Engine.message,engine,title,description,kind,time) end end)
 host.note=engine.note
+-- Options de CSP tenues par l'app (Beta 1.40, src/cspgui.lua) : messages système et drapeaux d'origine d'AC masqués
+-- tant que l'app est active, valeurs d'origine rendues quand elle s'arrête. Fichiers lus et écrits dans update()
+-- seulement (jamais pendant le dessin), au premier passage et à chaque changement de ce qui est voulu.
+local cspPort=Applier.cspPort()
+local csp=Cspgui.new()
+Cspgui.start(csp,cspPort)
+host.cspgui=csp; host.cspFrozen=function(key) return Cspgui.frozen(csp,key) end
+local cspClock=0
+local cspWant,cspEvents={},{}
+local function cspLog()
+ Cspgui.take(csp,cspEvents)
+ for i=1,#cspEvents do local ev=cspEvents[i]; U.log(engine.log,engine.time or 0,ev[1],ev[2],-1); cspEvents[i]=nil end
+end
+-- CSP relit gui.ini (option changée en jeu, ou écrite par l'app) : état appliqué et drapeaux d'AC masqués relus.
+local cspWatch=Applier.watchGui(function()
+ if released then return end
+ pcall(Cspgui.reloaded,csp,cspPort,cspClock); Applier.readFlagsHidden(host); cspLog()
+end)
+cspLog()
+-- Démarrage surveillé d'une version tout juste installée (boot.txt, src/update.lua) : rien n'est écrit avant sa
+-- confirmation (une relance de l'app par CSP à la relecture de gui.ini compterait comme un démarrage manqué).
+local bootWatched=false
+if port.ready and type(port.boot)=='function' then local okBoot,version=pcall(port.boot); bootWatched=okBoot and version~=nil end
+local function cspStep(dt)
+ if U.finite(dt) and dt>0 then cspClock=cspClock+math.min(dt,1) end
+ local on=globals.enabled and not engine.panic
+ cspWant.HIDE_SYSTEM_MESSAGES=on and globals.overlayMessages and globals.overlayBlockMessages and globals.cspHideMessages and not globals.cspMessagesLost
+ cspWant.HIDE_RACE_FLAGS=on and globals.cspHideFlags
+ Cspgui.step(csp,cspPort,cspWant,cspClock)
+ cspLog()
+end
 -- AI flood de CSP (Beta 1.26) : état chargé par CSP au lancement ; le moteur écrit ensuite le réglage voulu.
 do local user,system,writable=Applier.floodRead(); Engine.floodInit(engine,user,system,writable); engine.floodWrite=Applier.floodWrite end
 if Applier.floodLeftover() then U.log(engine.log,0,'INFO','nettoyage: new_behaviour.ini.bak efface (reste d une version d avant la Beta 1.38)',-1) end
@@ -173,6 +205,10 @@ local function release()
  pcall(Applier.reportCaps,host)
  -- Overlay en jeu (Beta 1.25) : case de session d'AC et messages d'origine rendus, écoute des messages close.
  pcall(UI.restoreNative,panel); pcall(messages,false); Applier.dispose(messageListener); messageListener=nil
+ -- Options de CSP (Beta 1.40) : valeurs d'origine rendues si CSP relit gui.ini en cours de partie, sinon au lancement
+ -- suivant (src/cspgui.lua).
+ -- Retour arrière depuis l'app (vers une version qui ne connaît pas ces options) : rendues dans tous les cas.
+ pcall(Cspgui.release,csp,cspPort,cspClock,host.updater~=nil and host.updater.after=='rollback'); Applier.dispose(cspWatch); cspWatch=nil; cspLog()
  pcall(writeJournal,true); Applier.journalWrite(host,'=== fin : '..Applier.clockText()..' ===\n')
 end
 -- Mise à jour depuis GitHub (Beta 1.33) : vérification une fois par lancement, installation d'un clic à l'arrêt. Avant
@@ -194,22 +230,36 @@ if port.ready then Update.start(updater,port,recovered) end
 updateLog()
 -- Messages d'AC (Beta 1.25) : repris sur l'overlay ; leur affichage d'origine est masqué (Beta 1.26 : par défaut). Un
 -- message témoin, envoyé dès le premier masquage, doit encore arriver à l'écoute : sinon (masquage qui couperait
--- aussi l'overlay), le masquage est levé jusqu'au prochain lancement et le journal le dit.
+-- aussi l'overlay), le masquage est levé jusqu'au prochain lancement et le journal le dit. Beta 1.40 : le témoin
+-- vérifie aussi, une fois, les messages masqués par l'option de CSP (hide : option appliquée par CSP) ; s'ils
+-- n'arrivent plus, l'option est rendue et ce choix gardé (cspMessagesLost, levé en recochant l'interrupteur).
 local probe,unblockable=nil,false
-messages=function(block)
+local probeHide,hideProbed=false,false
+local function startProbe(hide) engine.probeSeen=false; probe=Config.K.probeFrames; probeHide=hide; Applier.probeMessage(Config.K.messageProbe) end
+messages=function(block,hide)
  if unblockable then block=false end
  if block and not messageBlock then
   messageBlock=Applier.blockMessages() or false
-  if messageBlock and probe==nil then engine.probeSeen=false; probe=Config.K.probeFrames; Applier.probeMessage(Config.K.messageProbe) end
+  if messageBlock and probe==nil then startProbe(hide==true) end
  elseif not block and messageBlock~=nil then Applier.dispose(messageBlock); messageBlock=nil end
+ if hide and not hideProbed and type(probe)~='number' then startProbe(true) end
  if probe then
   if engine.probeSeen then
-   probe=false; U.log(engine.log,engine.time or 0,'INFO','messages d AC: affichage d origine masque, messages repris sur l overlay',-1)
+   probe=false; if probeHide then hideProbed=true end
+   U.log(engine.log,engine.time or 0,'INFO','messages d AC: affichage d origine masque, messages repris sur l overlay'..(probeHide and ' (option de CSP comprise)' or ''),-1)
   else
    probe=probe-1
    if probe<=0 then
-    probe=false; unblockable=true; Applier.dispose(messageBlock); messageBlock=nil
-    U.log(engine.log,engine.time or 0,'WARN','messages d AC: les messages masques n arrivent plus a l overlay, masquage leve jusqu au prochain lancement',-1)
+    probe=false
+    if messageBlock then
+     unblockable=true; Applier.dispose(messageBlock); messageBlock=nil
+     U.log(engine.log,engine.time or 0,'WARN','messages d AC: les messages masques n arrivent plus a l overlay, masquage leve jusqu au prochain lancement',-1)
+    end
+    if probeHide then
+     hideProbed=true; globals.cspMessagesLost=true; dirty()
+     U.log(engine.log,engine.time or 0,'WARN',csp.owned.HIDE_SYSTEM_MESSAGES~=nil and 'messages d AC: masques par l option de CSP, ils n arrivent plus a l overlay: option rendue'
+      or 'messages d AC: masques par l option de CSP, ils n arrivent plus a l overlay: decochez Hide system messages (CSP)',-1)
+    end
    end
   end
  end
@@ -396,10 +446,15 @@ function script.HUMANAI__UPDATE(dt)
  if ran and not booted then
   bootEngine=bootEngine+1
   -- Démarrage confirmé : surveillance levée, puis restes de la mise à jour effacés (Beta 1.37).
-  if bootEngine>=K.bootFrames and bootUI>=K.bootUIFrames then booted=true; pcall(port.bootOk); if port.ready then pcall(Update.tidy,updater,port); updateLog() end end
+  if bootEngine>=K.bootFrames and bootUI>=K.bootUIFrames then booted=true; bootWatched=false; pcall(port.bootOk); if port.ready then pcall(Update.tidy,updater,port); updateLog() end end
  end
  local ok,err=pcall(updateTick,dt)
  if not ok then host.errors=host.errors+1; U.log(engine.log,engine.time,'ERROR','mise a jour: '..tostring(err):sub(1,200),-1) end
+ -- Options de CSP (Beta 1.40) : une erreur les fige jusqu'au prochain lancement (jamais une erreur à chaque image).
+ if not released and csp.writable and not bootWatched then
+  local okCsp,errCsp=pcall(cspStep,dt)
+  if not okCsp then csp.writable=false; host.errors=host.errors+1; U.log(engine.log,engine.time,'ERROR','options CSP: '..tostring(errCsp):sub(1,200),-1) end
+ end
  local after=before and Applier.clock(host)
  if after then
   local cost=math.max(0,after-before)*1000
@@ -458,5 +513,5 @@ function script.HUMANAI__FLAGS() if not released then protectUI(UI.flags,panel) 
 function script.HUMANAI__HUD()
  if released then return end
  timedUI(UI.hud,'overlay')
- pcall(messages,globals.overlayMessages and globals.overlayBlockMessages and globals.enabled)
+ pcall(messages,globals.overlayMessages and globals.overlayBlockMessages and globals.enabled,globals.overlayMessages and globals.enabled and Cspgui.applied(csp,'HIDE_SYSTEM_MESSAGES'))
 end

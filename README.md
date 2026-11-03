@@ -114,7 +114,7 @@ The repository download also contains the test bench and the technical documents
    - **Hotlap** has only the racing rules on: flag overlay, DRS beep, no AI to drive.
 6. **The overlay** appears centred at the top of the screen.
    - Move it, resize it or change its look in **SETTINGS › ADVANCED › Overlay**.
-   - To stop Assetto Corsa's own flags appearing on top of it, tick CSP's option "Hide race flags in the top left corner" (Content Manager › Custom Shaders Patch › GUI). **HOME › TO CHECK** reminds you while it is off.
+   - While the app is active, it hides Assetto Corsa's own flags and its top message banner (CSP options **Hide race flags** and **Hide system messages**), restoring your values when it stops (see [CSP display options](#csp-display-options)). CSP may only apply them at the next game launch; **HOME › TO CHECK** says so.
 7. **Track days on long circuits (7 km and more) with many AI.**
    - CSP's *AI flood* spawns the AI around you. The app switches it off for you, but CSP only reads that setting when the game starts.
    - So the first such session is still CSP's, and the full-track distribution applies from the **next launch**. The overlay announces it (**AI flood (CSP)**).
@@ -173,8 +173,9 @@ Rolling back from the app keeps your settings since Beta 1.35. Before going back
    - The app disables AI flood in your CSP user settings. Deleting the app does not turn it back on.
    - The simplest way: tick the **General** section, set **AI distribution at session start** to **Native (game)**, run a Track day session with AI, then restart the game. The app writes back the original values it saved before its first change.
    - Or edit the `[AI_FLOOD]` section of `Documents/Assetto Corsa/cfg/extension/new_behaviour.ini` by hand.
-2. Close Assetto Corsa and delete the folder `assettocorsa/apps/lua/ACAdvancedIA`. Keep a copy of your own `tracks/*.lua` zone files first if you want them later.
-3. Optionally, delete what the app left in your Documents folder:
+2. **If you kept the two CSP display options on** (Overlay section), untick them (or switch the app off with the on/off switch in the header) while the game runs: the app writes your original `gui.ini` values back at once. Otherwise `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-cspgui.ini` holds them (the original file follows the `original` line).
+3. Close Assetto Corsa and delete the folder `assettocorsa/apps/lua/ACAdvancedIA`. Keep a copy of your own `tracks/*.lua` zone files first if you want them later.
+4. Optionally, delete what the app left in your Documents folder:
    - its settings and custom presets: `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini`;
    - its session logs: `Documents/Assetto Corsa/logs/ACAdvancedIA.log` and `ACAdvancedIA.1.log` to `ACAdvancedIA.3.log`.
 
@@ -197,7 +198,7 @@ No track, car or `surfaces.ini` file is ever changed, so there is nothing else t
 | Overlay | **SETTINGS › ADVANCED › Overlay › RESET SECTION**; **PUT BACK ON SCREEN** recentres it at 1.00x | Everything else |
 | Global options | **SETTINGS › ADVANCED › Global options › RESET SECTION** | The measured lateral direction, personality seed, language and Safety Car |
 | AI personalities | **Regenerate personalities** (Global options) | Draws a new seed |
-| **Everything** (factory reset) | Close the game, delete `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini`. If the app has switched CSP's AI flood off, restore it first (see [Uninstalling](#uninstalling)): the backup of your original AI flood values is kept in this file | Nothing: the next start behaves like a first installation, and custom presets are deleted too |
+| **Everything** (factory reset) | Close the game, delete `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini`. If the app has switched CSP's AI flood off, restore it first (see [Uninstalling](#uninstalling)): the backup of your original AI flood values is kept in this file. Untick the two CSP display options first too (Overlay section): the app then gives back your `gui.ini` values | Nothing: the next start behaves like a first installation, and custom presets are deleted too |
 
 ## Features
 
@@ -835,7 +836,20 @@ Assetto Corsa displays (**ASSETTO CORSA DISPLAYS**):
 - **Show AC messages on the overlay** (on): AC's messages (assists, warnings, invalidated lap) are shown on the overlay's top line for as long as they last.
 - **Hide the original AC messages** (on by default since Beta 1.26).
   - At launch, the app checks that hidden messages still reach the overlay. If not, hiding lifts itself until the next launch, and the log says so.
+- **Hide AC system messages (CSP option)** (on, Beta 1.40): CSP's **Hide system messages** while the overlay takes over the messages; this is what hides the top banner (*CUT DETECTED*…). See [CSP display options](#csp-display-options).
+- **Hide AC's own flags (CSP option)** (on, Beta 1.40): CSP's **Hide race flags** while the app is active.
+- A status line under these two switches says whether CSP applies them now, at the next launch, or not at all.
+- Other AC HUD elements (fuel, starting lights, damage, leaderboard, proximity, mirror, wrong way, ping) stay: the overlay does not fully replace them.
 - **Click-through when locked** (on), **Hide in replays** (on), **Hide in the pits** (off).
+
+<a id="csp-display-options"></a>**CSP display options** (Beta 1.40):
+- **Where.** `[HIDE]` section of your CSP user settings, `Documents/Assetto Corsa/cfg/extension/gui.ini` (the file Content Manager writes for **Custom Shaders Patch › GUI**). Only `HIDE_SYSTEM_MESSAGES` and `HIDE_RACE_FLAGS` change; the rest of the file stays as it is.
+- **Never your own choice.** An option you already ticked is left alone, and so is a value you change while the app holds it.
+- **Saved first.** The original file and values go to `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-cspgui.ini` before the first write, so they survive a crash. The app restores them when it, **PANIC** or the switch stops hiding, byte for byte when nothing else changed the file.
+- **When it applies.** If CSP re-reads `gui.ini` during the session (log `options CSP: gui.ini relu par CSP en cours de partie`), at once, and your values come back when the app unloads. Otherwise at the next game launch (`… effet au prochain lancement du jeu`), and the options are kept until then.
+- **Red on the light panels** waits until CSP has applied **Hide race flags**, never on the file alone. Otherwise the red value would show as AC's black flag.
+- **Safety.** At most 8 writes of `gui.ini` per game session, and no `.bak` left behind. If hidden messages stop reaching the overlay, **Hide system messages** is given back and the window says so; tick the switch again to retry.
+- **In the log:** lines starting with `options CSP:`.
 
 **Reading the band:**
 - **Left side.** An accent bar in the flag's colour, then the flag with its code:
@@ -987,7 +1001,7 @@ Each area scrolls with the mouse wheel.
 - It never drives **your** car: no steering, throttle or braking. The front radar only acts on AI. The only things it can do to your car are AC's own native penalties (throttle cut, black flag), disabling DRS under the racing rules, and AC's native yellow HUD flag if you ask for it.
 - It never changes a track, car or `surfaces.ini` file, and needs no script installed on the tracks.
 - It contacts no server but GitHub: one request per launch to `api.github.com` (turn it off with **Check for updates at launch**), and the release files on `github.com` only when you click **Update**. It only writes inside its own folder (`backup/`) when updating.
-- **The only CSP setting it changes** is the `[AI_FLOOD]` section of `Documents/Assetto Corsa/cfg/extension/new_behaviour.ini`, on Track days with an AI distribution other than **Native (game)**. It saves the original values first and writes them back in **Native (game)** mode. Otherwise it writes only its own CSP state file and its session log.
+- **The only CSP settings it changes** are two display options of `[HIDE]` in `Documents/Assetto Corsa/cfg/extension/gui.ini` while it is active (Beta 1.40, see [CSP display options](#csp-display-options)), and the `[AI_FLOOD]` section of `Documents/Assetto Corsa/cfg/extension/new_behaviour.ini`, on Track days with an AI distribution other than **Native (game)**. It saves the original values first and writes them back in **Native (game)** mode. Otherwise it writes only its own CSP state file and its session log.
 - It never teleports or force-brakes cars to space them. It does return stopped, disqualified or parked AI to their pit box, and it places AI on track at the session start when **On the whole track** is chosen.
 - It never drives Traffic Planner's kinematic cars, nor anything in alt-online modes.
 - It never tries to arbitrate another AI app. Known windows of other AI controllers only raise a warning (*Another AI app detected*).
@@ -1356,6 +1370,8 @@ Ticked by default in every profile, Hotlap included. See [Track light panels](#t
 | **Replace the AC session box (lap, time, RACE OVER)** | on / off | on |
 | **Show AC messages on the overlay** | on / off | on |
 | **Hide the original AC messages** | on / off | on |
+| **Hide AC system messages (CSP option)** | on / off | on |
+| **Hide AC's own flags (CSP option)** | on / off | on |
 | **Click-through when locked** | on / off | on |
 | **Hide in replays** | on / off | on |
 | **Hide in the pits** | on / off | off |
@@ -1484,12 +1500,12 @@ Ticked by default in every profile, Hotlap included. See [Track light panels](#t
 
 **My headlight flashes are ignored.** Learn them first (**DIAGNOSTICS › Learn headlight flashes (6 s)**), or use **Horn counts as a flash**. Then check the **Headlight flashes** mode (**Lapped cars** in the race by default) and the speed advantage required.
 
-**AC's own flags appear on top of the overlay.** Tick CSP's "Hide race flags in the top left corner" (Content Manager › Custom Shaders Patch › GUI). The overlay already shows the game's flags and penalties.
+**AC's own flags appear on top of the overlay.** The app ticks CSP's **Hide race flags** for you (**Hide AC's own flags (CSP option)**, Overlay section); CSP may only apply it at the next game launch. If the status line says the options cannot be changed, tick "Hide race flags in the top left corner" yourself (Content Manager › Custom Shaders Patch › GUI).
 
 **The overlay is off screen or the wrong size.** **SETTINGS › ADVANCED › Overlay › PUT BACK ON SCREEN**.
 
 **AC messages appear twice, or not at all.**
-- **Hide the original AC messages** (Overlay section) hides the original display; it is on by default.
+- **Hide the original AC messages** and **Hide AC system messages (CSP option)** (Overlay section) hide the original display; both are on by default. The top banner (*CUT DETECTED*) only goes with the CSP option, possibly from the next game launch.
 - If hiding would also remove them from the overlay, the app lifts it until the next launch (log line `messages d AC:`).
 
 **The Safety Car never comes out.**
@@ -1528,6 +1544,7 @@ src/                    the HumanAI engine and its interface
   persona.lua             deterministic driver personalities
   traffic.lua             track-day spacing, AI distribution at session start, staggered pit exits
   flood.lua               CSP AI flood settings ([AI_FLOOD] of new_behaviour.ini), pure text handling
+  cspgui.lua              CSP display options held by the app ([HIDE] of gui.ini), pure text handling
   incidents.lua           incidents, yellow flags, neutralisations, Safety Car, red flag
   penalties.lua           player penalties and AI sanctions
   delta.lua               delta time

@@ -574,7 +574,8 @@ return function(source)
   assert(HOST.files['logs/ACAdvancedIA.1.log']=='ancien lancement\n' and HOST.files['logs/ACAdvancedIA.log']:sub(1,#before)==before,'reload: same journal continued')
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
   HOST=H.create(true); assert(loadstring(source))(); HUMANAI.engine.g.journal=false; HUMANAI.host.journalTried=nil
-  H.tick(HOST,3); assert(next(HOST.files)==nil,'nothing written when disabled')
+  -- Beta 1.40 : seules les options de CSP (gui.ini, fichier d'état) sont écrites ; rien dans le dossier des journaux.
+  H.tick(HOST,3); for path in pairs(HOST.files) do assert(path:sub(1,5)~='logs/','nothing written when disabled: '..path) end
   HUMANAI.release()
  end)
  check('modes Content Manager : journée circuit, essai seul et course seule détectés',function()
@@ -1174,12 +1175,14 @@ return function(source)
   HOST.cars[0].currentPenaltyType=0; HOST.sim.raceFlagType=C.K.flagStop; H.tick(HOST,0.5)
   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.flagTitles.black),'black drawn')
   assert(HOST.fontDepth==0 and HUMANAI.host.errors==0)
-  -- Option CSP lue à l'ouverture du menu : point à vérifier tant que les drapeaux d'origine restent affichés.
-  HOST.hideRaceFlags=false; pause(true); go('home'); redraw(); assert(HUMANAI.host.raceFlagsHidden==false,'option read')
+  -- Option CSP lue à l'ouverture du menu : point à vérifier tant que les drapeaux d'origine restent affichés. Beta 1.40 :
+  -- masquage par l'app coupé (sinon option écrite par l'app) ; option changée en jeu : CSP relit gui.ini.
+  HUMANAI.engine.g.cspHideFlags=false; H.tick(HOST,0.1)
+  HOST.hideRaceFlags=false; H.reloadGui(HOST); pause(true); go('home'); redraw(); assert(HUMANAI.host.raceFlagsHidden==false,'option read')
   local first=L.nativeFlagsShown:sub(1,20)
   local function warned() for _,t in ipairs(HOST.drawnTexts) do if t:sub(1,20)==first then return true end end return false end
-  assert(warned(),'warning while the native flags are shown'); pause(false)
-  HOST.hideRaceFlags=true; pause(true); redraw(); assert(not warned() and HUMANAI.host.raceFlagsHidden==true,'no warning once hidden'); pause(false)
+  assert(warned() and begins(L.nativeFlagsShown),'warning while the native flags are shown'); pause(false)
+  HOST.hideRaceFlags=true; H.reloadGui(HOST); pause(true); redraw(); assert(not warned() and HUMANAI.host.raceFlagsHidden==true,'no warning once hidden'); pause(false)
   HUMANAI.release()
  end)
  -- Beta 1.14 : réglages de l'overlay dans la section Accidents ; état « piste libre » en permanence ; fond transparent.
@@ -1578,14 +1581,16 @@ return function(source)
   HUMANAI.release(); HOST=H.create(true); HOST.space={x=1000,y=3000}; assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
   local g=HUMANAI.engine.g
   section('overlay')
-  assert(drawn('overlay_lock') and drawn('overlay_scale') and drawn('overlay_background') and drawn('panel_opacity') and drawn('overlay_content') and drawn('overlay_overlaySession') and drawn('overlay_overlayBlockMessages'),'overlay settings drawn')
+  assert(drawn('overlay_lock') and drawn('overlay_scale') and drawn('overlay_background') and drawn('panel_opacity') and drawn('overlay_content') and drawn('overlay_overlaySession') and drawn('overlay_overlayBlockMessages')
+   and drawn('overlay_cspHideMessages') and drawn('overlay_cspHideFlags'),'overlay settings drawn')
   assert(not drawn('section_overlay'),'no profile switch: shared by every session')
   press('overlay_lock'); assert(not g.overlayLocked,'unlocked from the settings')
   press('overlay_background'); assert(g.overlayBackground=='ghost'); press('overlay_background'); assert(g.overlayBackground=='transparent')
   press('overlay_overlayExplain'); assert(not g.overlayExplain)
   g.overlayX=300; g.overlayY=200; g.overlayScale=1.6; redraw(); press('overlay_recenter'); assert(g.overlayX==-1 and g.overlayY==-1 and g.overlayScale==1,'put back on screen')
-  g.overlayContent=50; g.panelOpacity=20; g.offsetSign=-1; redraw(); press('reset_overlay')
+  g.overlayContent=50; g.panelOpacity=20; g.offsetSign=-1; g.cspHideFlags=false; g.cspMessagesLost=true; redraw(); press('reset_overlay')
   assert(g.overlayLocked and g.overlayBackground=='solid' and g.overlayExplain and g.overlayContent==100 and g.panelOpacity==C.globalDefaults.panelOpacity and g.offsetSign==-1,'overlay reset, nothing else')
+  assert(g.cspHideFlags and not g.cspMessagesLost,'Beta 1.40: CSP options reset too')
   pause(false); HUMANAI.release()
  end)
  -- Beta 1.32 : panneaux lumineux du circuit, seulement sur un circuit équipé ; option coupée : rendu aussitôt.
@@ -1732,11 +1737,15 @@ return function(source)
    H.tick(HOST,6); assert(u.restartLate and logged('l app n a pas redemarre, relancez la session pour finir'),'late restart reported')
    -- Beta 1.35 : lancement suivant (la version installée) : démarrage compté, puis confirmé à la première image.
    HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
+   -- Beta 1.40 : options de CSP à masquer de nouveau (gui.ini rendu entre-temps) : rien d'écrit avant la confirmation.
+   files['cfgext\\gui.ini']=nil; files['state\\ACAdvancedIA-cspgui.ini']=nil; local writes=HOST.guiWrites or 0
    assert(loadstring(source))(); assert(files[WORK..'boot.txt']==ver(1)..'\n1\n'..ver(0),'boot counted at load')
    -- Beta 1.36 : confirmé seulement une fois l'interface (ici l'overlay) dessinée sans erreur.
    H.tick(HOST,0.3); assert(files[WORK..'boot.txt']~=nil,'engine alone: not confirmed yet')
+   assert((HOST.guiWrites or 0)==writes and files['cfgext\\gui.ini']==nil,'Beta 1.40: nothing hidden before the start is confirmed')
    for _=1,3 do script.HUMANAI__HUD() end
    H.tick(HOST,0.1); assert(files[WORK..'boot.txt']==nil,'boot confirmed once the engine and the overlay ran')
+   assert(HOST.guiWrites==writes+1 and files['state\\ACAdvancedIA-cspgui.ini'],'Beta 1.40: hidden once confirmed, state file in the CSP state folder')
   end)
  end)
  -- Beta 1.37 : premier lancement réel de la 1.37, installée par le module de la 1.36 : version précédente gardée, paquet
@@ -2449,6 +2458,67 @@ return function(source)
   assert(event,'diagnostic: flash event tooltip')
   assert(drawnText(L.signLabel) and not drawnText(W.upper(L.flash)),'calibration line, no long title')
   pause(false); HOST.space={x=1000,y=780}
+ end)
+ -- Beta 1.40 : options de CSP de gui.ini tenues par l'app : fichier réel du pilote, rendu à l'octet près, relance sans
+ -- réécriture, lancement suivant (option appliquée), relecture par CSP, panique, message témoin perdu.
+ check('Beta 1.40 : options de CSP de gui.ini tenues par l app, valeurs d origine rendues',function()
+  local gui,state='cfgext\\gui.ini','cfgstate\\ACAdvancedIA-cspgui.ini'
+  local original='[NEW_UI]\r\nUI_SCALE=1.05\r\n\r\n[HIDE]\r\nHIDE_RACE_FLAGS=1\r\n'
+  local hidden='[NEW_UI]\r\nUI_SCALE=1.05\r\n\r\n[HIDE]\r\nHIDE_RACE_FLAGS=1\r\nHIDE_SYSTEM_MESSAGES=1\r\n'
+  HUMANAI.release(); HOST=H.create(true); HOST.files[gui]=original; HOST.hideRaceFlags=true
+  assert(loadstring(source))(); H.tick(HOST,0.5)
+  local e=HUMANAI.engine; local g=e.g
+  local function count(text) local n=0; for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find(text,1,true) then n=n+1 end end; return n end
+  assert(HOST.files[gui]==hidden and HOST.guiWrites==1,'system messages hidden, the driver s own option untouched: '..tostring(HOST.files[gui]))
+  assert(HOST.files[gui..'.bak']==nil and HOST.files[state..'.bak']==nil and HOST.files[state]:find('original 54\n'..original,1,true),'original kept, no .bak left')
+  assert(count('options CSP: messages systeme masques')==1,'logged')
+  H.tick(HOST,1); assert(HOST.guiWrites==1,'written once')
+  -- Option coupée : fichier d'origine à l'octet près, fichier d'état effacé ; recochée : masquée à nouveau.
+  g.cspHideMessages=false; H.tick(HOST,0.2); assert(HOST.files[gui]==original and HOST.files[state]==nil and HOST.guiWrites==2,'restored byte for byte')
+  g.cspHideMessages=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==3)
+  e.panic=true; H.tick(HOST,0.2); assert(HOST.files[gui]==original,'panic: original back')
+  e.panic=false; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==5)
+  -- Messages d'AC non repris sur l'overlay : leur affichage d'origine reste celui d'AC.
+  g.overlayMessages=false; H.tick(HOST,0.2); assert(HOST.files[gui]==original,'overlay without messages: AC keeps them')
+  g.overlayMessages=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==7)
+  -- Déchargement sans relecture par CSP : gardées jusqu'au lancement suivant ; relance dans la même partie : rien d'écrit.
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+  assert(HOST.files[gui]==hidden and HOST.files[state],'kept until the next launch (CSP reads gui.ini at launch)')
+  assert(loadstring(source))(); H.tick(HOST,1); assert(HOST.guiWrites==7,'relaunched in the same game: no write')
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+  -- Lancement suivant : option appliquée par CSP ; le message témoin la vérifie une fois.
+  local files={[gui]=HOST.files[gui],[state]=HOST.files[state]}
+  HOST=H.create(true); for k,v in pairs(files) do HOST.files[k]=v end; HOST.hideRaceFlags=true; HOST.hideSystemMessages=true
+  assert(loadstring(source))(); H.tick(HOST,0.5); e=HUMANAI.engine; g=e.g
+  assert((HOST.guiWrites or 0)==0,'applied at launch: nothing to write')
+  for _=1,C.K.probeFrames+1 do script.HUMANAI__HUD() end
+  assert(count('option de CSP comprise')==1 and not g.cspMessagesLost,'probe received with the CSP option')
+  -- Relecture par CSP en cours de partie, puis déchargement : valeurs d'origine rendues.
+  g.cspHideMessages=false; H.tick(HOST,0.2); assert(HOST.files[gui]==original)
+  g.cspHideMessages=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden)
+  H.reloadGui(HOST); H.tick(HOST,C.K.cspReloadRelease+0.5)
+  assert(count('gui.ini relu par CSP en cours de partie')==1,'live reload logged')
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+  assert(HOST.files[gui]==original and HOST.files[state]==nil and #HOST.guiWatchers==0,'restored on unload, watcher closed')
+  -- Drapeaux d'AC masqués par l'app : jamais tenus pour masqués avant que CSP ait relu gui.ini (pas de rouge, drapeau
+  -- noir d'AC) ; relu : masqués. Messages masqués par CSP après la relecture : le témoin les vérifie ; perdus, l'option
+  -- est rendue, ce choix gardé et affiché ; recochée : nouvel essai.
+  HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5); local host=HUMANAI.host; e=HUMANAI.engine; g=e.g
+  assert(HOST.files[gui]=='[HIDE]\nHIDE_SYSTEM_MESSAGES=1\nHIDE_RACE_FLAGS=1\n','missing file created: '..tostring(HOST.files[gui]))
+  for _=1,C.K.probeFrames+1 do script.HUMANAI__HUD() end
+  assert(count('affichage d origine masque, messages repris sur l overlay')==1 and count('option de CSP comprise')==0,'first probe: without the CSP option (not applied yet)')
+  HOST.hideRaceFlags=true; require('src/applier').readFlagsHidden(host); assert(host.raceFlagsHidden==false,'written, not applied yet')
+  pause(true); go('home'); redraw(); assert(begins(L.nativeFlagsNext),'warning: effective at the next launch'); pause(false)
+  HOST.hideSystemMessages=true; HOST.hideSwallows=true
+  H.reloadGui(HOST); assert(host.raceFlagsHidden==true,'reloaded: hidden')
+  for _=1,C.K.probeFrames+1 do script.HUMANAI__HUD() end
+  H.tick(HOST,0.2)
+  assert(g.cspMessagesLost and count('ils n arrivent plus a l overlay: option rendue')==1,'probe lost: option given back')
+  assert(HOST.files[gui]=='[HIDE]\nHIDE_RACE_FLAGS=1\n','system messages back, flags still hidden: '..tostring(HOST.files[gui]))
+  HOST.space={x=1000,y=3000}; pause(true); section('overlay'); assert(begins(L.cspLost),'state shown under the switches')
+  press('overlay_cspHideMessages'); press('overlay_cspHideMessages'); assert(g.cspHideMessages and not g.cspMessagesLost,'ticked again: retried')
+  pause(false); HOST.space={x=1000,y=780}
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
  end)
  return results
 end
