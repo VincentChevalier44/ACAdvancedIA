@@ -554,7 +554,7 @@ Section **Accidents** (sidebar **RACE & SAFETY**).
 - **Black flag**: wrong way for 5 s at 20 km/h or more (not off the track nor during a spin), an ignored penalty, or too many penalties. The AI is brought back to its pit box and parked there; it is never parked on the track.
 - **Give the place back** (race): an AI that passes a car of the same lap while off the track, or within 3 s of rejoining, lifts off to let it back past within 15 s (never below that car's speed minus 25 km/h nor 70 % of its own pace); otherwise a time penalty. Cancelled under a yellow, red or neutralisation, or if that car pits, crashes, is lapped, has a blue flag or crawls.
 - **Corrected classification**: the places of AC's finished cars are redistributed in corrected order (time added); Diagnostic block « AI RACE », the journal line `classement corrige` (written when it changes) and the race recap line « Corrected classification: P<n> » when your place changes. Nothing is shown when nobody has a time penalty.
-- **Notices**: penalties, throttle cuts and places owed on the overlay (one every 6 s at most; black flags always, with priority).
+- **Notices**: penalties, throttle cuts and places owed on the overlay (one every 6 s at most; black flags always, with priority). Since Beta 1.43 each one has its own overlay panel: a badge with its code (DT, SG, +N, CUT, POS; the black flag square for a black flag), the driver's name, the sanction and its reason, and a label on the session line. It takes the band only when none of your flags is shown; otherwise it is written on the session line.
 - Unticking the section or the switch of a penalty's source during a session cancels what is under way.
 
 ### Racing rules and rule sets

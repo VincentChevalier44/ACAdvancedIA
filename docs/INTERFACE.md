@@ -67,3 +67,13 @@ DWrite weight names are CSP's (`ui.DWriteFont.Weight`): Regular is 400 and Ultra
 - Race recap: the line « Corrected classification: P<n> » when the app's classification changes your place.
 - The sidebar rows shrink from 28 to 24 px only if the list is taller than the window (at 700 px everything fits).
 
+## Beta 1.43: AI sanction notices as in the mockup (version 33)
+
+- Each AI sanction notice has its own overlay panel, drawn like the mockup's « Annonces des sanctions des IA » board:
+  - a badge in the Safety Car style (yellow edge and code on black): DT, SG, +N, CUT, POS;
+  - for a black flag, the black flag square (black, white edge, no code);
+  - the driver's name as the title, the sanction and its reason as the detail line;
+  - the label (Sanction, Give the place back, Black flag) in yellow on the right of the session line.
+- One addition to the mockup: the throttle-cut notice (« Throttle cut 5 s (corner cut) »), with the CUT code, like the four other notices.
+- On purpose: the notice never hides one of your flags. It takes the band only when it is free (nothing shown, or green, start, lap or update information). Otherwise the flag stays, and the notice is written on the session line (title · text), as in Beta 1.42.
+

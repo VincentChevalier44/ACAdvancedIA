@@ -104,6 +104,8 @@ local function announce()
   local text=t.messageText~='' and string.format(m[2],t.messageText) or string.format(m[2],t.messageValue,t.messageExtra)
   -- Beta 1.41 : annonce de l'app, revenue par ac.onMessage : jamais prise pour un bandeau de pénalité d'AC.
   engine.ownTitle=m[1]; engine.ownText=text
+  -- Beta 1.43 : annonce de sanction d'une IA (panneau dédié de l'overlay, jamais reprise en double).
+  engine.ownAi=t.messageKind=='aiSanction' or t.messageKind=='aiBlackFlag'
   Applier.message(m[1],text)
  end
 end

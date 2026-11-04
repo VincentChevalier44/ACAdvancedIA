@@ -11,6 +11,10 @@ return {
   drive='%s : drive-through (%s)',stopgo='%s : stop-and-go de %.0f s (%s)',time='%s : +%.0f s (%s)',served='%s : pénalité purgée',blackFlag='%s : drapeau noir (%s)',
   giveBack='%s doit rendre la place à %s',given='%s a rendu la place',classification='Classement corrigé : %s',
   reasons={trackLimits='limites de piste',cut='virage coupé',jumpStart='faux départ',pitSpeed='excès de vitesse dans les stands',pitExit='ligne de sortie des stands',wrongWay='contresens',ignored='pénalité non purgée',giveBack='place non rendue'}},
+ -- Beta 1.43 (maquette) : annonces des sanctions des IA en panneau dédié de l'overlay (sigle, pilote, sanction, étiquette).
+ aiNotices={drive='Drive-through (%s)',stopgo='Stop-and-go de %.0f s (%s)',time='+%.0f s (%s)',throttle='Coupure des gaz %.0f s (virage coupé)',
+  giveBack='Doit rendre la place à %s',blackFlag='Drapeau noir (%s)',
+  codes={drive='DT',stopgo='SG',time='+%.0f',throttle='CUT',giveBack='POS'},labels={sanction='Sanction',giveBack='Place à rendre',blackFlag='Drapeau noir'}},
  strategyTexts={plan='%s : %d arrêt(s), prochain vers le tour %d',stop='%s : arrêt (%s)',failure='%s : panne (%s), rentre aux stands',
   causes={tyres='pneus',fuel='carburant',undercut='undercut',overcut='overcut',weather='météo',failure='panne',cover='couverture',neutral='neutralisation'},
   kinds={leak='fuite',battery='batterie',overheat='surchauffe',puncture='crevaison lente'},

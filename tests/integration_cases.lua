@@ -2542,5 +2542,25 @@ return function(source)
   e.strategy.rows[1]=nil; e.sanctions.rows[1]=nil; HOST.space={x=1000,y=780}
   pause(false); HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
  end)
+ check('Beta 1.43 : annonces des sanctions des IA en panneau dédié de l overlay (maquette)',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; HOST.space={x=1000,y=3000}; assert(loadstring(source))(); H.tick(HOST,1); pause(true)
+  local e=HUMANAI.engine; local panel=e.panel; local S=require('src/sanctions'); local HI=require('src/hudinfo'); local UIm=package.loaded['src/ui']
+  e.g.overlayMessages=true
+  local function notice(kind,what,driver,x,text) S.aiNotice(e.sanctions,kind,text,what,driver,x); HI.update(e.hud,e.frame,e,e.time) end
+  local function draw(kind) panel.kind=kind; panel.decided=kind; panel.title=L.flagTitles[kind] or ''; panel.short=''; panel.explain=''; panel.changedAt=e.time-10; HOST.panelTexts={}; script.HUMANAI__FLAGS() end
+  notice('aiSanction','drive','Lorenzo Brazzoli',L.sanctionTexts.reasons.jumpStart,'Lorenzo Brazzoli : drive-through (faux départ)')
+  draw('none')
+  assert(UIm.overlayParts(HUMANAI.panel).ai,'band free: dedicated notice')
+  local N=L.aiNotices; local R=L.sanctionTexts.reasons
+  assert(has(HOST.panelTexts,'DT') and has(HOST.panelTexts,'Lorenzo Brazzoli') and has(HOST.panelTexts,string.format(N.drive,R.jumpStart)) and has(HOST.panelTexts,N.labels.sanction),'badge, driver, sanction and label')
+  assert(not has(HOST.panelTexts,e.hud.aiFallback),'no generic duplicate')
+  draw('yellow'); local p=UIm.overlayParts(HUMANAI.panel)
+  assert(not p.ai and p.aiStrip and has(HOST.panelTexts,e.hud.aiFallback) and not has(HOST.panelTexts,'DT') and has(HOST.panelTexts,L.flagTitles.yellow),'a flag keeps the band, the notice goes to the session line')
+  notice('aiBlackFlag','blackFlag','Marco Weber',L.sanctionTexts.reasons.wrongWay,'Marco Weber : drapeau noir (contresens)')
+  draw('none')
+  assert(has(HOST.panelTexts,'Marco Weber') and has(HOST.panelTexts,string.format(N.blackFlag,R.wrongWay)) and has(HOST.panelTexts,N.labels.blackFlag) and not has(HOST.panelTexts,'DT'),'black flag notice without a code')
+  e.hud.aiUntil=e.time-1; draw('none'); assert(not has(HOST.panelTexts,'Marco Weber'),'gone after its time')
+  pause(false); HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+ end)
  return results
 end

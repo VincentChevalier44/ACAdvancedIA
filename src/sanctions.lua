@@ -43,7 +43,10 @@ local function clearCar(c,identity)
 end
 function M.new()
  local t={rows={},events={},classRows={},cars={},dirty=false,lastAt=nil,order=0,classDirty=false,line={},lineIgnored={},lineBins=0,
-  rel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},noticeAt=-math.huge,list={},pending=nil,junction=-1,junctionSamples=0}
+  rel={index=0,long=0,lat=0,gap=0,sa=0,ttc=math.huge,same=false,alongside=false},noticeAt=-math.huge,list={},pending=nil,junction=-1,junctionSamples=0,
+  -- Beta 1.43 (maquette) : dernière annonce à l'écran, en panneau dédié de l'overlay (sigle, pilote, sanction,
+  -- étiquette) ; numéro gardé au changement de session (l'overlay ne la reprend qu'à un numéro nouveau).
+  aiSerial=0,aiCode='',aiTitle='',aiShort='',aiLabel='',aiBlack=false,aiFallback=''}
  for i=1,K.maxCars do t.cars[i]=car() end
  return t
 end
@@ -101,12 +104,28 @@ local function event(t,text,kind)
  while #list>K.sanRowsMax do list[#list]=nil end
  rebuild(t)
 end
+-- Panneau dédié de l'overlay (Beta 1.43, maquette) : sigle (DT, SG, +N, CUT, POS ; aucun pour le drapeau noir),
+-- nom du pilote, sanction et sa raison, étiquette de la ligne de session ; repli (titre · texte) quand un drapeau
+-- occupe le bandeau.
+function M.aiNotice(t,kind,text,what,driver,x,y)
+ local N=L.aiNotices
+ local short=what=='stopgo' and string.format(N.stopgo,x,y) or what=='time' and string.format(N.time,x,y)
+  or what=='throttle' and string.format(N.throttle,x) or string.format(N[what],x)
+ t.aiCode=what=='time' and string.format(N.codes.time,x) or N.codes[what] or ''
+ t.aiTitle=driver; t.aiShort=short; t.aiBlack=what=='blackFlag'
+ t.aiLabel=what=='giveBack' and N.labels.giveBack or what=='blackFlag' and N.labels.blackFlag or N.labels.sanction
+ local m=L.messages[kind]; t.aiFallback=m and m[1]..' · '..text or text
+ t.aiSerial=t.aiSerial%K.counterMax+1
+end
 -- Annonce à l'écran : une à la fois (au plus une toutes les K.sanNoticeGap s), drapeau noir toujours.
-local function notice(t,e,kind,text,now,force)
+local function notice(t,e,kind,text,now,force,what,driver,x,y)
  if not e.run.sanMessages then return end
  if not force and now-t.noticeAt<K.sanNoticeGap then return end
  Incidents.message(e.incidents,kind,0,0,text)
- if e.incidents.messageKind==kind and e.incidents.messageText==text then t.noticeAt=now end
+ if e.incidents.messageKind==kind and e.incidents.messageText==text then
+  t.noticeAt=now
+  if what then M.aiNotice(t,kind,text,what,driver,x,y) end
+ end
 end
 local function name(a) return a.name~='' and a.name or a.id or '?' end
 -- Drapeau noir : IA ramenée à son stand et garée jusqu'à la fin de la session (chemin de la disqualification existant :
@@ -119,7 +138,7 @@ local function blackFlag(t,e,frame,i,reason,now)
  e.penalties.ai.dq[i]=true; e.states[i].disqualified=true
  U.log(e.log,now,'WARN',string.format('sanction IA: %s drapeau noir (%s)',name(a),journalReasons[reason] or reason),i)
  local text=string.format(L.sanctionTexts.blackFlag,name(a),reasonText(reason))
- event(t,text,'warn'); notice(t,e,'aiBlackFlag',text,now,true)
+ event(t,text,'warn'); notice(t,e,'aiBlackFlag',text,now,true,'blackFlag',name(a),reasonText(reason))
  t.classDirty=true
 end
 -- Pénalités de la session (temps, drive-through, stop-and-go ; jamais les avertissements ni la coupure des gaz) et
@@ -136,7 +155,7 @@ local function addTime(t,e,frame,i,seconds,reason,now,why)
  if counted then c.count=c.count+1 end
  U.log(e.log,now,'WARN',string.format('sanction IA: %s penalite de temps +%.0f s (%s%s), total +%.0f s',name(a),seconds,journalReasons[reason] or reason,why or '',c.time),i)
  local text=string.format(L.sanctionTexts.time,name(a),seconds,reasonText(reason))
- event(t,text,'warn'); notice(t,e,'aiSanction',text,now)
+ event(t,text,'warn'); notice(t,e,'aiSanction',text,now,false,'time',name(a),seconds,reasonText(reason))
  if counted then escalate(t,e,frame,i,now) end
 end
 local function unservedSeconds(e,kind) return kind=='stopgo' and e.run.sanStopGoSeconds+K.sanDriveTime or K.sanDriveTime end
@@ -156,7 +175,9 @@ local function issue(t,e,frame,i,kind,reason,now)
  if kind=='stopgo' then U.log(e.log,now,'WARN',string.format('sanction IA: %s stop-and-go %.0f s (%s), a purger en %d tours',name(a),p.sanStopGoSeconds,journalReasons[reason] or reason,p.sanServeLaps),i)
  else U.log(e.log,now,'WARN',string.format('sanction IA: %s drive-through (%s), a purger en %d tours',name(a),journalReasons[reason] or reason,p.sanServeLaps),i) end
  local text=kind=='stopgo' and string.format(L.sanctionTexts.stopgo,name(a),p.sanStopGoSeconds,reasonText(reason)) or string.format(L.sanctionTexts.drive,name(a),reasonText(reason))
- event(t,text,'warn'); notice(t,e,'aiSanction',text,now)
+ event(t,text,'warn')
+ if kind=='stopgo' then notice(t,e,'aiSanction',text,now,false,'stopgo',name(a),p.sanStopGoSeconds,reasonText(reason))
+ else notice(t,e,'aiSanction',text,now,false,'drive',name(a),reasonText(reason)) end
  escalate(t,e,frame,i,now)
 end
 -- Sorties au même endroit par plusieurs IA : la trajectoire des IA y sort elle-même des limites (circuit, ligne IA) ;
@@ -299,7 +320,7 @@ local function trackLimits(t,e,frame,i,a,c,now,dt,race,ready)
     c.cutLeft=p.sanCutSeconds; c.cutSeconds=p.sanCutSeconds; c.cutWait=0
     U.log(e.log,now,'WARN',string.format('sanction IA: %s coupure des gaz %.0f s (virage coupe, gain %.2f s)',name(a),p.sanCutSeconds,gain),i)
     local text=string.format(L.sanctionTexts.throttle,name(a),p.sanCutSeconds)
-    event(t,text,'warn'); notice(t,e,'aiSanction',text,now)
+    event(t,text,'warn'); notice(t,e,'aiSanction',text,now,false,'throttle',name(a),p.sanCutSeconds)
    elseif p.sanTrackLimits and now-c.lastStrikeAt>=K.sanStrikeGap then strike(t,e,frame,i,a,c,now) end
   end
   c.outFor=0; c.outCounted=false
@@ -453,7 +474,7 @@ local function giveBack(t,e,frame,i,a,c,cmd,now)
       c.owedTo=j; c.owedUntil=now+p.sanGiveBackSeconds; c.owedFrom=-1
       U.log(e.log,now,'INFO',string.format('place a rendre IA: %s doit rendre la place a %s (%.0f s)',name(a),name(b),p.sanGiveBackSeconds),i)
       local text=string.format(L.sanctionTexts.giveBack,name(a),name(b))
-      event(t,text,'warn'); notice(t,e,'aiSanction',text,now)
+      event(t,text,'warn'); notice(t,e,'aiSanction',text,now,false,'giveBack',name(a),name(b))
      end
     end
    end

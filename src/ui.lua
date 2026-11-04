@@ -2519,16 +2519,23 @@ end
 -- drapeau, explication ou récapitulatif de course, pastilles. Table réutilisée ; nil : rien à afficher. force : overlay
 -- déverrouillé, toujours visible pour être placé.
 local parts={}
+-- Annonce de sanction d'une IA (Beta 1.43, maquette) : dans le bandeau seulement quand il est libre (rien d'affiché, ou
+-- une simple information : vert, départ, tour, mise à jour) ; sinon le drapeau du joueur garde le bandeau et l'annonce
+-- passe sur la ligne de session, comme avant.
+local aiFree={green=true,start=true,lap=true,update=true}
 function M.overlayParts(v,force)
  local e=v.e; local g=e.g; local panel=e.panel; local now=e.time; local hud=e.hud
  local idle=not Panel.visible(panel,g,now)
  parts.idle=idle
- parts.message=g.overlayMessages and hud~=nil and now<hud.msgUntil
+ local ai=g.overlayMessages and hud~=nil and now<hud.aiUntil
+ parts.ai=ai and (idle or aiFree[panel.kind]==true) or false
+ parts.aiStrip=ai and not parts.ai or false
+ parts.message=g.overlayMessages and hud~=nil and (now<hud.msgUntil or ai)
  parts.strip=g.overlaySession and hud~=nil and hud.stripCount>0 or parts.message
- parts.band=not idle or g.panelShow=='always' or force==true
+ parts.band=not idle or parts.ai or g.panelShow=='always' or force==true
  if not parts.band and not parts.strip then return nil end
- parts.recap=parts.band and not idle and panel.finish and g.overlayRecap and hud~=nil and #hud.recap>1
- parts.lines=parts.recap and #hud.recap-1 or parts.band and not idle and g.overlayExplain and panel.explain~='' and 2 or 0
+ parts.recap=parts.band and not idle and not parts.ai and panel.finish and g.overlayRecap and hud~=nil and #hud.recap>1
+ parts.lines=parts.recap and #hud.recap-1 or parts.band and not idle and not parts.ai and g.overlayExplain and panel.explain~='' and 2 or 0
  parts.notice=now<panel.noticeUntil
  parts.giveBack=e.penalties.giveBack>0 and e.frame and e.frame.cars[e.penalties.giveBack] or nil
  parts.pitCall=not idle and panel.kind=='red' and panel.redPit==false
@@ -2563,9 +2570,14 @@ local function sessionStrip(v,colors,e,p,y,w,u)
  end
  if p.message then
   local size=11*u
+  -- Beta 1.43 : étiquette de l'annonce d'une IA (jaune) quand le bandeau la montre ; son texte (repli) quand un drapeau
+  -- occupe le bandeau ; sinon le message d'AC. Le plus récent des deux l'emporte.
+  local now=e.time; local recent=now<hud.msgUntil and hud.msgAt>hud.aiAt
+  local text=p.ai and not recent and hud.aiLabel or p.aiStrip and not recent and hud.aiFallback or hud.msgText
+  local color=p.ai and not recent and colors.yellow or (not recent and p.aiStrip or not hud.msgIllegal) and colors.amber or colors.over
   font('body',true)
-  local mw=math.min(textWidth(hud.msgText,size),(limit-x)*0.6)
-  write(hud.msgText,size,box(R1,limit-mw,y,limit,y+h),hud.msgIllegal and colors.over or colors.amber,FINISH)
+  local mw=math.min(textWidth(text,size),(limit-x)*0.6)
+  write(text,size,box(R1,limit-mw,y,limit,y+h),color,FINISH)
   font('body',false)
   limit=limit-mw-14*u
  end
@@ -2606,8 +2618,9 @@ local function flags(v,force)
  v.pillItems=v.pillItems or {}
  local size=ui.windowSize(); local start=ui.getCursor()
  local w=size.x; local u=w/K.hudWidth; local top=math.max(0,start.y)
- local idle=p.idle; local kind=idle and 'clear' or panel.kind
- local delta=e.delta.value
+ local idle=p.idle and not p.ai; local kind=p.ai and 'ai' or idle and 'clear' or panel.kind
+ local hud=e.hud
+ local delta=not p.ai and e.delta.value or nil
  -- Fond : opacité réglée, atténuée ou nulle ; couleurs refaites seulement quand elles changent.
  local mode=g.overlayBackground
  local bgAlpha=mode=='transparent' and 0 or g.panelOpacity/100*(mode=='ghost' and K.hudGhost or 1)
@@ -2634,16 +2647,16 @@ local function flags(v,force)
  local l=M.flagLayout(w,y+K.hudBandH*u,y,boxed,false,top,3*u,v.flagBoxes)
  -- Clignotement à 2 Hz : rouge et bleu tout le temps, tout nouveau drapeau quelques secondes.
  local blink=(now*2)%1<0.5
- local flashing=not idle and (kind=='red' or kind=='blue' or kind=='jump' or now-panel.changedAt<K.flagBlinkTime)
+ local flashing=not idle and (kind=='red' or kind=='blue' or kind=='jump' or now-(kind=='ai' and hud.aiAt or panel.changedAt)<K.flagBlinkTime)
  local flagColor=kind=='drs' and colors.text or kind=='clear' and colors.dim or colors[flagColors[kind] or 'yellow']
  local shown=flashing and not blink and back or flagColor
- local dark=kind=='black' or kind=='penalty' or kind=='checkered' or kind=='warning'
+ local dark=kind=='black' or kind=='penalty' or kind=='checkered' or kind=='warning' or kind=='ai' and hud.aiBlack
  local accent=dark and (flashing and not blink and back or colors.text) or shown
  -- Bande d'accent (3 px à l'échelle, couleur du drapeau) tout en haut de l'overlay, jusqu'au coin coupé, sous les textes.
  local a=l.accent
  ui.drawRectFilled(pv(a[1],a[2]),pv(math.max(1,a[3]-12*u),a[4]),accent,0)
  local f=l.flag
- local code=badgeCodes[kind] or kind=='lights' and lightsCode(v,panel.lit or 0)
+ local code=badgeCodes[kind] or kind=='lights' and lightsCode(v,panel.lit or 0) or kind=='ai' and not hud.aiBlack and hud.aiCode or nil
  if kind=='clear' then if callable(ui.drawRect) then ui.drawRect(pv(f[1],f[2]),pv(f[3],f[4]),colors.dim,0,nil,2) end
  elseif kind=='drs' then drsBadge(colors,f)
  elseif code then badge(colors,f,code,flashing and not blink and colors.off or colors.yellow)
@@ -2651,7 +2664,8 @@ local function flags(v,force)
  elseif kind=='checkered' then checker(colors,f)
  elseif kind=='penalty' or kind=='warning' then diagonal(colors,f)
  elseif kind=='meatball' then meatball(colors,f)
- elseif kind=='black' then
+ elseif kind=='black' or kind=='ai' then
+  -- Drapeau noir, aussi pour l'annonce du drapeau noir d'une IA (maquette : noir, bord blanc, sans sigle).
   ui.drawRectFilled(pv(f[1],f[2]),pv(f[3],f[4]),colors.ink,0)
   if callable(ui.drawRect) then ui.drawRect(pv(f[1],f[2]),pv(f[3],f[4]),accent,0,nil,2) end
  else
@@ -2662,14 +2676,15 @@ local function flags(v,force)
  if place and l.delta then local label,value=placeText(v,panel.slotText,panel.slotDistance,panel.slotPlaced,panel.slotPassed); placeBox(colors,l.delta,label,value)
  elseif delta and l.delta then deltaBox(v,colors,l.delta,delta,blink) elseif delta then deltaText(v,delta)
  elseif blueSide and l.delta then blueBox(colors,l.delta,W.upper(blueText(v,blueSide)),u) end
- local title=idle and L.flagTitles.clear or panel.title; local short=idle and L.flagShort.clear or panel.short
+ local title=kind=='ai' and hud.aiTitle or idle and L.flagTitles.clear or panel.title
+ local short=kind=='ai' and hud.aiShort or idle and L.flagShort.clear or panel.short
  font('display',true); write(title,fitSize(title,l.fontTitle,l.title[3]-l.title[1]),l.title,idle and colors.dim or colors.text,START); font('display',false)
  -- Feux de départ (étape B) : à droite du titre, à la place du delta.
  if not idle and (kind=='lights' or kind=='go' or kind=='jump') and not l.delta then
   local r=box(LIGHTS,l.title[3]-math.min(150*u,(l.title[3]-l.title[1])*0.45),l.title[2],l.title[3],l.title[4])
   startLights(colors,r,kind=='lights' and (panel.lit or 0) or 0)
  end
- if l.detail then font('body',true); write(short,fitSize(short,l.fontDetail,l.detail[3]-l.detail[1]),l.detail,kind=='lap' and panel.lapRecord and colors.best or panel.finish and colors.text or colors.dim,START); font('body',false) end
+ if l.detail then font('body',true); write(short,fitSize(short,l.fontDetail,l.detail[3]-l.detail[1]),l.detail,kind=='lap' and panel.lapRecord and colors.best or kind~='ai' and panel.finish and colors.text or colors.dim,START); font('body',false) end
  y=bandTop+K.hudBandH*u
  -- Explication de ce qui se passe, ou récapitulatif de course (une ligne par élément), alignées sur le titre.
  if p.lines>0 then

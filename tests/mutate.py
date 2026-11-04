@@ -479,7 +479,7 @@ MUTATIONS = [
     ('bip DRS app coupée', 'src/engine.lua', "  if reason=='nosections' then drsBeep(", "  if reason~='ready' then drsBeep(", 'HOTLAP_START_FLAG_AND_DRS'),
     ('informations jamais effacées', 'src/panel.lua', ' return not (infoKinds[panel.kind] and not panel.finish and hold>0 and now-panel.changedAt>=hold)\n', ' return true\n', 'OVERLAY_OPTIONS'),
     ('drapeaux effacés avec les informations', 'src/panel.lua', 'local infoKinds={green=true,drs=true,white=true,checkered=true,slippery=true,lap=true,update=true}\n', 'local infoKinds=setmetatable({},{__index=function() return true end})\n', 'OVERLAY_OPTIONS'),
-    ('overlay jamais permanent', 'src/ui.lua', " parts.band=not idle or g.panelShow=='always' or force==true\n", ' parts.band=not idle or force==true\n', 'INT:réglages de l overlay'),
+    ('overlay jamais permanent', 'src/ui.lua', " parts.band=not idle or parts.ai or g.panelShow=='always' or force==true\n", ' parts.band=not idle or parts.ai or force==true\n', 'INT:réglages de l overlay'),
     ('opacité ignorée', 'src/ui.lua', '  if result then g[key]=result; C.validateGlobals(g,g); v.dirty() end\n', '', 'INT:réglages de l overlay'),
     ('DRS affiché aileron ouvert', 'src/panel.lua', " local drs=present and reason=='' and a.drsAvailable and not a.drsActive and not panel.drsUsed or false\n", " local drs=present and reason=='' and (a.drsAvailable or a.drsActive) or false\n", 'DRS_BEEP_AND_PANEL'),
     ('DRS revenu au freinage', 'src/panel.lua', ' if a and a.drsActive then panel.drsUsed=true elseif not (a and a.drsAvailable) then panel.drsUsed=false end\n local drs=', ' local drs=', 'DRS_BEEP_AND_PANEL'),
@@ -913,7 +913,7 @@ MUTATIONS = [
     ('une police poussée par texte', 'src/widgets.lua', ' if f.fontRole==role then return end\n local name=fonts[role] or fonts.body\n if f.fontName==name and f.fontDepth>0 then f.fontRole=role; return end\n', ' local name=fonts[role] or fonts.body\n', 'INT:Beta 1.35 : relecture de l interface'),
     ('règles lues sur le profil affiché', 'src/ui.lua', "local function ruleCategoryOf(v,e)\n local target=C.solo(v.view) and 'C' or v.view\n", 'local function ruleCategoryOf(v,e)\n local target=v.view\n', 'INT:règles sélectionnables'),
     ('surbrillance perdue par les interrupteurs', 'src/ui.lua', 'v.ruleCategory=C.ruleCategory(target,e.profiles[target],switchKeys) end', 'v.ruleCategory=C.ruleCategory(target,e.profiles[target]) end', 'INT:titres des interrupteurs'),
-    ('consigne absente', 'src/ui.lua', " if l.detail then font('body',true); write(short,fitSize(short,l.fontDetail,l.detail[3]-l.detail[1]),l.detail,kind=='lap' and panel.lapRecord and colors.best or panel.finish and colors.text or colors.dim,START); font('body',false) end\n", '', 'INT:drapeau rouge en course'),
+    ('consigne absente', 'src/ui.lua', " if l.detail then font('body',true); write(short,fitSize(short,l.fontDetail,l.detail[3]-l.detail[1]),l.detail,kind=='lap' and panel.lapRecord and colors.best or kind~='ai' and panel.finish and colors.text or colors.dim,START); font('body',false) end\n", '', 'INT:drapeau rouge en course'),
     ('delta sans couleur', 'src/ui.lua', '(r[3]-r[1])*0.92)),box(R2,r[1],r[2]+h*0.22,r[3],r[4]-2),negative and colors.over or colors.under,CENTER)', '(r[3]-r[1])*0.92)),box(R2,r[1],r[2]+h*0.22,r[3],r[4]-2),colors.under,CENTER)', 'INT:drapeau rouge en course'),
     ('interrupteur de section inopérant', 'src/ui.lua', "then p[idOf('section_',group)]=not C.on(p,group); touch(v,p) end", 'then touch(v,p) end', 'INT:profil affiché distinct'),
     ('onglet sans effet', 'src/ui.lua', "  if clicked then if v.tab~=tab then v.presetMessage='' end; v.tab=tab end\n", '', 'INT:profil affiché distinct'),
@@ -1462,6 +1462,18 @@ MUTATIONS = [
     ('POSTFIX pneus abandonnés après un drapeau rouge', 'src/strategy.lua', 'and not c.stopRed and not c.noTyreStop', 'and not c.noTyreStop', 'POSTFIX_RED_KEEPS_TYRE_STOPS_142'),
     ('POSTFIX demande inutile gardée', 'src/strategy.lua', '    elseif stale then\n', '    elseif false then\n', 'POSTFIX_STALE_WITHDRAW_142'),
     ('POSTFIX appel donné retiré', 'src/strategy.lua', 'local stale=not a.pit and not c.called and', 'local stale=not a.pit and', 'POSTFIX_STALE_WITHDRAW_142'),
+    # Beta 1.43 : annonces des sanctions des IA en panneau dédié de l'overlay (maquette, version 33).
+    ('1.43 annonce dédiée oubliée', 'src/sanctions.lua', '  if what then M.aiNotice(t,kind,text,what,driver,x,y) end\n', '', 'NOTICE_ENGINE_143'),
+    ('1.43 annonce dédiée sans reprise des messages', 'src/hudinfo.lua', '  if e.g and e.g.overlayMessages then\n   h.aiCode=', '  if e.g then\n   h.aiCode=', 'NOTICE_OVERLAY_OFF_143'),
+    ('1.43 annonce de l IA en double sur la ligne de session', 'src/engine.lua', ' if own and e.ownAi then\n', ' if false then\n', 'NOTICE_NO_DUPLICATE_143'),
+    ('1.43 annonce gardée au changement de session', 'src/hudinfo.lua', 'h.msgUntil=-math.huge; h.aiUntil=-math.huge\n', 'h.msgUntil=-math.huge\n', 'NOTICE_ENGINE_143'),
+    ('1.43 sigle de la pénalité de temps', 'src/sanctions.lua', "t.aiCode=what=='time' and string.format(N.codes.time,x) or N.codes[what] or ''", "t.aiCode=N.codes[what] or ''", 'NOTICE_TEXTS_143'),
+    ('1.43 style du drapeau noir', 'src/sanctions.lua', "t.aiBlack=what=='blackFlag'", 't.aiBlack=false', 'NOTICE_TEXTS_143'),
+    ('1.43 étiquette de la place à rendre', 'src/sanctions.lua', "t.aiLabel=what=='giveBack' and N.labels.giveBack or ", 't.aiLabel=', 'NOTICE_TEXTS_143'),
+    ('1.43 annonce par-dessus un drapeau', 'src/ui.lua', ' parts.ai=ai and (idle or aiFree[panel.kind]==true) or false\n', ' parts.ai=ai or false\n', 'INT:Beta 1.43 : annonces des sanctions des IA en panneau dédié de l overlay (maquette)'),
+    ('1.43 repli oublié quand un drapeau occupe le bandeau', 'src/ui.lua', ' parts.aiStrip=ai and not parts.ai or false\n', ' parts.aiStrip=false\n', 'INT:Beta 1.43 : annonces des sanctions des IA en panneau dédié de l overlay (maquette)'),
+    ('1.43 sigle absent du bandeau', 'src/ui.lua', " or kind=='ai' and not hud.aiBlack and hud.aiCode or nil\n", ' or nil\n', 'INT:Beta 1.43 : annonces des sanctions des IA en panneau dédié de l overlay (maquette)'),
+    ('1.43 étiquette remplacée par le texte générique', 'src/ui.lua', '  local text=p.ai and not recent and hud.aiLabel or p.aiStrip', '  local text=p.ai and not recent and hud.aiFallback or p.aiStrip', 'INT:Beta 1.43 : annonces des sanctions des IA en panneau dédié de l overlay (maquette)'),
 ]
 
 def run(root, name):

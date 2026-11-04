@@ -218,6 +218,17 @@ function M.message(e,title,description,kind,time)
  -- bandeaux de coupe et de pénalité qu'AC dessine lui-même, notés au journal comme les autres, jamais repris.
  -- Annonce de l'app elle-même (ac.setMessage, « Penalty » en anglais) : reprise comme avant.
  local own=title==e.ownTitle and description==e.ownText
+ -- Beta 1.43 : annonce de sanction d'une IA (panneau dédié, src/hudinfo) : notée au journal comme avant, jamais reprise
+ -- en double sur la ligne de session.
+ if own and e.ownAi then
+  local seen=e.hud.seen
+  local key=type(title)=='string' and title~='' and title or tostring(description or '')
+  if not seen[key] then
+   seen[key]=true
+   U.log(e.log,e.time or 0,'INFO',string.format('message d AC: %s%s%s',tostring(title or ''),(description or '')~='' and ' : ' or '',tostring(description or '')),-1)
+  end
+  return
+ end
  if not own and M.drawnByAC(title,description) then
   local h=e.hud
   if e.acDrawnSession~=e.session then e.acDrawnSession=e.session; U.log(e.log,e.time or 0,'INFO','messages d AC: penalites et coupes laissees a l affichage d AC (CSP ne permet pas de les masquer)',-1) end

@@ -1,5 +1,18 @@
 # Changelog
 
+## Beta 1.43 — 4 November 2026
+
+AI sanction notices redrawn on the overlay as in the mockup.
+
+- **AI sanction notices** get their own overlay panel, like the Safety Car and restart badges:
+  - a badge with the code: DT drive-through, SG stop-and-go, +N time penalty, CUT throttle cut, POS give the place back; a black square with a white edge for a black flag;
+  - the AI driver's name as the title, the sanction and its reason below (« Drive-through (jump start) », « +5 s (track limits) »);
+  - a short label on the right of the session line: Sanction, Give the place back, Black flag.
+- The panel takes the band only when it is free: nothing shown, or simple information (green, start, lap, update). Under one of your flags, the flag keeps the band and the notice goes to the session line, as before.
+- Same timing and limits as before: one notice every 6 s at most, black flags always, and only when the overlay takes over AC's messages. The app's own AC message is never shown twice, and the log is unchanged.
+
+**Verification**: 578 checks; 124 integration cases; 1,429 mutations, all detected; clean lint, parameter audit; the reference scenes identical to Beta 1.42 and the end-to-end race scene too; 8-hour soak with 0 errors (memory between 9.7 and 10.9 MB, peak frame 0.69 ms; Beta 1.42 on the same machine the same morning: 9.3 to 10.6 MB, 0.75 ms); engine bench, median of five alternating runs, 9 / 30 / 60 AI: 0.052 / 0.237 / 0.613 ms (Beta 1.42: 0.052 / 0.243 / 0.629 ms); long track (60.6 km, 46 AI): 0.277 ms, P99 0.601 ms (Beta 1.42: 0.307 ms, P99 0.675 ms).
+
 ## Beta 1.42 — 4 November 2026
 
 AI race strategy and AI sanctions, breaking the tow and dirty air, tyre warm-up and wear, progressive failures and last-laps urgency: two new settings sections (**AI strategy**, **AI sanctions**) and new subgroups in **Overtaking** and **Weather**, all in the built-in presets.

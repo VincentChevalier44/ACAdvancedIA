@@ -10,7 +10,8 @@ local K=C.K
 local M={}
 function M.new()
  return {session=-1,lap=-1,lapUntil=-math.huge,lapTitle='',lapDetail='',lapCode='',lapSerial=0,best=0,
-  msgTitle='',msgDetail='',msgText='',msgIllegal=false,msgUntil=-math.huge,msgCount=0,seen={},
+  msgTitle='',msgDetail='',msgText='',msgIllegal=false,msgUntil=-math.huge,msgAt=-math.huge,msgCount=0,seen={},
+  aiSerial=0,aiCode='',aiTitle='',aiShort='',aiLabel='',aiBlack=false,aiFallback='',aiUntil=-math.huge,aiAt=-math.huge,
   started=false,grid=0,finished=false,dnf=false,dq=false,final=0,passes=0,lost=0,rel={},at=-math.huge,cars=0,
   fieldBest=0,fieldBestName='',recap={},recapSerial=0,recapNew=false,strip={},stripCount=0,stripAt=-math.huge,stripKey='',corrected=0}
 end
@@ -28,7 +29,7 @@ function M.clock(seconds)
  return string.format('%d:%02d',m,s)
 end
 local function reset(h,session)
- h.session=session; h.lap=-1; h.lapUntil=-math.huge; h.best=0; h.seen={}; h.msgUntil=-math.huge
+ h.session=session; h.lap=-1; h.lapUntil=-math.huge; h.best=0; h.seen={}; h.msgUntil=-math.huge; h.aiUntil=-math.huge
  h.started=false; h.grid=0; h.finished=false; h.dnf=false; h.dq=false; h.final=0; h.passes=0; h.lost=0; h.rel={}
  h.fieldBest=0; h.fieldBestName=''; h.recap={}; h.recapNew=false; h.stripKey=''; h.corrected=0
 end
@@ -39,7 +40,7 @@ function M.message(h,title,description,kind,time,now)
  if title=='' and description=='' then h.msgUntil=-math.huge; return false end
  h.msgTitle=title; h.msgDetail=description; h.msgIllegal=kind=='illegal'
  h.msgText=title~='' and description~='' and title..' · '..description or title~='' and title or description
- h.msgUntil=now+U.clamp(tonumber(time) or K.hudMessageTime,K.hudMessageMin,K.hudMessageMax)
+ h.msgUntil=now+U.clamp(tonumber(time) or K.hudMessageTime,K.hudMessageMin,K.hudMessageMax); h.msgAt=now
  h.msgCount=math.min(K.counterMax,h.msgCount+1)
  local key=title~='' and title or description
  if h.seen[key] then return false end
@@ -120,6 +121,16 @@ function M.update(h,frame,e,now)
  if frame.session~=h.session then reset(h,frame.session) end
  -- Beta 1.42 : arrivées et classement corrigé des sanctions des IA, même course finie (moteur arrêté).
  if e.sanctions then Sanctions.watch(e.sanctions,frame,e,now) end
+ -- Beta 1.43 (maquette) : annonce de sanction d'une IA, en panneau dédié de l'overlay pendant K.hudMessageTime s ;
+ -- seulement si l'overlay reprend les messages d'AC (sinon AC l'affiche lui-même, comme avant).
+ local s=e.sanctions
+ if s and s.aiSerial~=h.aiSerial then
+  h.aiSerial=s.aiSerial
+  if e.g and e.g.overlayMessages then
+   h.aiCode=s.aiCode; h.aiTitle=s.aiTitle; h.aiShort=s.aiShort; h.aiLabel=s.aiLabel; h.aiBlack=s.aiBlack; h.aiFallback=s.aiFallback
+   h.aiUntil=now+K.hudMessageTime; h.aiAt=now
+  end
+ end
  if frame.player<=0 then h.stripCount=0; return end
  local a=frame.cars[frame.player]
  -- Relecture : place corrigée du joueur suivie après son arrivée (les IA arrivées ensuite peuvent la changer).
