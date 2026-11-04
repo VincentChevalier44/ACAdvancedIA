@@ -84,9 +84,10 @@ function M.reference(d,states,i,b,multi,pct,fallbackKmh)
 end
 -- Double drapeau jaune : Slow Zone à vitesse fixe (endurance) si elle est réglée, sinon allure plus lente du
 -- pourcentage de zone.
-function M.zoneReference(d,states,i,b,multi,p)
+-- fallbackKmh (Beta 1.47, IA) : vitesse de repli de l'allure inconnue (défaut : yellowSpeedKmh).
+function M.zoneReference(d,states,i,b,multi,p,fallbackKmh)
  if p.slowZoneKmh>0 then return max(K.deltaMinKmh,p.slowZoneKmh)/3.6 end
- return M.reference(d,states,i,b,multi,p.zoneDeltaPct,p.yellowSpeedKmh)
+ return M.reference(d,states,i,b,multi,p.zoneDeltaPct,fallbackKmh or p.yellowSpeedKmh)
 end
 -- Régime de delta du joueur hors zone : genre, pourcentage et vitesse de repli. Voiture de sécurité appelée ou encore
 -- dans la voie des stands : delta FCY. Drapeau rouge : jusqu'à la voie des stands.

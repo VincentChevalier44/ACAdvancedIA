@@ -1,9 +1,9 @@
 track 30 IA 20000 images, erreurs 0
-  stats abort_stall=1,alongside=82,chain=19,clear=144,direction_limit=1,flash=4,guard=7,limit=1,lost=3,pass=44,pass_end=142,pass_position=93,passed=156,passedPlayer=9,ready=37,realPass=205,realPassApp=148,target_lost=1,yield=165,yield_end=157,yield_position=163,yielded=114
-  empreintes 5000:fffffffff792fc64 10000:46e6de40 15000:102c2b7e 20000:774a461a
+  stats abort_stall=1,alongside=82,chain=19,clear=144,direction_limit=1,flash=3,guard=7,limit=1,lost=4,pass=42,pass_end=142,pass_position=93,passed=160,passedPlayer=9,ready=37,realPass=206,realPassApp=149,target_lost=1,yield=170,yield_end=161,yield_position=167,yielded=116
+  empreintes 5000:fffffffff792fc64 10000:46e6de40 15000:ffffffffd573a9fc 20000:09c0181c
 rules 30 IA 40000 images, erreurs 0
-  stats abort_slow=7,abort_yellow=1,alongside=71,attacker=24,chain=17,clear=99,defense_end=24,direction_limit=4,drsAsk=190,flash=8,guard=21,limit=4,lost=3,obstacle=20,obstacle_clear=20,pass=113,pass_end=109,pass_position=53,passed=170,passedPlayer=19,pull_out=111,ready=81,realPass=419,realPassApp=97,target_lost=3,yellow=9,yield=183,yield_end=179,yield_position=180
-  empreintes 10000:ffffffffbf997e95 20000:ffffffff97025723 30000:2198f621 40000:ffffffffc1bb3351
+  stats abort_slow=7,abort_yellow=1,alongside=75,chain=16,clear=99,direction_limit=1,drsAsk=190,flash=7,guard=21,hold_limit=1,limit=1,lost=4,obstacle=20,obstacle_clear=20,pass=114,pass_end=110,pass_position=49,passed=170,passedPlayer=19,pull_out=112,ready=81,realPass=422,realPassApp=98,target_lost=3,yellow=9,yield=186,yield_end=182,yield_position=181
+  empreintes 10000:ffffffff8d89c8c0 20000:345d459d 30000:04777534 40000:ffffffff9596254c
 rules 60 IA 12000 images, erreurs 0
-  stats abort_slow=7,abort_yellow=19,alongside=130,attacker=31,chain=43,clear=129,defense_end=31,direction_limit=13,drsAsk=105,flash=2,guard=9,limit=13,obstacle=19,obstacle_clear=19,pass=171,pass_end=142,pass_position=69,passed=53,passedPlayer=9,pull_out=160,ready=129,realPass=498,realPassApp=159,target_lost=1,yield=56,yield_end=47,yield_position=53
-  empreintes 3000:ffffffffb2838ec8 6000:ffffffffbf9de485 9000:66cf8f96 12000:ffffffffc899e519
+  stats abort_slow=7,abort_yellow=19,alongside=123,chain=43,clear=124,direction_limit=5,drsAsk=105,guard=9,limit=5,obstacle=19,obstacle_clear=19,pass=165,pass_end=140,pass_position=70,passed=61,passedPlayer=9,pull_out=154,ready=129,realPass=499,realPassApp=153,target_lost=1,yield=64,yield_end=57,yield_position=61
+  empreintes 3000:1301c878 6000:ffffffff933ad51f 9000:14c901e2 12000:2b237b92

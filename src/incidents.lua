@@ -158,11 +158,44 @@ local function queued(frame,i,p)
  end
  return false
 end
+-- Beta 1.47 (décision du pilote : drapeau rouge seulement si la piste est vraiment bloquée) : la piste est bloquée quand,
+-- à l'endroit d'une voiture accidentée immobilisée en piste, les voitures accidentées immobilisées à moins de
+-- K.redBlockSpan m (gabarit plus K.redBlockMargin m de chaque côté) ne laissent aucun passage de K.redPassWidth m sur la
+-- largeur de la piste. Le côté de l'écart à la trajectoire n'est pas connu ici : bloquée seulement si elle l'est dans
+-- les deux sens ; largeur inconnue : K.redTrackHalf m de chaque côté.
+local function passable(frame,list,count,lo,hi,sign)
+ local iv={}
+ for k=1,count do
+  local a=frame.cars[list[k]]; local lat=(a.splineLatValid and a.splineLat or 0)*sign; local half=a.width*0.5+K.redBlockMargin
+  iv[#iv+1]={lat-half,lat+half}
+ end
+ table.sort(iv,function(x,y) return x[1]<y[1] end)
+ local edge=lo
+ for k=1,#iv do if iv[k][1]-edge>=K.redPassWidth then return true end; edge=max(edge,iv[k][2]) end
+ return hi-edge>=K.redPassWidth
+end
+local function blocked(t,frame)
+ local length=frame.length
+ for n=1,t.redCount do
+  local a=frame.cars[t.redCars[n]]
+  if not a.offtrack and a.splineValid and length>0 then
+   local near,count={},0
+   for m=1,t.redCount do
+    local b=frame.cars[t.redCars[m]]
+    if not b.offtrack and b.splineValid and math.abs(U.spline(b.spline-a.spline))*length<=K.redBlockSpan then count=count+1; near[count]=t.redCars[m] end
+   end
+   local left=a.leftWidth>0 and a.leftWidth or K.redTrackHalf; local right=a.rightWidth>0 and a.rightWidth or K.redTrackHalf
+   if not passable(frame,near,count,-left,right,1) and not passable(frame,near,count,-left,right,-1) then return true end
+  end
+ end
+ return false
+end
 -- ready : session lancée, hors grille de départ. Une voiture arrêtée, en tête-à-queue ou à contresens est un incident ;
 -- hors piste depuis longtemps, elle est considérée comme dégagée par les commissaires.
 function M.update(t,frame,p,profile,now,dt,ready,seed)
  t.frameId=(t.frameId+1)%K.counterMax
  t.zoneCount=0; t.activeCount=0; t.holdCount=0; t.onTrack=0; t.freshOnTrack=0
+ t.redCount=0; t.redStopped=0; t.redQueued=0; t.redCars=t.redCars or {}
  local major=false
  -- Escalade vers la voiture de sécurité : incidents majeurs en même temps, immobilisation la plus longue.
  local majors,longest=0,0
@@ -220,10 +253,23 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
   if incident then
    c.spline=a.spline; c.onTrack=not a.offtrack; t.activeCount=t.activeCount+1
    if c.onTrack and not a.player then t.onTrack=t.onTrack+1; if c.since>t.redEnd and c.still>=K.redStopTime then t.freshOnTrack=t.freshOnTrack+1 end end
+   if c.spin>=K.spinTime then c.spunIncident=true end
    -- Incident majeur : voiture immobile en piste (pas une voiture qui roule au pas), apparue depuis la dernière
    -- neutralisation levée au délai maximal.
    if c.onTrack and c.still>=p.majorIncidentTime and c.since>t.neutralEnd then major=true; majors=majors+1; longest=max(longest,c.still) end
   elseif c.incident then c.clearedAt=now; note(t,'INFO',string.format('incident termine apres %.1f s',now-c.since),i) end
+  if not incident then c.spunIncident=false end
+  -- Beta 1.47 (décision du pilote) : voiture arrêtée depuis K.redIncidentStill s. Comptée pour le drapeau rouge si elle
+  -- l'est à cause d'un incident (dégâts, tête-à-queue, arrêt hors de la trajectoire ou hors piste, arrêt seule en
+  -- pleine piste) ; une voiture intacte, sur la trajectoire, qui attend derrière une voiture arrêtée est dans la file :
+  -- jamais comptée.
+  if eligible and not a.player and c.still>=K.redIncidentStill and now-c.still>t.redEnd then
+   t.redStopped=t.redStopped+1
+   local damaged=(a.damageSuspension or 0)>=K.slowPitSuspension or (a.damageBody or 0)>=K.slowPitBody
+   local offLine=a.offtrack or a.splineLatValid and math.abs(a.splineLat)>K.redOffLine
+   if queued(frame,i,p) and not damaged and not c.spunIncident and not offLine then t.redQueued=t.redQueued+1
+   elseif incident or damaged or c.spunIncident or offLine then t.redCount=t.redCount+1; t.redCars[t.redCount]=i end
+  end
   c.incident=incident
   if incident or now-c.clearedAt<p.yellowHold then
    t.zoneCount=t.zoneCount+1; local z=t.zones[t.zoneCount]; z.slot=i; z.spline=c.spline; z.onTrack=c.onTrack
@@ -316,6 +362,8 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
    if relaunched and standing(t,frame,now,p,profile) then
     note(t,'INFO',car.pit and 'voiture de securite aux stands: formation de la grille' or 'voiture de securite non rentree, delai depasse: formation de la grille',t.safety)
    else
+    -- Beta 1.47 : relance derrière la voiture de sécurité : premier tour attentif (moteur).
+    t.restartSerial=(t.restartSerial or 0)+1
     t.greenUntil=now+K.greenShow; note(t,'INFO',(car.pit and 'drapeau vert: voiture de securite aux stands' or 'drapeau vert: voiture de securite non rentree, delai depasse')..(p.restartOvertake=='scIn' and ', depassement permis' or ''),t.safety)
     restartRule(t,frame,now,p)
    end
@@ -336,7 +384,7 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
     t.greenUntil=now+K.greenShow; note(t,'INFO','drapeau vert: fin de neutralisation',-1)
     -- Tour de relance terminé : dépassement interdit jusqu'à la ligne (ou dès le vert, Beta 1.34) ; fin de FCY ou de
     -- VSC : on court aussitôt.
-    if relaunch then t.relaunch=false; restartRule(t,frame,now,p) elseif p.yellowMessage then message(t,'green') end
+    if relaunch then t.relaunch=false; t.restartSerial=(t.restartSerial or 0)+1; restartRule(t,frame,now,p) elseif p.yellowMessage then message(t,'green') end
    end
   end
  end
@@ -367,11 +415,21 @@ function M.update(t,frame,p,profile,now,dt,ready,seed)
  -- Course suspendue : neutralisation levée, toutes les IA rentrent aux stands et y restent ; drapeau vert une fois
  -- toutes les IA rentrées, la piste dégagée et l'interruption minimale écoulée. Délai maximal tiré du circuit : un
  -- tour et quart à la vitesse de retour, la voie des stands et l'interruption minimale (5 à 30 minutes).
+ -- Beta 1.47 (décision du pilote) : au moins redFlagCars voitures immobilisées à cause d'un incident et la piste
+ -- vraiment bloquée ; sinon, jaunes, VSC ou voiture de sécurité comme avant (escalade selon la gravité), et le refus est
+ -- noté une fois par épisode.
  local redAllowed=(profile=='C' or profile=='P' or profile=='Q') and p.redFlagEnabled
- if redAllowed and not t.red and t.freshOnTrack>=p.redFlagCars then
-  t.red=true; t.redSince=now; t.reds=(t.reds+1)%K.counterMax; t.redCancelled=false; t.standing='none'; t.gridLit=0
+ local redWanted=redAllowed and not t.red and t.redCount>=p.redFlagCars and blocked(t,frame)
+ if redAllowed and not t.red and not redWanted and t.redStopped>=p.redFlagCars then
+  if not t.redRefused then
+   t.redRefused=true
+   note(t,'INFO',string.format('pas de drapeau rouge: %d voitures arretees dont %d dans la file%s',t.redStopped,t.redQueued,t.redCount>=p.redFlagCars and ', piste encore passable' or ''),-1)
+  end
+ elseif t.redStopped<p.redFlagCars then t.redRefused=false end
+ if redWanted then
+  t.red=true; t.redSince=now; t.reds=(t.reds+1)%K.counterMax; t.redCancelled=false; t.standing='none'; t.gridLit=0; t.redRefused=false
   t.redMax=U.clamp(p.redFlagHold+K.redLapFactor*frame.length/(p.redFlagSpeedKmh/3.6)+K.redPitMargin,K.redFlagMax,K.redFlagMaxCap)
-  note(t,'INFO',string.format('drapeau rouge: %d voitures immobilisees en piste',t.onTrack),-1)
+  note(t,'INFO',string.format('drapeau rouge: %d voitures accidentees immobilisees %.0f s, piste bloquee',t.redCount,K.redIncidentStill),-1)
   if t.neutral then t.neutral=false; if t.safetyPhase=='call' or t.safetyPhase=='out' or t.safetyPhase=='in' then t.safetyPhase='parking' end end
   if p.yellowMessage then message(t,profile=='C' and 'red' or 'redSession') end
  end
@@ -448,7 +506,10 @@ function M.cap(t,frame,i,p,d,states,margin)
      -- référence au début de la zone.
      local rb=at>=0 and b or Delta.bin(zone.spline-p.yellowBefore/length,d.bins)
      local v
-     if zone.onTrack then v=Delta.zoneReference(d,states,i,rb,multi,p) else v=Delta.reference(d,states,i,rb,multi,K.singleYellowPct,0) end
+     -- Beta 1.47 (départs de Monza : peloton entier à 50 km/h derrière un carambolage au premier tour) : allure inconnue,
+     -- repli relatif à la voiture (K.yellowUnknownPct de sa vitesse maximale vue), jamais sous yellowSpeedKmh : le même
+     -- ralentissement pour une F1, une GT ou une voiture de route.
+     if zone.onTrack then v=Delta.zoneReference(d,states,i,rb,multi,p,max(p.yellowSpeedKmh,K.yellowUnknownPct*(states[i].topKmh or 0))) else v=Delta.reference(d,states,i,rb,multi,K.singleYellowPct,0) end
      if at>=0 then
       if v>0 then cap=min(cap,v*slow) end
       yellow=true

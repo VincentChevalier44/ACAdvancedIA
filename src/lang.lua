@@ -195,7 +195,7 @@ return {
   cspHideMessages='Masquer les messages système d’AC (option CSP)',cspHideFlags='Masquer les drapeaux d’origine d’AC (option CSP)'},
  cspWaiting='Options de CSP écrites dans cfg/extension/gui.ini : en attente de CSP.',
  cspPending='Options de CSP écrites : effet au prochain lancement du jeu (CSP les lit au lancement).',
- cspApplied='Options de CSP appliquées par l’app ; vos valeurs d’origine sont gardées et rendues dès que l’app ou l’option est coupée. Coupes et pénalités : bandeaux d’AC (non masquables), jamais doublés.',
+ cspApplied='Options de CSP cochées par l’app : elles restent cochées tant que l’app est active, aussi jeu fermé (Content Manager les montre cochées). Vos valeurs d’origine sont gardées et rendues quand vous coupez l’interrupteur ici, l’app (bouton APP), le panneau de drapeaux de l’app ou la reprise des messages par l’overlay ; ni la panique ni la fermeture du jeu ne les rendent. Coupes et pénalités : bandeaux d’AC (non masquables), jamais doublés.',
  cspReadonly='Options de CSP non modifiables (cfg/extension/gui.ini) : réglez-les dans Content Manager › Custom Shaders Patch › GUI.',
  cspCapped='Options de CSP laissées telles quelles jusqu’au prochain lancement du jeu (trop d’écritures dans cette partie).',
  cspLost='Messages système d’AC rendus : masqués par CSP, ils n’arrivaient plus à l’overlay. Recochez l’option pour réessayer.',

@@ -92,7 +92,7 @@ tests.SCHEMA_142_MIGRATION=function()
  assert(not set.P.section_strategy and not set.Q.section_strategy and not set.J.section_sanctions and not set.J.section_strategy,'no strategy in practice, nothing in track day')
  local listed={}; for _,u in ipairs(upgraded) do listed[u]=true end
  assert(listed['C:strategie et sanctions'] and listed['P:sanctions'] and listed['Q:sanctions'],'logged')
- assert(g.dataRevision==19)
+ assert(g.dataRevision==C.dataRevision)
  -- Règles décochées : rien n'est coché.
  local off=profiles(); g.dataRevision=18; C.migrate(g,off); assert(not off.C.section_strategy and not off.C.section_sanctions,'racing rules off: untouched')
  -- Préréglage personnel de la révision 13 (Beta 1.29 à 1.41) : même migration ; enregistré en révision 14.

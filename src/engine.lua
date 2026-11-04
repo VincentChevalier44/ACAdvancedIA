@@ -20,13 +20,15 @@ local Flood=require('src/flood')
 local Lights=require('src/lights')
 local Grid=require('src/grid')
 local Merge=require('src/merge')
+-- Beta 1.47 : premier tour attentif (départ et relances, course).
+local FirstLap=require('src/firstlap')
 local K=C.K
 local M={}
 -- Journal du départ (Beta 1.24) : maintien de ligne (IA mesurées, décalées de la trajectoire) et pneus de chaque IA,
 -- pour vérifier en jeu le premier virage et les gommes montées.
 local function startReport(e,frame,now)
  local n,measured,offset,held,sides=0,0,0,0,0; local tyres,order={},{}
- e.startRadar=0; e.startSpeedLogged=false
+ e.startRadar=0; e.startLift=0; e.startSpeedLogged=false
  for i=1,frame.count do
   local a=frame.cars[i]
   if a.valid and a.control and not a.player and not a.safetyCar then
@@ -75,6 +77,8 @@ local function contacts(e,frame,now)
    local key=i<j and i*K.maxCars+j or j*K.maxCars+i
    local next=e.contacts[key]
    local b=frame.cars[j]
+   -- Beta 1.47 : dernier contact de chaque voiture (limites de piste : pas d'avertissement pour une voiture poussée).
+   if e.lastContactAt then e.lastContactAt[i]=now; e.lastContactAt[j]=now end
    -- Beta 1.41 : chaque contact compté sur la minute (une fois par paire et par K.contactLogPeriod s), même au-delà du
    -- budget de lignes du journal ; avant, le résumé comptait les reprises au calme, pas les contacts.
    local seen=e.contactSeen[key]
@@ -116,10 +120,11 @@ function M.new(g,profiles)
  e.grid=Grid.new(); e.gridCaps=false
  -- Contacts déjà notés (Beta 1.24) : prochaine ligne permise par paire de voitures.
  e.contacts={}; e.contactRel={}; e.contactSecond=-1; e.contactCount=0
- e.contactSeen={}
+ e.contactSeen={}; e.lastContactAt={}
  e.incidents.note=e.note; e.pits.note=e.note
  -- Beta 1.41 : sortie des stands (jonction, retenue au bout de la voie).
  e.merge=Merge.new()
+ e.fl=FirstLap.new()
  -- Beta 1.42 : stratégie et sanctions des IA ; avancement de la course (tours restants, -1 inconnu).
  e.strategy=Strategy.new(); e.sanctions=Sanctions.new(); e.race={progress=-1,lapsLeft=-1,known=false}
  for i=1,K.maxCars do
@@ -404,8 +409,10 @@ function M.step(e,frame,dt)
   e.classes.nextAt=0; e.flash=Flash.new()
   e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); Lights.reset(e.lights); Grid.reset(e.grid); e.slowLogged=0; e.panel.warnPending=false; e.panel.warnUntil=-math.huge; e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
   e.configuredRevision=-1; Merge.reset(e.merge); Strategy.reset(e.strategy,now); Sanctions.reset(e.sanctions,now)
+  FirstLap.reset(e.fl); e.fl.restartSerial=e.incidents.restartSerial or 0
+  for i=1,K.maxCars do local s=e.states[i]; s.flOn=false; s.flW=0; s.flCare=0; s.flApproach=false end
   for i=1,K.maxCars do
-   local s=e.states[i]; s.stint=0; s.stintStart=now; s.class=2; s.classified=false; s.classCandidate=0; s.classCycles=0
+   local s=e.states[i]; s.topKmh=0; s.stint=0; s.stintStart=now; s.class=2; s.classified=false; s.classCandidate=0; s.classCycles=0
    s.paceCount=0; s.paceMean=0; s.paceRatio=0; s.paceRatioCount=0; s.freePace=0; s.longRatio=1; s.longRatioTime=0; s.lastContact=now
    s.excluded=false; s.disqualified=false; s.errorUntil=0; s.errorCount=0; s.pitBefore=false; s.pitExitUntil=0; s.pitCautionUntil=0; s.pitGuardUntil=0; s.obstacleSlow=0
    -- Relecture de la Beta 1.41 : état « anormalement lente » et demande d'arrêt oubliés avec la session.
@@ -454,14 +461,20 @@ function M.step(e,frame,dt)
   for i=1,frame.count do if math.abs(e.states[i].offset-e.states[i].base)>K.offsetEpsilon then settled=false; break end end
   e.returning=not settled
  end
- if frame.started and not e.wasStarted then e.startedAt=now; e.launchAt=nil; if e.profile=='C' then startReport(e,frame,now) end end
+ if frame.started and not e.wasStarted then
+  e.startedAt=now; e.launchAt=nil
+  -- Beta 1.47 (banc des départs) : l'arrêt sur la grille ne compte pas comme un arrêt en piste : sans cela, une voiture
+  -- encore lente une seconde après le feu vert était un obstacle à contourner (évitements dans le peloton au départ).
+  for i=1,frame.count do e.states[i].obstacleSlow=0; frame.cars[i].stopped=0 end
+  if e.profile=='C' then startReport(e,frame,now); FirstLap.arm(e,frame,now,'depart') end
+ end
  -- Mesure du départ (Beta 1.25) : vitesse moyenne du peloton à la fin de l'attente de départ et freinages du radar
  -- pendant le lancement, pour comparer les départs d'une version à l'autre.
  if e.startSpeedLogged==false and frame.started and now-e.startedAt>=e.run.startDelay then
   e.startSpeedLogged=true
   local sum,n=0,0
   for i=1,frame.count do local a=frame.cars[i]; if a.valid and a.control and not a.player and not a.safetyCar and not a.pit then sum=sum+a.kmh; n=n+1 end end
-  U.log(e.log,now,'INFO',string.format('depart: peloton a %.0f km/h en moyenne apres %.0f s, %d freinage(s) du radar au lancement',n>0 and sum/n or 0,e.run.startDelay,e.startRadar or 0),-1)
+  U.log(e.log,now,'INFO',string.format('depart: peloton a %.0f km/h en moyenne apres %.0f s, %d freinage(s) du radar au lancement, %d lever(s) de pied',n>0 and sum/n or 0,e.run.startDelay,e.startRadar or 0,e.startLift or 0),-1)
  end
  e.wasStarted=frame.started
  -- Maintien de ligne au départ : écart à la trajectoire lu dans l'instantané suivant, pendant le départ seulement.
@@ -530,7 +543,9 @@ function M.step(e,frame,dt)
  contacts(e,frame,now)
  for i=1,frame.count do
   local a=frame.cars[i]; local state=e.states[i]
-  if state.obstacleIdentity~=(a.identity or a.id) then state.obstacleSlow=0; a.stopped=0; state.obstacleIdentity=a.identity or a.id end
+  if state.obstacleIdentity~=(a.identity or a.id) then state.obstacleSlow=0; a.stopped=0; state.obstacleIdentity=a.identity or a.id; state.topKmh=0 end
+  -- Beta 1.47 : vitesse maximale vue de chaque voiture (repli relatif du double jaune quand l'allure est inconnue).
+  if a.valid and not a.pit and a.kmh<K.topKmhMax and a.kmh>(state.topKmh or 0) then state.topKmh=a.kmh end
   if a.valid and not a.pit and a.kmh<e.run.obstacleSpeedKmh then state.obstacleSlow=math.min(K.stoppedTime+K.dtMax,math.max(state.obstacleSlow,a.stopped)+dt)
   else state.obstacleSlow=0 end
   a.stopped=state.obstacleSlow
@@ -545,6 +560,9 @@ function M.step(e,frame,dt)
  e.incidents.gridReady=e.gridCaps==true and e.g.offsetSign~=0 and frame.length>0
  e.incidents.gridWhy=e.gridCaps~=true and 'capacites' or e.g.offsetSign==0 and 'sens lateral non mesure' or frame.length<=0 and 'circuit' or ''
  Incidents.update(e.incidents,frame,e.run,e.profile,now,dt,ready,e.runtimeG.seed)
+ -- Beta 1.47 : relance lancée (drapeau vert derrière la voiture de sécurité, fin du tour de relance) : premier tour
+ -- attentif de nouveau.
+ if (e.incidents.restartSerial or 0)~=e.fl.restartSerial then e.fl.restartSerial=e.incidents.restartSerial or 0; FirstLap.arm(e,frame,now,'relance') end
  -- Allure de référence de la flotte (temps delta), quelques endroits par image ; Beta 1.41 : nombre d'endroits selon la
  -- longueur de la piste (changé : allure apprise de chaque voiture oubliée, ses rythmes relatifs gardés).
  if Delta.size(e.delta,frame.length) then
@@ -608,6 +626,7 @@ function M.step(e,frame,dt)
  -- Beta 1.42 : facteurs des modules (niveau, accélérateur) remis au neutre avant le pilotage ; avancement de la course.
  for i=1,frame.count do local cmd=e.commands[i]; cmd.levelScale=1; cmd.throttleLimit=1 end
  raceInfo(e,frame)
+ FirstLap.update(e,frame,now,dt)
  local first=1
  while first<=frame.count do
   local last=e.batchCars and frame.count or first
@@ -883,6 +902,8 @@ function M.step(e,frame,dt)
  if launched then
   -- Beta 1.35 : protections et prudence de départ de la course aussi à l'extinction d'un départ arrêté.
   e.launchAt=now
+  for i=1,frame.count do e.states[i].obstacleSlow=0; frame.cars[i].stopped=0 end
+  FirstLap.arm(e,frame,now,'depart arrete')
   -- Beta 1.36 : départ arrêté, dépassement permis dès l'extinction (la règle « jusqu'à la ligne » reste aux départs lancés).
   Incidents.lightsOut(e.incidents)
   if launched=='jump' then

@@ -388,7 +388,10 @@ local function place(u,port,kind,to,now)
  local promoted,why=port.promote(kind)
  if not promoted then event(u,'WARN','mise a jour: version precedente non gardee ('..tostring(why)..'), retour arriere indisponible') end
  if not port.clearMarker() then event(u,'WARN','mise a jour: repere non efface ('..tostring(port.markerFile())..'), termine au lancement suivant') end
- if not port.report(mark) then event(u,'WARN','mise a jour: compte rendu non ecrit') end
+ -- Beta 1.47 : compte rendu avec la version qui tournait (le repère et le démarrage surveillé gardent celle du
+ -- disque, seule juge de la reprise) : après un cache de CSP périmé, « Beta 1.44 -> Beta 1.45 » et non
+ -- « Beta 1.45 -> Beta 1.45 ».
+ if not port.report(kind..' '..(kind=='update' and u.installed or from)..' -> '..to) then event(u,'WARN','mise a jour: compte rendu non ecrit') end
  if kind=='update' then port.bootSet(to,from,0) else port.bootClear() end
  u.phase='restarting'; u.after=kind; u.restartAt=now; u.serial=u.serial+1
  event(u,'INFO',string.format('mise a jour: %s%s (%d fichiers compares, %d copies en %.0f ms ; %d fichiers gardes en %.0f ms), commandes des IA rendues a AC et redemarrage de l app',

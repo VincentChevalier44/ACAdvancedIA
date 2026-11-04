@@ -610,6 +610,7 @@ Columns: **J** = Track day · **Q** = Qualifying · **C** = Race/weekend. All va
 | `startAggrMult` | 0.2–1 | 1 | 1 | 0.6 |
 | `startRelax` | 2–30 s | — | — | 12 |
 | `startLaneHold` | bool | no | no | yes |
+| `firstLapCare` | bool | no | no | yes |
 | `obstacleEnabled` | bool | yes | yes | yes |
 | `obstacleSpeedKmh` | 5–50 | 25 | 25 | 25 |
 | `obstacleDetect` | 50–300 m | 150 | 150 | 150 |

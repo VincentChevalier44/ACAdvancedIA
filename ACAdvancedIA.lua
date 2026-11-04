@@ -121,7 +121,7 @@ local panel=UI.new(engine,host,calibration,dirty)
 messageListener=Applier.listenMessages(function(title,description,kind,time) if not released then pcall(Engine.message,engine,title,description,kind,time) end end)
 host.note=engine.note
 -- Options de CSP tenues par l'app (Beta 1.40, src/cspgui.lua) : messages système et drapeaux d'origine d'AC masqués
--- tant que l'app est active, valeurs d'origine rendues quand elle s'arrête. Fichiers lus et écrits dans update()
+-- tant que l'app est active (Beta 1.47 : laissées cochées à la fermeture, voir Cspgui.want). Fichiers lus et écrits dans update()
 -- seulement (jamais pendant le dessin), au premier passage et à chaque changement de ce qui est voulu.
 local cspPort=Applier.cspPort()
 local csp=Cspgui.new()
@@ -145,10 +145,8 @@ local bootWatched=false
 if port.ready and type(port.boot)=='function' then local okBoot,version=pcall(port.boot); bootWatched=okBoot and version~=nil end
 local function cspStep(dt)
  if U.finite(dt) and dt>0 then cspClock=cspClock+math.min(dt,1) end
- local on=globals.enabled and not engine.panic
- cspWant.HIDE_SYSTEM_MESSAGES=on and globals.overlayMessages and globals.overlayBlockMessages and globals.cspHideMessages and not globals.cspMessagesLost
- cspWant.HIDE_RACE_FLAGS=on and globals.cspHideFlags
- Cspgui.step(csp,cspPort,cspWant,cspClock)
+ -- Beta 1.47 : décision dans src/cspgui.lua (Cspgui.want) ; nil pendant la panique : rien ne change.
+ Cspgui.step(csp,cspPort,Cspgui.want(globals,engine.p,engine.panic,cspWant),cspClock)
  cspLog()
 end
 -- AI flood de CSP (Beta 1.26) : état chargé par CSP au lancement ; le moteur écrit ensuite le réglage voulu.
@@ -170,7 +168,8 @@ local function writeJournal(force)
  end
  if not host.journalPath or not force and engine.time<journal.flushAt then return end
  journal.flushAt=engine.time+K.journalPeriod
- if engine.time>=journal.summaryAt then journal.summaryAt=engine.time+K.journalSummary; U.log(engine.log,engine.time,'INFO',Journal.summary(engine),-1) end
+ -- Beta 1.47 : à la fermeture, résumé de la minute entamée (avant : perdu, le dernier contact d'une session n'y était pas).
+ if engine.time>=journal.summaryAt or force and released and engine.time>journal.summaryAt-K.journalSummary+1 then journal.summaryAt=engine.time+K.journalSummary; U.log(engine.log,engine.time,'INFO',Journal.summary(engine),-1) end
  Journal.collect(journal,engine.log,Applier.clockText())
  Applier.journalWrite(host,Journal.take(journal))
 end
@@ -223,8 +222,7 @@ local function release()
  pcall(Applier.reportCaps,host)
  -- Overlay en jeu (Beta 1.25) : case de session d'AC et messages d'origine rendus, écoute des messages close.
  pcall(UI.restoreNative,panel); pcall(messages,false); Applier.dispose(messageListener); messageListener=nil
- -- Options de CSP (Beta 1.40) : valeurs d'origine rendues si CSP relit gui.ini en cours de partie, sinon au lancement
- -- suivant (src/cspgui.lua).
+ -- Options de CSP (Beta 1.47) : laissées cochées, valeurs d'origine gardées (src/cspgui.lua).
  -- Retour arrière depuis l'app (vers une version qui ne connaît pas ces options) : rendues dans tous les cas.
  pcall(Cspgui.release,csp,cspPort,cspClock,host.updater~=nil and host.updater.after=='rollback'); Applier.dispose(cspWatch); cspWatch=nil; cspLog()
  pcall(writeJournal,true); Applier.journalWrite(host,'=== fin : '..Applier.clockText()..' ===\n')
@@ -311,8 +309,9 @@ local function update(dt)
  end
  local read=Snapshot.read(frame,valid and dt or K.dtMax,engine.time,quiet)
  -- Drapeau du joueur imposé par l'app elle-même : le panneau ne le prend pas pour un drapeau natif.
- frame.flagOwned=host.flagOverride
- if read and not host.flagOverride and frame.flag~=nativeFlag then
+ -- Beta 1.47 : aussi sa dernière valeur restée affichée après une restitution (Applier.flagMine).
+ frame.flagOwned=Applier.flagMine(host,frame)
+ if read and not frame.flagOwned and frame.flag~=nativeFlag then
   if nativeFlag~=nil or frame.flag~=K.flagNone then U.log(engine.log,engine.time,'INFO',string.format('drapeau d AC: %d (%s)',frame.flag,nativeFlagNames[frame.flag] or 'autre'),-1) end
   nativeFlag=frame.flag
  end
@@ -350,7 +349,7 @@ local function update(dt)
  if not ready and not engine.recalibrateRequested and calibration.index==0 and host.caps.probeIndex==0 then
   -- Drapeau natif imposé rendu à AC même sans voiture suivie (app désactivée, onglets décochés, rechargement).
   if not anyOwned() then
-   if host.flagOverride and Applier.access(host) then Applier.flag(host,frame,false) end
+   if (host.flagOverride or host.flagLeftover) and Applier.access(host) then Applier.flag(host,frame,false) end
    -- DRS coupé par les règles (aucune voiture suivie pour autant) : rendu à toutes les voitures, joueur compris.
    if (host.drsAny or host.drsRelease) and Applier.access(host) then Applier.drs(host,frame,nil,engine.time); Applier.checkpoint(host,frame) end
    -- App désactivée : drapeau noir levé, la disqualification du joueur avec.

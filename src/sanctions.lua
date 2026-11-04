@@ -300,6 +300,9 @@ local function trackLimits(t,e,frame,i,a,c,now,dt,race,ready)
   end
   c.outFor=c.outFor+dt; c.outMin=min(c.outMin,a.kmh)
   if inc.cars[i].incident then c.outIncident=true end
+  -- Beta 1.47 : sortie dans les K.sanContactGrace s d'un contact (voiture poussée dehors) : comme un incident.
+  local contactAt=e.lastContactAt and e.lastContactAt[i]
+  if contactAt and now>=contactAt and now-contactAt<=K.sanContactGrace then c.outIncident=true end
   if e.states[i].yellow or appManoeuvre(e,i) then c.outApp=true end
   if not c.outCounted and c.outFor>=K.sanOutDwell then
    c.outCounted=true

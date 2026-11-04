@@ -7,9 +7,13 @@
 --  * une option déjà masquée par le pilote n'est jamais touchée (ni écrite, ni rétablie) ;
 --  * le fichier d'origine (texte entier, ou absent) et la valeur d'origine de chaque option sont gardés dans le fichier
 --    d'état (cfg/extension/state, que CSP ne relit pas) AVANT d'écrire gui.ini : ils survivent à un plantage ;
---  * valeurs d'origine rendues dès que l'app, la panique ou l'option coupe le masquage ; au déchargement de l'app,
---    seulement si CSP a relu gui.ini dans cette partie (sinon l'option ne prendrait jamais effet : CSP la lit au
---    lancement du jeu) ; tout rendu, fichier inchangé depuis l'écriture de l'app : fichier d'origine à l'octet près ;
+--  * Beta 1.47 (demande du pilote : cases cochées dans Content Manager tant que l'app est installée et active) : options
+--    cochées tant que l'app est active et que l'overlay reprend l'affichage (M.want), et LAISSÉES cochées à la
+--    fermeture du jeu, au déchargement de l'app, pendant la panique et après un plantage ; valeurs d'origine rendues
+--    seulement quand l'app est coupée (bouton APP), l'interrupteur de l'option coupé, ou l'affichage repris par l'overlay
+--    coupé (panneau de drapeaux de l'app, messages repris et masqués), ou par le témoin des messages (messages perdus) ;
+--    retour à une version d'avant la Beta 1.40 : rendues aussi (elle ne les rendrait jamais) ; tout rendu, fichier
+--    inchangé depuis l'écriture de l'app : fichier d'origine à l'octet près ;
 --  * une valeur changée par le pilote pendant que l'app la tenait est laissée telle quelle ;
 --  * aucune écriture quand gui.ini porte déjà la valeur voulue (l'app relancée ne réécrit rien), au plus
 --    K.cspWritesMax écritures par partie (jamais de boucle d'écritures).
@@ -130,10 +134,25 @@ function M.view(c)
  return held and 'applied' or 'idle'
 end
 local function stop(c,text) c.writable=false; note(c,'WARN',text) end
--- want : {HIDE_SYSTEM_MESSAGES=bool, HIDE_RACE_FLAGS=bool}, ce que l'app veut masquer maintenant. Agit au premier appel
--- et à chaque changement de want ; sinon dit seulement, une fois, qu'une écriture n'a pas été relue par CSP.
+-- Beta 1.47 : ce que l'app veut masquer maintenant, rempli dans out (g : réglages globaux, profile : réglages du profil
+-- en cours tels que réglés par le pilote, panic : panique). Messages système : app active, messages d'AC repris et
+-- masqués par l'overlay, interrupteur coché, messages arrivés à l'overlay (témoin) ; drapeaux d'AC : app active,
+-- interrupteur coché, panneau de drapeaux de l'app laissé coché dans le profil en cours. Le réglage du pilote, pas sa
+-- valeur effective : onglets décochés (journée circuit par défaut), l'overlay montre les drapeaux d'AC à leur place
+-- (src/panel.lua), ceux d'AC restent masqués. nil : rien ne change (panique passagère, profil pas encore lu).
+function M.want(g,profile,panic,out)
+ if panic or type(g)~='table' or type(profile)~='table' then return nil end
+ local on=g.enabled==true
+ out.HIDE_SYSTEM_MESSAGES=on and g.overlayMessages==true and g.overlayBlockMessages==true and g.cspHideMessages==true and not g.cspMessagesLost
+ out.HIDE_RACE_FLAGS=on and g.cspHideFlags==true and profile.flagPanel~=false
+ return out
+end
+-- want : {HIDE_SYSTEM_MESSAGES=bool, HIDE_RACE_FLAGS=bool}, ce que l'app veut masquer maintenant (M.want) ; nil : rien
+-- ne change. Agit au premier appel et à chaque changement de want ; sinon dit seulement, une fois, qu'une écriture n'a
+-- pas été relue par CSP.
 function M.step(c,port,want,now)
  if not c.writable then return end
+ if want==nil then if not c.started then return end; want=c.want end
  local same=c.started
  for _,key in ipairs(M.keys) do if c.want[key]~=(want[key]==true) then same=false end end
  if same then
@@ -202,15 +221,12 @@ function M.step(c,port,want,now)
  if #restored>0 then note(c,'INFO','valeurs d origine rendues ('..list(restored)..')'..(held and '' or out==original and ', fichier d origine' or '')) end
 end
 local NONE={}
--- Déchargement de l'app : valeurs d'origine rendues si CSP a relu gui.ini dans cette partie, sauf relecture juste avant
--- (CSP qui relance les apps en relisant gui.ini : rendre relancerait le masquage, puis l'app, en boucle) ; sinon
--- tenues (fichier d'état) jusqu'au lancement suivant. force : retour à une version d'avant la Beta 1.40, qui ne les
--- rendrait jamais.
+-- Déchargement de l'app (fermeture du jeu, relance de l'app) : Beta 1.47, options laissées cochées, valeurs d'origine
+-- gardées dans le fichier d'état pour être rendues plus tard. force : retour à une version d'avant la Beta 1.40, qui
+-- ne les rendrait jamais : rendues.
 function M.release(c,port,now,force)
  if not c.writable or not next(c.owned) then return end
- if not force and (not c.live or c.reloadedAt and now-c.reloadedAt<K.cspReloadRelease) then
-  note(c,'INFO','options gardees jusqu au prochain lancement ('..list(heldKeys(c.owned))..')'); return
- end
+ if not force then note(c,'INFO','options laissees cochees ('..list(heldKeys(c.owned))..'), valeurs d origine gardees'); return end
  M.step(c,port,NONE,now)
 end
 return M

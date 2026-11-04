@@ -26,6 +26,8 @@ return function(laps,hook)
  rp.strategyEnabled=true; rp.strategyUndercut=true; rp.outLapEnabled=true; rp.lockWearEnabled=true; rp.mistakesEnabled=true; rp.mistakeRate=6
  rp.sanTrackLimits=true; rp.sanCutPenalty=true; rp.sanJumpStart=true; rp.sanPitSpeed=true; rp.sanPitExit=true; rp.sanWrongWay=true
  rp.sanUnservedTime=true; rp.sanGiveBack=true; rp.sanMessages=true; rp.sanProcedureKind='drive'
+ -- Beta 1.47 : scène de la 1.42 gardée telle quelle (seuil d'usure de 75 % ; nouveau défaut 30 %).
+ rp.strategyTyreWearPct=75
  E.changed(e)
  f.length=L; f.sessionLaps=laps; f.timedRace=false; f.sessionMinutes=0; f.leaderLaps=0; f.sectorCount=3; f.pitsSpeedLimit=80
  f.started=true; f.finished=false; f.time=0

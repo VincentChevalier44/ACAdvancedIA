@@ -177,6 +177,11 @@ end
 -- Arrêt d'un rival proche (même tour, moins de K.strategyRivalGap s) : le stratège derrière qui a de bons pneus reste
 -- dehors (overcut), celui devant couvre l'undercut au tour suivant s'il était prudent ; un audacieux à quelques tours de
 -- son arrêt devance le rival devant lui (undercut). Une seule réaction par relais.
+-- Beta 1.47 : arrêt obligatoire encore dû, fenêtre ouverte (course à arrêts obligatoires, plan de la stratégie à 0 arrêt).
+local function mandatoryDue(e,i,p)
+ local pits=e.pits; local pc=pits and pits.cars[i]
+ return (p.mandatoryStops or 0)>0 and pits~=nil and pits.opened==true and pc~=nil and pc.windowStops<p.mandatoryStops
+end
 local function rivals(t,e,frame,j,now,p)
  local row=e.perception.rows[j]; if not row then return end
  local b=frame.cars[j]
@@ -193,7 +198,7 @@ local function rivals(t,e,frame,j,now,p)
     -- Rival devant qui s'arrête : on reste dehors un ou deux tours (piste libre).
     c.shift=K.strategyOvercutLaps; c.reaction=true
     U.log(e.log,now,'INFO',string.format('strategie: %s reste dehors (overcut sur %s)',name(a),name(b)),i)
-   elseif r.long>=0 and c.stops>0 and c.nextLap>=0 and c.nextLap-(a.lap or 0)<=K.strategyCoverLaps and risk<K.strategyBoldRisk
+   elseif r.long>=0 and (c.stops>0 and c.nextLap>=0 and c.nextLap-(a.lap or 0)<=K.strategyCoverLaps or mandatoryDue(e,i,p)) and risk<K.strategyBoldRisk
     and w>=U.clamp(p.strategyTyreWearPct/100,0,1)*K.strategyCoverWear then
     -- Rival derrière qui s'arrête : couverture au plus tôt.
     c.reaction=true; want(t,e,c,a,i,'cover',now)
@@ -355,7 +360,9 @@ function M.update(t,e,frame,now,_dt)
       event(t,'plan',name(a),c.stops,c.stops>0 and c.nextLap or -1)
      end
      -- Undercut : un audacieux à quelques tours de son arrêt, collé au rival devant, s'arrête le premier.
-     if p.strategyUndercut and c.planned and c.stops>0 and not c.reaction and not c.wanted and risk>=K.strategyBoldRisk and c.nextLap-(a.lap or 0)<=K.strategyUndercutLaps then
+     -- Beta 1.47 : aussi pour l'arrêt obligatoire encore dû, fenêtre ouverte (l'arrêt de la stratégie y compte).
+     if p.strategyUndercut and c.planned and not c.reaction and not c.wanted and risk>=K.strategyBoldRisk
+      and (c.stops>0 and c.nextLap-(a.lap or 0)<=K.strategyUndercutLaps or mandatoryDue(e,i,p)) then
       local row=e.perception.rows[i]
       local r=row and row.front>0 and row.neighbors[row.front]
       local b=r and frame.cars[r.index]

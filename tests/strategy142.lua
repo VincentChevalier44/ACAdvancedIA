@@ -20,6 +20,8 @@ local function set(e,f,settings)
 end
 local function race(count,laps,lap,settings)
  local e,f=F.scene('C',count or 4)
+ -- Beta 1.47 : seuil d'usure de la 1.42 (75 %) gardé pour ces tests (nouveau défaut : 30 %, testé à part).
+ e.profiles.C.strategyTyreWearPct=75; e.run.strategyTyreWearPct=75
  f.sessionLaps=laps or 20; f.leaderLaps=lap or 2; f.timedRace=false; f.sessionMinutes=0; f.started=true
  for i=1,f.count do f.cars[i].lap=lap or 2 end
  -- Relecture 1.42 : échelle de l'usure supposée vérifiée en jeu (sa vérification est testée à part, FIXSA_WEAR_TRUST_142).

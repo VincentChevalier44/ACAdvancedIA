@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.46',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights','strategy','sanctions'}}
+local M={version=3,release='Beta 1.47',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights','strategy','sanctions'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -196,6 +196,10 @@ n('start','startCautionMult','Prudence au départ',1,3,1,1,1.3)
 n('start','startAggrMult','Agressivité au départ',0.2,1,1,1,0.8)
 n('start','startRelax','Détente après départ (s)',2,30,12,12,25)
 b('start','startLaneHold','Maintien de ligne au départ',false,false,false)
+-- Beta 1.47 (idée du pilote) : premier tour attentif, en course, au départ et à chaque relance (src/firstlap.lua).
+newKeys.open=true
+b('start','firstLapCare','Premier tour attentif (départ et relances)',false,false,true)
+newKeys.open=nil
 -- Accidents : mêmes clés d'obstacle qu'en 1.2.0 (onglet Départ), pour un retour arrière sans perte.
 b('accidents','obstacleEnabled','Évitement des voitures arrêtées ou accidentées',true,true,true)
 n('accidents','obstacleSpeedKmh','Vitesse d’obstacle (km/h)',5,50,25,25,25)
@@ -303,7 +307,7 @@ newKeys.open=nil
 -- qualifications et course), sections propres.
 newKeys.open=true
 b('strategy','strategyEnabled','Stratégie individuelle des arrêts aux stands',false,false,true)
-n('strategy','strategyTyreWearPct','Usure des pneus avant l’arrêt (%)',30,95,75,75,75)
+n('strategy','strategyTyreWearPct','Usure des pneus avant l’arrêt (%)',10,95,30,30,30)
 n('strategy','strategyFuelMarginLaps','Marge de carburant (tours)',0,3,1,1,1)
 b('strategy','strategyUndercut','Undercut et overcut (réaction aux arrêts des rivaux)',false,false,true)
 n('strategy','strategyRiskPct','Prise de risque moyenne (%)',0,100,50,50,50)
@@ -456,7 +460,7 @@ local k142aero={towCorner=0.9,towSpeed=150,towLat=1.2,towSaMin=-5,towMapSpeed=60
 local k142strategy={
  -- Stratégie : lignes du Diagnostic, seuil d'usure selon la prise de risque (±15 %), marge de carburant (×0,5 à ×1,5),
  -- rival « proche » (même tour, moins de 2,5 s), réactions (overcut, couverture, undercut), arrêt sous neutralisation.
- strategyRows=6,strategyRiskWear=0.3,strategyWearMin=0.2,strategyWearMax=0.98,strategyRiskFuel=1,strategyRivalLap=0.5,strategyRivalGap=2.5,
+ strategyRows=6,strategyRiskWear=0.3,strategyWearMin=0.1,strategyWearMax=0.98,strategyRiskFuel=1,strategyRivalLap=0.5,strategyRivalGap=2.5,
  strategyOvercutWear=0.85,strategyOvercutLaps=2,strategyCoverLaps=4,strategyBoldRisk=0.6,strategyUndercutLaps=3,strategyNeutralLaps=5,strategyLastLaps=2,
  strategyWearRateMax=0.25,strategyWearAlpha=0.4,strategyPlanLogGap=120,strategyWindowMargin=0.1,strategyRetry=5,
  strategyCauseLog={fuel='carburant',undercut='undercut',overcut='overcut',cover='couverture d un undercut',neutral='sous neutralisation',failure='panne',weather='meteo'},
@@ -524,7 +528,34 @@ local k142merge={strategyStretchLaps=2,strategyCoverWear=0.35,paceRatioLow=0.6,p
 -- mergeExitGrace s jamais prise pour une voiture qui arrive à la jonction ; véhicule lent devant le joueur : au moins
 -- slowVehicleAhead m devant lui pour être relevé (gardé ensuite jusqu'à slowVehicleBehind m derrière).
 local k144={playerSlowRatio=0.85,playerCrawlRatio=1.25,inviteLatAccel=4,mergeExitGrace=10,slowVehicleAhead=10}
-for _,block in ipairs({k142schema,k142aero,k142strategy,k142sanctions,k142merge,k144}) do for key,value in pairs(block) do assert(M.K[key]==nil,key); M.K[key]=value end end
+-- Beta 1.47 (journaux du 4 novembre) : départ (lancement tenu jusqu'au premier freinage, radar plafonné), défense,
+-- boucles de dépassement, cessions inutiles hors course, limites de piste après un contact, drapeau bleu, journal.
+local k147={startYaw=0.2,startYawHold=0.3,startBrakeKmh=80,startAnticipate=2.5,radarStartBrakeMax=0.18,radarStartFollowTime=0.6,radarStartFollowMin=8,radarStartLift=0.3,
+ defenseLatMin=0.5,defenseSaMax=20,defenseTTCMin=1.5,defenseCorner=0.9,defenseRunTime=2,defenseLogGap=20,passIgnoreCloseMult=2.5,
+ followerStallTimeOff=3.5,sanContactGrace=3,blueClearTime=5,fuelLogStep=5,flagLeftoverEvery=60,flagLeftoverTries=3}
+-- Beta 1.47 : premier tour attentif (src/firstlap.lua). Fin : ligne franchie (passage dans les firstLapLineGrace s
+-- ignoré), peloton étiré (plus de firstLapSpread s devant et derrière pendant firstLapSpreadTime s), firstLapMax s ;
+-- rendu en firstLapRelease s. Écart en temps : prudence jusqu'à x firstLapFollowCaution sous firstLapGapMin s, rien
+-- au-delà de firstLapGapTime s. Anticipation : prudence x firstLapBrakeCaution à moins de firstLapAnticipate s d'un
+-- point de freinage appris (IA libre devant, personne à moins de firstLapPointFree s, depuis firstLapPointKmh km/h,
+-- en ligne droite) ou derrière une voiture qui freine, avec une voiture à moins de firstLapGapTime s devant. Radar :
+-- levée de pied seule au-dessus de firstLapBrakeTTC s du contact. Dépassement : vraie ligne droite (firstLapPassCorner),
+-- avance x firstLapPassMargin, couloir x firstLapCorridor. Évitement : voiture sous firstLapAvoidPct de l'allure du
+-- peloton. Agressivité au plus firstLapAggr de la base. Écarts en temps : vitesse plancher firstLapSpeedMin m/s.
+-- Prudence d'ensemble au plus firstLapCautionMax fois la prudence de base (hors jaune, neutralisation, rouge).
+-- Double jaune, allure inconnue (IA) : repli à yellowUnknownPct de la vitesse maximale vue de la voiture (vitesses au-delà
+-- de topKmhMax km/h ignorées), au moins yellowSpeedKmh.
+-- Drapeau rouge (décision du pilote) : voitures immobilisées depuis redIncidentStill s à cause d'un incident (dégâts,
+-- tête-à-queue, plus de redOffLine m hors de la trajectoire ou hors piste, ou arrêtée seule), jamais celles qui attendent
+-- intactes dans la file ; piste bloquée : aucun passage de redPassWidth m entre les voitures accidentées à moins de
+-- redBlockSpan m (gabarit plus redBlockMargin m), largeur inconnue redTrackHalf m de chaque côté.
+local k147fl={firstLapLineGrace=10,firstLapSpread=2,firstLapSpreadTime=3,firstLapMax=180,firstLapRelease=3,firstLapPointMerge=50,
+ firstLapPoints=32,firstLapPointKmh=60,firstLapPointCorner=0.8,firstLapPointFree=1,firstLapSpeedMin=10,firstLapGapMin=0.25,firstLapGapTime=0.8,
+ firstLapFollowCaution=1.3,firstLapAnticipate=2,firstLapBrakeCaution=1.4,firstLapCareRise=1,firstLapCareFall=0.5,firstLapBrakeTTC=0.8,firstLapLastTTC=0.4,
+ firstLapPassCorner=0.97,firstLapPassMargin=1.5,firstLapCorridor=1.3,firstLapAvoidPct=0.3,firstLapAggr=0.85,firstLapCautionMax=2,
+ yellowUnknownPct=0.35,topKmhMax=450,
+ redIncidentStill=10,redOffLine=4,redBlockSpan=40,redBlockMargin=0.3,redPassWidth=2.5,redTrackHalf=5}
+for _,block in ipairs({k142schema,k142aero,k142strategy,k142sanctions,k142merge,k144,k147,k147fl}) do for key,value in pairs(block) do assert(M.K[key]==nil,key); M.K[key]=value end end
 for _,key in ipairs({'passIgnoreUntil','yieldIgnoreUntil'}) do M.timerFields[#M.timerFields+1]=key end
 -- Beta 1.41 (sessions du 3 novembre, Beta 1.40) : bandeaux qu'AC dessine lui-même malgré l'option de CSP « Hide system
 -- messages » (coupe de piste, pénalités ; textes relevés dans acs.exe et dans les journaux) ; motifs Lua sur le titre
@@ -650,7 +681,7 @@ function M.effective(profile,p,out)
  if not M.on(p,'flash') then out.flashMode='never'; out.hornEnabled=false; out.aiFlashEnabled=false end
  if not M.on(p,'overtake') then out.overtakeEnabled=false; out.defenseEnabled=false; out.slipstreamEnabled=false end
  if not M.on(p,'human') then out.paceDriftPct=0; out.personalLineJitter=0; out.laneBiasEnabled=false; out.lapseEnabled=false; out.mistakesEnabled=false end
- if not M.on(p,'start') then out.startDelay=0; out.startRelax=0; out.startCautionMult=1; out.startAggrMult=1; out.startLaneHold=false end
+ if not M.on(p,'start') then out.startDelay=0; out.startRelax=0; out.startCautionMult=1; out.startAggrMult=1; out.startLaneHold=false; out.firstLapCare=false end
  if not M.on(p,'accidents') then
   out.obstacleEnabled=false; out.contactRecovery=false; out.incidentStop=false; out.yellowEnabled=false; out.yellowHud=false; out.playerPenalties=false; out.aiPenalties=false
   -- Neutralisations et drapeau rouge restent signalés (et leur delta bipé) tant que l'onglet Règles agit.
@@ -734,7 +765,7 @@ function M.upgradeObstacles(p) if p.section_start==true and not p.section_accide
 -- profils qui portaient exactement les anciennes règles GT changent. Renvoie la liste des changements faits.
 -- Clés de règles apparues après les révisions qui jugent un jeu de règles : ignorées par ces révisions.
 local keys18={safetyCarEscalation=true}
-M.dataRevision=19
+M.dataRevision=20
 function M.migrateProfile(profile,p,from,preset,out)
  out=out or {}
  if from<5 then
@@ -795,6 +826,9 @@ function M.migrateProfile(profile,p,from,preset,out)
   if profile=='C' and not (p.section_strategy==true and p.section_sanctions==true) then p.section_strategy=true; p.section_sanctions=true; out[#out+1]='C:strategie et sanctions'
   elseif (profile=='P' or profile=='Q') and p.section_sanctions~=true then p.section_sanctions=true; out[#out+1]=profile..':sanctions' end
  end
+ -- Révision 20 (Beta 1.47) : usure des pneus mesurée en jeu à 1 à 1,4 % par tour : le seuil de 75 % n'était jamais
+ -- atteint ; un profil resté à l'ancien défaut prend le nouveau (30 %), une valeur réglée reste telle quelle.
+ if from<20 and equal(p.strategyTyreWearPct,75) then p.strategyTyreWearPct=M.defaults(profile).strategyTyreWearPct; out[#out+1]=profile..':usure des pneus 30 %' end
  return out
 end
 function M.migrate(g,profiles)

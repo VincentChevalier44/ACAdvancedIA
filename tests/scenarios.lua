@@ -158,7 +158,8 @@ tests.R03=function()
  local found=false
  for seed=1,20 do
   local e,f=setup('C'); e.g.seed=seed; E.changed(e); F.tick(e,f,0.1); e.returning=false
-  F.rear(e,f,8,8); F.tick(e,f,1)
+  -- Beta 1.47 : suiveur nettement d'un côté (la défense ne se décide plus sur un écart latéral quasi nul).
+  F.rear(e,f,8,8); f.cars[3].x=0.8; f.cars[3].splineLat=0.8; F.tick(e,f,1)
   if e.states[2].state=='DEFEND' then found=true; assert(math.abs(e.states[2].offset)<=0.35); F.tick(e,f,4); assert(e.states[2].state~='DEFEND'); assert(e.states[2].defendUsed); break end
  end
  assert(found)

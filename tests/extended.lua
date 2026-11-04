@@ -747,7 +747,8 @@ tests.YELLOW_ZONE_SPEED_AND_NO_PASS=function()
  assert(e.incidents.cars[4].incident and e.incidents.zoneCount==1,'stopped car is an incident')
  local s=e.states[2]; local cmd=e.commands[2]
  assert(s.yellow and cmd.yellowLimit<150 and cmd.yellowLimit>=50,'speed limited progressively')
- F.tick(e,f,6); assert(fallback(cmd.yellowLimit,50),'zone fallback speed reached while the pace is unknown, driver margin included')
+ -- Beta 1.47 : repli relatif à la voiture (K.yellowUnknownPct de sa vitesse maximale vue, 150 km/h), au moins 50 km/h.
+ F.tick(e,f,6); assert(fallback(cmd.yellowLimit,math.max(50,C.K.yellowUnknownPct*150)),'zone fallback speed reached while the pace is unknown, driver margin included')
  assert(not F.passing(s.state),'no overtake under yellow')
  -- Approche : limite fonction de la distance, jamais un échelon brutal.
  local e2,f2=F.scene('J',4); F.place(f2,4,600,0); F.place(f2,2,-200,150); F.place(f2,3,5000,100)
@@ -1070,6 +1071,7 @@ tests.SAFETY_CAR_CYCLE=function()
  F.tick(e,f,62); assert(e.incidents.safetyPhase=='in' and e.commands[5].rulePit and e.incidents.neutral and e.incidents.messageKind=='scIn','in this lap')
  f.cars[5].pit=true; F.tick(e,f,0.5)
  assert(not e.incidents.neutral and e.incidents.messageKind=='restart' and e.incidents.safetyPhase=='parking','green at the pit entry')
+ assert(e.fl.kind=='relance','Beta 1.47: careful first lap armed at the green flag')
  assert(e.incidents.restart and e.incidents.cars[2].restart and e.states[2].yellow,'no overtaking until the line')
  f.cars[5].inPitBox=true; f.cars[5].kmh=0; F.tick(e,f,0.5); assert(e.incidents.safetyPhase=='parked' and e.commands[5].scPark)
  local e2,f2=F.scene('C',4); e2.profiles.C.neutralization='sc'; e2.g.safetyCarModel='missing'; E.changed(e2)
@@ -1308,8 +1310,9 @@ tests.RED_FLAG_PROCEDURE=function()
  local Panel=require('src/panel')
  local e,f=F.scene('C',6); C.preset('Course','C',e.profiles.C); e.profiles.C.redFlagHold=20; E.changed(e)
  for i=2,6 do F.place(f,i,(i-1)*300,120) end
- for i=3,5 do F.place(f,i,(i-1)*300,0) end
- F.tick(e,f,7)
+ -- Beta 1.47 : trois voitures arrêtées en travers de la piste (piste bloquée), immobilisées K.redIncidentStill s.
+ F.block(f,{3,4,5},600)
+ F.tick(e,f,C.K.redIncidentStill+3)
  local t=e.incidents
  assert(t.red and t.onTrack==3,'red flag on three immobilised cars')
  assert(e.commands[2].rulePit and e.commands[6].rulePit,'every AI called to the pits')
@@ -1334,10 +1337,11 @@ tests.RED_FLAG_PROCEDURE=function()
  for i=2,6 do local a=f.cars[i]; a.pit=false; a.inPitBox=false; F.place(f,i,(i-1)*300,120) end; f.cars[1].pit=false
  for _=1,2000 do if not t.neutral then break end; F.tick(e,f,0.5) end
  assert(not t.neutral and not t.relaunch and t.restart and t.messageKind=='restart','green after the relaunch lap, no overtaking until the line')
+ assert(e.fl.kind=='relance','Beta 1.47: careful first lap armed after the relaunch lap')
  -- Reprise forcée au délai maximal avec des voitures encore bloquées : pas de nouveau drapeau rouge sur les mêmes incidents.
  local e4,f4=F.scene('C',5); C.preset('Course','C',e4.profiles.C); E.changed(e4)
- for i=2,4 do F.place(f4,i,(i-1)*300,0) end; F.place(f4,5,3000,120)
- F.tick(e4,f4,7); assert(e4.incidents.red)
+ F.block(f4,{2,3,4},600); F.place(f4,5,3000,120)
+ F.tick(e4,f4,C.K.redIncidentStill+1); assert(e4.incidents.red)
  -- Délai maximal tiré du circuit (10 km de piste au banc) : une IA qui roule encore vers les stands n'est pas lâchée au vert.
  local expected=e4.run.redFlagHold+C.K.redLapFactor*f4.length/(e4.run.redFlagSpeedKmh/3.6)+C.K.redPitMargin
  assert(math.abs(e4.incidents.redMax-expected)<1e-6 and expected>C.K.redFlagMax,'maximum derived from the lap length')
@@ -1345,17 +1349,18 @@ tests.RED_FLAG_PROCEDURE=function()
  F.tick(e4,f4,expected-C.K.redFlagMax-20+1); assert(not e4.incidents.red and e4.incidents.reds==1,'no endless red flag on the same stuck cars')
  -- Une IA qui roule au pas derrière l'accident n'est jamais dépannée ; seule une voiture réellement arrêtée l'est.
  local e6,f6=F.scene('C',6); C.preset('Course','C',e6.profiles.C); E.changed(e6)
- for i=2,4 do F.place(f6,i,(i-1)*300,0) end; F.place(f6,5,1250,15); F.place(f6,6,4000,120)
- F.tick(e6,f6,7); assert(e6.incidents.red)
+ F.block(f6,{2,3,4},600); F.place(f6,5,1250,15); F.place(f6,6,4000,120)
+ F.tick(e6,f6,C.K.redIncidentStill+1); assert(e6.incidents.red)
  F.tick(e6,f6,10); assert(e6.commands[2].recover and not e6.commands[5].recover,'crawling AI drives in, stopped AI is recovered')
  -- Joueur exclu : deux IA et le joueur immobilisés ne suffisent pas.
  local e2,f2=F.scene('C',4); C.preset('Course','C',e2.profiles.C); E.changed(e2)
- F.place(f2,1,600,0); F.place(f2,2,300,0); F.place(f2,3,900,0); F.place(f2,4,1200,120)
- F.tick(e2,f2,7); assert(not e2.incidents.red,'player not counted')
+ F.block(f2,{2,1,3},600); F.place(f2,4,1200,120)
+ F.tick(e2,f2,C.K.redIncidentStill+1); assert(not e2.incidents.red,'player not counted')
  -- Trois têtes-à-queue simultanés qui roulent encore : pas de drapeau rouge.
  local e5,f5=F.scene('C',5); C.preset('Course','C',e5.profiles.C); E.changed(e5)
- for i=2,4 do local car=F.place(f5,i,(i-1)*300,40); car.slip=90 end; F.place(f5,5,3000,120)
- F.tick(e5,f5,6); assert(e5.incidents.onTrack>=3 and not e5.incidents.red,'spinning cars still moving: no red flag')
+ -- Beta 1.47 : en travers de la piste (elle serait bloquée), mais elles roulent encore : jamais immobilisées.
+ for k,i in ipairs({2,3,4}) do local car=F.place(f5,i,600,40,-4+(k-1)*4); car.slip=90 end; F.place(f5,5,3000,120)
+ F.tick(e5,f5,C.K.redIncidentStill+2); assert(e5.incidents.onTrack>=3 and not e5.incidents.red,'spinning cars still moving: no red flag')
  -- Hors course : jamais de drapeau rouge.
  local e3,f3=F.scene('J',5); C.preset('Nordschleife','J',e3.profiles.J); E.changed(e3)
  for i=2,4 do F.place(f3,i,(i-1)*300,0) end; F.place(f3,5,1500,120)
@@ -1611,11 +1616,16 @@ tests.OFFTRACK_CAR_OCCUPIES_SIDE=function()
  assert(r.left or r.right,'rejoining car beside counts for side occupancy')
 end
 -- 1.6.0 : défense jamais pendant le repos anti-zigzag (l'attaquant n'est pas consommé).
+-- Beta 1.47 : défense seulement contre un suiveur nettement d'un côté (K.defenseLatMin) : suiveur à 0,8 m ; témoin sans
+-- repos : défense envisagée.
 tests.NO_DEFENSE_DURING_REST=function()
- local e,f=F.scene('C',3); e.p.personalLineJitter=0
- local s=e.states[2]; s.persona.assertiveness=1; s.driveUntil=e.time+30
- F.place(f,2,0,150); F.place(f,3,-15,160); s.nextPerception=0; F.tick(e,f,1)
- assert(not s.defendUsed and s.defendAttacker~=3,'attacker not consumed during the rest')
+ for _,rest in ipairs({false,true}) do
+  local e,f=F.scene('C',3); e.p.personalLineJitter=0
+  local s=e.states[2]; s.persona.assertiveness=1; if rest then s.driveUntil=e.time+30 end
+  F.place(f,2,0,150); F.place(f,3,-15,160,0.8); s.nextPerception=0; F.tick(e,f,1)
+  if rest then assert(not s.defendUsed and s.defendAttacker~=3,'attacker not consumed during the rest')
+  else assert(s.defendAttacker==3,'reference: defence considered without the rest') end
+ end
 end
 -- 1.6.0 : relâchement d'urgence jamais retenu par le délai entre deux changements, même avec un facteur de 1.
 tests.EMERGENCY_RELEASE_FACTOR_ONE=function()
@@ -1663,7 +1673,7 @@ tests.NO_DEFENSE_UNDER_BRAKING=function()
  for _,brake in ipairs({0,0.8}) do
   local e,f=F.scene('C',3); e.profiles.C.noMoveBraking=false; E.changed(e); F.tick(e,f,1/60); e.p.personalLineJitter=0
   local s=e.states[2]; s.persona.assertiveness=1; f.cars[2].brake=brake
-  F.place(f,2,0,150); F.place(f,3,-15,160); s.nextPerception=0; F.tick(e,f,1)
+  F.place(f,2,0,150); F.place(f,3,-15,160,0.8); s.nextPerception=0; F.tick(e,f,1)
   if brake==0 then assert(s.defendAttacker==3,'defense considered off the brakes')
   else assert(s.defendAttacker~=3,'never under braking') end
  end
@@ -2744,16 +2754,16 @@ end
 -- Beta 1.4 : pénalité « reprise hors des stands » décidée dans l'image du drapeau vert : son message l'emporte.
 tests.RED_PENALTY_MESSAGE=function()
  local e,f=F.scene('C',5); C.preset('Course','C',e.profiles.C); e.profiles.C.redFlagHold=20; E.changed(e)
- for i=2,4 do F.place(f,i,(i-1)*300,0) end; F.place(f,5,3000,120); F.place(f,1,5000,100)
- F.tick(e,f,7); assert(e.incidents.red,'red')
+ F.block(f,{2,3,4},600); F.place(f,5,3000,120); F.place(f,1,5000,100)
+ F.tick(e,f,C.K.redIncidentStill+1); assert(e.incidents.red,'red')
  for i=2,5 do local a=f.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0 end
  local seen=false
  for _=1,60*700 do F.tick(e,f,1/60); if e.incidents.messageKind=='penaltyRed' then seen=true end; if e.penalties.count>0 then break end end
  assert(e.penalties.reason=='red' and seen,'penalty message shown')
  -- Drapeau rouge annulé (règles décochées) : personne ne devait être dans la voie des stands.
  local e2,f2=F.scene('C',5); C.preset('Course','C',e2.profiles.C); E.changed(e2)
- for i=2,4 do F.place(f2,i,(i-1)*300,0) end; F.place(f2,5,3000,120); F.place(f2,1,5000,100)
- F.tick(e2,f2,7); assert(e2.incidents.red,'red')
+ F.block(f2,{2,3,4},600); F.place(f2,5,3000,120); F.place(f2,1,5000,100)
+ F.tick(e2,f2,C.K.redIncidentStill+1); assert(e2.incidents.red,'red')
  e2.profiles.C.redFlagEnabled=false; E.changed(e2); F.tick(e2,f2,1)
  assert(not e2.incidents.red and e2.penalties.count==0 and not e2.penalties.redPending,'cancelled red: no penalty')
 end
@@ -2852,8 +2862,8 @@ end
 tests.RED_FLAG_RELAUNCH_SC=function()
  local e,f=F.scene('C',6); C.preset('Course','C',e.profiles.C); e.profiles.C.redFlagHold=20; e.g.safetyCarModel='car_6'; E.changed(e)
  F.place(f,6,0,0); f.cars[6].pit=true; f.cars[6].inPitBox=true
- for i=3,5 do F.place(f,i,(i-1)*300,0) end; F.place(f,2,3000,120)
- F.tick(e,f,7); local t=e.incidents; assert(t.red and t.safety==6)
+ F.block(f,{3,4,5},600); F.place(f,2,3000,120)
+ F.tick(e,f,C.K.redIncidentStill+1); local t=e.incidents; assert(t.red and t.safety==6)
  for i=2,5 do local a=f.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0 end; f.cars[1].pit=true
  for _=1,200 do if not t.red then break end; F.tick(e,f,0.5) end
  assert(t.neutral and t.relaunch and t.neutralMode=='sc' and t.safetyPhase=='out' and not e.commands[6].scPark,'safety car out first')
@@ -3108,8 +3118,8 @@ tests.SAFETY_CAR_PIT_EXIT=function()
  -- Relance après drapeau rouge : sortie des stands de nouveau exigée, même après une neutralisation précédente.
  local e3,f3=F.scene('C',6); C.preset('Course','C',e3.profiles.C); e3.profiles.C.redFlagHold=20; e3.g.safetyCarModel='car_6'; E.changed(e3)
  F.place(f3,6,0,0); f3.cars[6].pit=true; f3.cars[6].inPitBox=true
- for i=3,5 do F.place(f3,i,(i-1)*300,0) end; F.place(f3,2,3000,120)
- F.tick(e3,f3,7); local t3=e3.incidents; assert(t3.red and t3.safety==6); t3.safetyLeft=true
+ F.block(f3,{3,4,5},600); F.place(f3,2,3000,120)
+ F.tick(e3,f3,C.K.redIncidentStill+1); local t3=e3.incidents; assert(t3.red and t3.safety==6); t3.safetyLeft=true
  for i=2,5 do local a=f3.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0 end; f3.cars[1].pit=true
  for _=1,200 do if not t3.red then break end; F.tick(e3,f3,0.5) end
  assert(t3.relaunch and t3.safetyPhase=='out','relaunch behind the safety car'); f3.cars[6].inPitBox=false
@@ -3255,11 +3265,20 @@ tests.NO_MANEUVER_WITHOUT_DIRECTION_BUDGET=function()
  local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); E.changed(e); F.tick(e,f,1/60)
  F.place(f,1,-2000,100); F.place(f,2,0,104); F.place(f,3,30,100); f.cars[2].lap=f.cars[3].lap+1
  local s3=e.states[3]; full(s3,e.time); s3.nextPerception=0; F.tick(e,f,3)
- assert(not F.yielding(s3.state) and s3.driveUntil<=e.time,'no yield started then refused ('..s3.state..')')
+ -- Beta 1.47 : drapeau bleu (voiture prise d'un tour) : la cession passe avant le plafond, ni refusée ni comptée.
+ assert(F.yielding(s3.state) and s3.yieldBlue and s3.driveUntil<=e.time,'blue flag: yield started, never refused ('..s3.state..')')
  local e2,f2=F.scene('C',3); C.preset('Course','C',e2.profiles.C); E.changed(e2); F.tick(e2,f2,1/60)
  F.place(f2,1,-2000,100); F.place(f2,2,0,140); F.place(f2,3,15,100)
  local s2=e2.states[2]; full(s2,e2.time); s2.nextPerception=0; F.tick(e2,f2,3)
  assert(not F.passing(s2.state) and s2.driveUntil<=e2.time,'no pass started then refused ('..s2.state..')')
+ -- Beta 1.47 : cession ordinaire (journée circuit, même tour) : toujours soumise au plafond, ni commencée ni annulée ;
+ -- témoin, plafond libre : cède.
+ for _,limited in ipairs({false,true}) do
+  local e4,f4=F.scene('J',3); E.changed(e4); F.tick(e4,f4,1/60); F.rear(e4,f4,40,20)
+  local s4=e4.states[2]; if limited then full(s4,e4.time) end; F.tick(e4,f4,4)
+  if limited then assert(not F.yielding(s4.state) and s4.driveUntil<=e4.time,'ordinary yield: not started then refused ('..s4.state..')')
+  else assert(F.yielding(s4.state),'reference: ordinary yield ('..s4.state..')') end
+ end
 end
 -- Beta 1.7 : en course, une attaque n'est pas abandonnée pour une voiture du même tour qui arrive vite derrière (elle
 -- freine plus tard) ; elle l'est pour une voiture qui prend un tour.
@@ -3485,13 +3504,21 @@ tests.PASS_HOLD_ENDS=function()
  end
 end
 -- Beta 1.9 : défense refusée par le plafond anti-zigzag : elle ne commence pas, la cession au drapeau bleu suit.
+-- Beta 1.47 : suiveur nettement d'un côté (K.defenseLatMin, 0,8 m) ; témoin, plafond libre : défense envisagée.
 tests.DEFEND_NEEDS_DIRECTION_BUDGET=function()
+ do
+  local e,f=F.scene('C',4); e.profiles.C.noMoveBraking=false; E.changed(e); F.tick(e,f,1/60); e.p.personalLineJitter=0
+  local s=e.states[2]; s.persona.assertiveness=1
+  F.place(f,4,3000,100); F.place(f,2,0,150); F.place(f,3,-15,160,0.8); s.nextPerception=0
+  for _=1,30 do F.tick(e,f,1/60); F.place(f,2,0,150); F.place(f,3,-15,160,0.8) end
+  assert(s.defendAttacker==3,'reference: defence considered with the budget free')
+ end
  local e,f=F.scene('C',4); e.profiles.C.noMoveBraking=false; E.changed(e); F.tick(e,f,1/60); e.p.personalLineJitter=0
  local s=e.states[2]; s.persona.assertiveness=1
  F.place(f,4,3000,100)
  s.directions[1]=e.time-59; for j=2,6 do s.directions[j]=e.time-10-j end; s.lastDirectionAt=e.time-12
- F.place(f,2,0,150); F.place(f,3,-15,160); s.nextPerception=0
- for _=1,30 do F.tick(e,f,1/60); F.place(f,2,0,150); F.place(f,3,-15,160) end
+ F.place(f,2,0,150); F.place(f,3,-15,160,0.8); s.nextPerception=0
+ for _=1,30 do F.tick(e,f,1/60); F.place(f,2,0,150); F.place(f,3,-15,160,0.8) end
  assert(s.state~='DEFEND' and (e.stats.limit or 0)==0,'no defence started against the budget')
  F.place(f,3,3500,100); s.nextPerception=0
  local at
@@ -3657,8 +3684,8 @@ end
 tests.RED_FLAG_QUALIFYING=function()
  local e,f=F.scene('Q',6); e.profiles.Q.redFlagHold=20; E.changed(e)
  for i=2,6 do F.place(f,i,(i-1)*300,120) end
- for i=3,5 do F.place(f,i,(i-1)*300,0) end
- F.tick(e,f,7)
+ F.block(f,{3,4,5},600)
+ F.tick(e,f,C.K.redIncidentStill+1)
  local t=e.incidents
  assert(t.red and e.commands[2].rulePit and e.commands[6].rulePit,'red flag in qualifying, everyone called in')
  local L=require('src/lang')
@@ -3669,8 +3696,8 @@ tests.RED_FLAG_QUALIFYING=function()
  F.tick(e,f,0.3); assert(t.messageKind=='sessionResume' and e.panel.kind=='green' and e.panel.raw==L.flagDetails.greenSession,'session resumes')
  assert(e.commands[2].pitHold or e.commands[6].pitHold,'staggered pit exit')
  F.tick(e,f,C.K.redReleaseFirst+6*C.K.redReleaseGap); assert(not e.commands[2].pitHold and not e.commands[6].pitHold,'all released')
- local e2,f2=F.scene('J',6); for i=2,6 do F.place(f2,i,(i-1)*300,120) end; for i=3,5 do F.place(f2,i,(i-1)*300,0) end
- F.tick(e2,f2,10); assert(not e2.incidents.red,'never on a track day')
+ local e2,f2=F.scene('J',6); for i=2,6 do F.place(f2,i,(i-1)*300,120) end; F.block(f2,{3,4,5},600)
+ F.tick(e2,f2,C.K.redIncidentStill+2); assert(not e2.incidents.red,'never on a track day, even on a blocked track')
 end
 -- Beta 1.12 : carburant des arrêts forcés : ravitaillement juste pour le relais ou l'arrivée, plein de course avant le
 -- départ, rien sans consommation connue ni hors course, jamais le joueur ; consommation apprise tour par tour.
@@ -4463,10 +4490,11 @@ tests.RECOVERY_RESPECTS_RULES=function()
  local t2=first(e2,f2,3,40)
  assert(t2>=e2.run.majorIncidentTime+C.K.ruleDecision-0.5 and t2<math.huge and e2.incidents.neutral and e2.incidents.neutralMode=='vsc','VSC declared before the car is recovered ('..t2..')')
  local e3,f3=F.scene('P',5); E.changed(e3)
- F.place(f3,2,300,0); F.place(f3,3,600,150); F.place(f3,4,900,150); F.place(f3,5,4000,150)
- F.tick(e3,f3,3); F.place(f3,3,600,0); F.tick(e3,f3,3); F.place(f3,4,900,0)
+ -- Beta 1.47 : arrêts échelonnés au même endroit, en travers de la piste (piste bloquée).
+ F.place(f3,2,600,0,-4); F.place(f3,3,400,150,0); F.place(f3,4,200,150,4); F.place(f3,5,4000,150)
+ F.tick(e3,f3,3); F.place(f3,3,600,0,0); F.tick(e3,f3,3); F.place(f3,4,600,0,4)
  local recovered=false
- for _=1,30 do
+ for _=1,40 do
   F.tick(e3,f3,0.5); if e3.incidents.red then break end
   for i=2,4 do if e3.commands[i].recover then recovered=true end end
  end
@@ -4715,9 +4743,11 @@ tests.CSPGUI_SESSION_AND_RELEASE=function()
  p.applied.HIDE_SYSTEM_MESSAGES=true; G.reloaded(d,p,3)
  assert(G.frozen(d,'HIDE_RACE_FLAGS')==nil and G.applied(d,'HIDE_SYSTEM_MESSAGES') and d.live and G.view(d)=='applied','reloaded by CSP')
  G.release(d,p,3+K.cspReloadRelease/2); assert(files.gui~=nil,'reload just before: CSP restarting the apps, kept')
- G.release(d,p,3+K.cspReloadRelease); assert(files.gui==nil and files.state==nil and p.writes==4,'unloaded after a live reload: restored')
+ -- Beta 1.47 : déchargement après une relecture : laissées cochées aussi (fermeture du jeu : cases cochées dans Content
+ -- Manager), valeurs d'origine gardées.
+ G.release(d,p,3+K.cspReloadRelease); assert(files.gui~=nil and files.state~=nil and p.writes==3,'unloaded after a live reload: kept ticked')
  -- Retour arrière vers une version sans ces options : rendues même sans relecture de CSP.
- local r=G.new(); G.start(r,p); G.step(r,p,BOTH,10); G.release(r,p,11); assert(files.gui~=nil,'not reloaded: kept')
+ local r=G.new(); G.start(r,p); G.step(r,p,BOTH,10); assert(p.writes==3,'relaunched: nothing rewritten'); G.release(r,p,11); assert(files.gui~=nil,'not reloaded: kept')
  G.release(r,p,11,true); assert(files.gui==nil and files.state==nil,'rollback: restored anyway')
  -- Plafond d'écritures par partie (mémoire de la partie) : plus rien d'écrit, état affiché.
  local e=G.new(); G.start(e,p)
@@ -5941,4 +5971,6 @@ for name,test in pairs(require('tests/fixsa142')) do assert(tests[name]==nil,nam
 for name,test in pairs(require('tests/postfix142')) do assert(tests[name]==nil,name); tests[name]=test end -- POSTFIX 1.42 (relecture des correctifs)
 for name,test in pairs(require('tests/notices143')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.43 (annonces des sanctions des IA)
 for name,test in pairs(require('tests/player144')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.44 (IA derrière le joueur qui ralentit)
+for name,test in pairs(require('tests/fix147')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.47 (départs, défense, boucles, usure)
+for name,test in pairs(require('tests/firstlap147')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.47 (premier tour attentif)
 return tests

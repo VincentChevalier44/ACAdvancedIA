@@ -257,7 +257,7 @@ end
 -- keepParked : fin de session, les voitures garées restent garées (rendues à la session suivante ou au déchargement).
 function M.restore(a,frame,pendingOnly,now,final,keepParked)
  if not a.allowed or frame.online or not final and (frame.replay or frame.paused) then for i=1,K.maxCars do if a.cars[i].owned then a.cars[i].reset=true end end; return end
- if not pendingOnly and a.flagOverride and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then a.flagOverride=false; a.flagValue=K.flagNone; a.recoveryDirty=true; note(a,'INFO','panneaux lumineux du circuit: rendus a AC (commandes rendues)',-1) end
+ if not pendingOnly and a.flagOverride and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then a.flagOverride=false; a.flagValue=K.flagNone; a.recoveryDirty=true; M.flagReleased(a); note(a,'INFO','panneaux lumineux du circuit: rendus a AC (commandes rendues)',-1) end
  if final then M.releaseBlackFlag(a) end
  if not pendingOnly then M.releaseDrs(a,frame) end
  for i=1,frame.count do
@@ -282,7 +282,7 @@ function M.restore(a,frame,pendingOnly,now,final,keepParked)
     if s.pitRequest and (final or not car.pit) and Caps.restoreCall(a.caps,'pit',car.index,false) then s.pitRequest=false; a.recoveryDirty=true end
    end
    -- Demande de carburant rendue à AC (math.huge : plus de remplacement).
-   if mine and s.fuelRequested>=0 and Caps.restoreCall(a.caps,'fuel',car.index,math.huge) then s.fuelRequested=-1; a.recoveryDirty=true end
+   if mine and s.fuelRequested>=0 and Caps.restoreCall(a.caps,'fuel',car.index,math.huge) then s.fuelRequested=-1; s.fuelLogged=nil; a.recoveryDirty=true end
    local driving=mine and not car.pit and not car.offtrack
    if driving or final and mine then
     local good=s.offsetReset==true and s.offset==0
@@ -402,10 +402,14 @@ local function pitRequest(a,s,car,cmd,now)
    claim(a,s,car,now)
    if Caps.call(a.caps,'fuel',car.index,liters,cmd.fuelLaps) then
     s.fuelRequested=liters; a.recoveryDirty=true
-    note(a,'INFO',string.format('carburant demande: %d L (%.1f L a bord), %d tour(s) avant un arret natif',liters,car.fuel or -1,cmd.fuelLaps),car.index+1)
+    -- Beta 1.47 : au journal seulement quand la demande change d'au moins K.fuelLogStep L (avant : une ligne par litre).
+    if not s.fuelLogged or math.abs(liters-s.fuelLogged)>=K.fuelLogStep then
+     s.fuelLogged=liters
+     note(a,'INFO',string.format('carburant demande: %d L (%.1f L a bord), %d tour(s) avant un arret natif',liters,car.fuel or -1,cmd.fuelLaps),car.index+1)
+    end
    end
   end
- elseif s.fuelRequested>=0 and s.owned and s.id==(car.identity or car.id) and not car.inPitBox and Caps.restoreCall(a.caps,'fuel',car.index,math.huge) then s.fuelRequested=-1; a.recoveryDirty=true end
+ elseif s.fuelRequested>=0 and s.owned and s.id==(car.identity or car.id) and not car.inPitBox and Caps.restoreCall(a.caps,'fuel',car.index,math.huge) then s.fuelRequested=-1; s.fuelLogged=nil; a.recoveryDirty=true end
  -- Plein de course avant le départ (sans ravitaillement prévu) : une fois par voiture et par session.
  local fuelKey=cmd.fuelSet>=0 and (car.identity or car.id)..'|'..(a.session or 0)
  if fuelKey and s.fuelSetFor~=fuelKey and a.caps.fuelSet.available then
@@ -488,6 +492,35 @@ end
 -- Drapeau natif libre : aucun, ou le drapeau de départ d'AC, qu'AC peut tenir longtemps (toute la session en hotlap) ;
 -- en 1.32, seul « aucun » l'était et un départ tenu bloquait les panneaux toute la course sans rien dire.
 local function nativeFree(f) return f==K.flagNone or f==K.flagStart end
+-- Beta 1.47 (Monza, 4 novembre, 17:26) : après « rendus a AC » à la relance d'une session, CSP affichait encore le rouge
+-- écrit par l'app (5, le noir d'AC) ; l'app le prenait pour un drapeau noir natif : plus rien n'était écrit (« drapeau
+-- natif 5 ») et l'overlay restait sur le drapeau noir. Après une restitution, une valeur affichée égale à la dernière
+-- écrite par l'app est la sienne : restitution renvoyée (toutes les K.flagLeftoverEvery images, K.flagLeftoverTries
+-- fois), jamais lue comme un drapeau natif ; au bout des essais, laissée à AC (un vrai drapeau noir d'AC reste donc
+-- respecté) ; oubliée dès que la valeur affichée change.
+function M.flagReleased(a)
+ if a.flagLast and a.flagLast~=K.flagNone and a.flagLast~=K.flagStart then a.flagLeftover=true; a.flagLeftoverTries=0; a.flagLeftoverFrames=0 end
+end
+function M.flagMine(a,frame) return a.flagOverride or a.flagLeftover==true and frame.flag==a.flagLast end
+local function leftover(a,frame,value)
+ if not a.flagLeftover then return end
+ if frame.flag~=a.flagLast then a.flagLeftover=false; return end
+ if value~=K.flagNone then return end
+ a.flagLeftoverFrames=(a.flagLeftoverFrames or 0)+1
+ if a.flagLeftoverFrames<K.flagLeftoverEvery then return end
+ a.flagLeftoverFrames=0; a.flagLeftoverTries=(a.flagLeftoverTries or 0)+1
+ if a.flagLeftoverTries==1 then note(a,'INFO',string.format('panneaux lumineux du circuit: drapeau %d de l app encore affiche apres restitution, restitution renvoyee',a.flagLast),-1) end
+ Caps.restoreCall(a.caps,'flag',-1,K.flagNone)
+ -- Au bout des essais : AC garde sa dernière valeur tant qu'il ne la change pas lui-même (blanc, 6, resté affiché à Spa
+ -- le 4 novembre à 11:24) ; le drapeau de départ d'AC (celui qu'AC tient en course) est écrit puis rendu : jamais un
+ -- rouge ou un noir laissé à l'écran.
+ if a.flagLeftoverTries>=K.flagLeftoverTries then
+  a.flagLeftover=false
+  if Caps.call(a.caps,'flag',-1,K.flagStart) then Caps.restoreCall(a.caps,'flag',-1,K.flagNone) end
+  note(a,'WARN',string.format('panneaux lumineux du circuit: drapeau %d toujours affiche apres %d restitutions, remplace par le drapeau de depart d AC',a.flagLast,a.flagLeftoverTries),-1)
+  a.flagLast=K.flagStart
+ end
+end
 function M.flag(a,frame,wanted,reason,now,hold)
  if not a.allowed or frame.online or frame.replay or frame.paused then return end
  local value=wanted==true and K.flagCaution or type(wanted)=='number' and wanted or K.flagNone
@@ -497,23 +530,25 @@ function M.flag(a,frame,wanted,reason,now,hold)
  local cap=a.caps.flag
  if value==K.flagStop and lights and not redHidden(a,now) then value=K.flagCaution end
  if value==K.flagNone then a.flagBlocked=nil end
+ leftover(a,frame,value)
  if value~=K.flagNone and not a.flagOverride then
   -- Jamais par-dessus un drapeau natif (bleu, blanc, damier, noir, pénalité) : sur le jaune natif, seulement le jaune ou
   -- le rouge.
-  local free=nativeFree(frame.flag) or frame.flag==K.flagCaution and (value==K.flagCaution or value==K.flagStop)
+  local free=nativeFree(frame.flag) or a.flagLeftover==true and frame.flag==a.flagLast
+   or frame.flag==K.flagCaution and (value==K.flagCaution or value==K.flagStop)
   if not cap.available then unwritten(a,value,'capacite',cap.reason,lights)
   elseif not free then unwritten(a,value,'drapeau natif',frame.flag,lights)
   elseif Caps.call(a.caps,'flag',-1,value) then
-   a.flagOverride=true; a.flagValue=value; a.flagAt=now or -math.huge; a.recoveryDirty=true; a.flagBlocked=nil
+   a.flagOverride=true; a.flagValue=value; a.flagAt=now or -math.huge; a.recoveryDirty=true; a.flagBlocked=nil; a.flagLast=value; a.flagEver=true; a.flagLeftover=false
    note(a,'INFO',lights and flagText(value,reason) or 'drapeau HUD du joueur: jaune',-1)
   else unwritten(a,value,'echec:',cap.error,lights) end
  elseif value~=K.flagNone and a.flagOverride and value~=a.flagValue then
   if held or (Lights.rank[value] or 0)>(Lights.rank[a.flagValue] or 0) then
-   if Caps.call(a.caps,'flag',-1,value) then a.flagValue=value; a.flagAt=now or -math.huge; a.flagBlocked=nil; note(a,'INFO',flagText(value,reason or ''),-1)
+   if Caps.call(a.caps,'flag',-1,value) then a.flagValue=value; a.flagAt=now or -math.huge; a.flagBlocked=nil; a.flagLast=value; a.flagEver=true; note(a,'INFO',flagText(value,reason or ''),-1)
    else unwritten(a,value,cap.available and 'echec:' or 'capacite',cap.available and cap.error or cap.reason,lights) end
   end
  elseif value==K.flagNone and a.flagOverride and held and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then
-  a.flagOverride=false; a.flagValue=K.flagNone; a.flagAt=now or -math.huge; a.recoveryDirty=true
+  a.flagOverride=false; a.flagValue=K.flagNone; a.flagAt=now or -math.huge; a.recoveryDirty=true; M.flagReleased(a)
   note(a,'INFO',now and 'panneaux lumineux du circuit: rendus a AC' or 'drapeau HUD du joueur: rendu a AC',-1)
  end
 end
@@ -1086,6 +1121,11 @@ function M.unregister(a)
 end
 function M.nextSession(a,frame)
  M.releaseBlackFlag(a); M.releaseDrs(a,frame); a.flagBlocked=nil
+ -- Beta 1.47 : drapeau écrit pendant ce lancement : restitution redemandée à chaque nouvelle session (CSP a gardé le
+ -- rouge, 5, après la relance d'une session à Monza ; plus rien ne le levait).
+ if a.flagEver and a.allowed and not frame.online and not frame.replay and Caps.restoreCall(a.caps,'flag',-1,K.flagNone) then
+  a.flagOverride=false; a.flagValue=K.flagNone; a.recoveryDirty=true; M.flagReleased(a)
+ end
  for i=1,frame.count do
   local s=a.cars[i]; local car=frame.cars[i]
   if s.owned then

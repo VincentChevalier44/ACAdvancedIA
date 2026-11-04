@@ -644,8 +644,12 @@ return function(source)
   assert(loadstring(source))()
   local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.redFlagCars=2; e.profiles.C.redFlagHold=20; E.changed(e)
   H.tick(HOST,8)
-  for _,i in ipairs({2,3}) do HOST.cars[i].speedKmh=0; HOST.cars[i].velocity={x=0,z=0} end
-  H.tick(HOST,7)
+  -- Beta 1.47 : drapeau rouge seulement sur une piste vraiment bloquée : piste étroite (3 m de chaque côté), deux
+  -- voitures arrêtées côte à côte, immobilisées K.redIncidentStill s.
+  local sides=ac.getTrackAISplineSides; ac.getTrackAISplineSides=function() return {x=3,y=3} end
+  for k,i in ipairs({2,3}) do local c=HOST.cars[i]; c.speedKmh=0; c.velocity={x=0,z=0}; c.position={x=k==1 and -1.5 or 1.5,y=0,z=HOST.cars[2].position.z}; c.splinePosition=HOST.cars[2].splinePosition end
+  H.tick(HOST,C.K.redIncidentStill+1)
+  ac.getTrackAISplineSides=sides
   assert(e.incidents.red and HOST.pitRequests[1]==true,'red flag: AI called to the pits')
   HOST.transparent={}; script.HUMANAI__HUD(); assert(e.panel.kind=='red' and HOST.transparent.ACAdvancedIA_overlay,'overlay drawn on the red flag')
   HOST.draws=0; HOST.panelTexts={}; HOST.textTop=nil; HOST.circles=0; script.HUMANAI__FLAGS()
@@ -2478,11 +2482,15 @@ return function(source)
   -- Option coupée : fichier d'origine à l'octet près, fichier d'état effacé ; recochée : masquée à nouveau.
   g.cspHideMessages=false; H.tick(HOST,0.2); assert(HOST.files[gui]==original and HOST.files[state]==nil and HOST.guiWrites==2,'restored byte for byte')
   g.cspHideMessages=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==3)
-  e.panic=true; H.tick(HOST,0.2); assert(HOST.files[gui]==original,'panic: original back')
-  e.panic=false; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==5)
+  -- Beta 1.47 : panique (passagère) : rien ne change.
+  e.panic=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==3,'panic: left as is')
+  e.panic=false; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==3)
   -- Messages d'AC non repris sur l'overlay : leur affichage d'origine reste celui d'AC.
   g.overlayMessages=false; H.tick(HOST,0.2); assert(HOST.files[gui]==original,'overlay without messages: AC keeps them')
-  g.overlayMessages=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==7)
+  g.overlayMessages=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==5)
+  -- Beta 1.47 : app coupée (bouton APP) : valeurs d'origine rendues ; rallumée : cochées à nouveau.
+  g.enabled=false; H.tick(HOST,0.2); assert(HOST.files[gui]==original,'app switched off: originals back')
+  g.enabled=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden and HOST.guiWrites==7)
   -- Déchargement sans relecture par CSP : gardées jusqu'au lancement suivant ; relance dans la même partie : rien d'écrit.
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
   assert(HOST.files[gui]==hidden and HOST.files[state],'kept until the next launch (CSP reads gui.ini at launch)')
@@ -2495,13 +2503,20 @@ return function(source)
   assert((HOST.guiWrites or 0)==0,'applied at launch: nothing to write')
   for _=1,C.K.probeFrames+1 do script.HUMANAI__HUD() end
   assert(count('option de CSP comprise')==1 and not g.cspMessagesLost,'probe received with the CSP option')
-  -- Relecture par CSP en cours de partie, puis déchargement : valeurs d'origine rendues.
+  -- Relecture par CSP en cours de partie, puis déchargement : Beta 1.47, laissées cochées (cases cochées dans Content
+  -- Manager), valeurs d'origine gardées.
   g.cspHideMessages=false; H.tick(HOST,0.2); assert(HOST.files[gui]==original)
   g.cspHideMessages=true; H.tick(HOST,0.2); assert(HOST.files[gui]==hidden)
   H.reloadGui(HOST); H.tick(HOST,C.K.cspReloadRelease+0.5)
   assert(count('gui.ini relu par CSP en cours de partie')==1,'live reload logged')
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
-  assert(HOST.files[gui]==original and HOST.files[state]==nil and #HOST.guiWatchers==0,'restored on unload, watcher closed')
+  assert(HOST.files[gui]==hidden and HOST.files[state]~=nil and #HOST.guiWatchers==0,'kept ticked on unload, watcher closed')
+  assert(count('options laissees cochees')==1,'unload noted once in the journal')
+  -- Retour arrière depuis l'app (vers une version d'avant ces options, qui ne les rendrait jamais) : valeurs d'origine
+  -- rendues au déchargement.
+  assert(loadstring(source))(); H.tick(HOST,0.5); e=HUMANAI.engine; HUMANAI.host.updater.after='rollback'
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+  assert(HOST.files[gui]==original and HOST.files[state]==nil,'rolled back: originals given back on unload')
   -- Drapeaux d'AC masqués par l'app : jamais tenus pour masqués avant que CSP ait relu gui.ini (pas de rouge, drapeau
   -- noir d'AC) ; relu : masqués. Messages masqués par CSP après la relecture : le témoin les vérifie ; perdus, l'option
   -- est rendue, ce choix gardé et affiché ; recochée : nouvel essai.
@@ -2623,6 +2638,63 @@ return function(source)
   assert(not HUMANAI.engine.panic and HUMANAI.host.errors==0,'engine unaffected by a bridge error')
   local b0=beats; H.tick(HOST,1); assert(beats==b0,'nothing more after the cut')
   B.beat,B.publish=beat0,pub0; ac.connect=nil; ac.StructItem=nil
+  HUMANAI.release()
+ end)
+ -- Beta 1.47 (Monza, 4 novembre, 17:26) : drapeau rouge de l'app (5) sur les panneaux, relance de la session ; CSP garde
+ -- le 5 après la restitution (simulé : HOST.stickyFlag) : l'app ne le prend pas pour un drapeau noir natif, renvoie la
+ -- restitution puis écrit le drapeau de départ d'AC ; l'overlay ne reste pas sur le drapeau noir, les panneaux repartent.
+ check('Beta 1.47 : rouge de l app resté affiché par CSP après une relance : repris, jamais un drapeau noir natif',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; HOST.sim.carsCount=4; HOST.hideRaceFlags=true
+  local sep=string.char(92); local function path(...) return table.concat({...},sep) end
+  HOST.files[path('tracks','test','extension','ext_config.ini')]='[INCLUDE]\nINCLUDE = common/conditions.ini, ext_config-flags.ini\n'
+  HOST.files[path('tracks','test','extension','ext_config-flags.ini')]='[MATERIAL_ADJUSTMENT_0]\nACTIVE=1\nCONDITION=RACING_FLAG\n'
+  HOST.files[path('cfgsys','tracks','common','conditions.ini')]='[CONDITION_85]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\n'
+  assert(loadstring(source))()
+  local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.redFlagCars=2; e.profiles.C.redFlagHold=20; E.changed(e)
+  local function logged(text) for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end return false end
+  H.tick(HOST,8)
+  -- Piste étroite, deux voitures arrêtées côte à côte : piste bloquée (drapeau rouge de la Beta 1.47).
+  local sides=ac.getTrackAISplineSides; ac.getTrackAISplineSides=function() return {x=3,y=3} end
+  for k,i in ipairs({2,3}) do local c=HOST.cars[i]; c.speedKmh=0; c.velocity={x=0,z=0}; c.position={x=k==1 and -1.5 or 1.5,y=0,z=HOST.cars[2].position.z}; c.splinePosition=HOST.cars[2].splinePosition end
+  H.tick(HOST,C.K.redIncidentStill+1)
+  ac.getTrackAISplineSides=sides
+  assert(e.incidents.red and HUMANAI.host.trackLights==true and HOST.flag==C.K.flagStop and HOST.sim.raceFlagType==C.K.flagStop,'red flag on the panels (5)')
+  -- Relance de la session (même indice) ; CSP garde le 5 malgré les restitutions.
+  HOST.stickyFlag=99
+  -- Beta 1.47 : rouge 10 s après l'arrêt : les deux IA ont eu le temps d'être dépannées ; remises en piste.
+  for _,i in ipairs({2,3}) do local c=HOST.cars[i]; c.speedKmh=150; c.velocity={x=0,z=40}; c.position={x=0,y=0,z=(i-1)*120}; c.splinePosition=(i-1)*0.012; c.isInPit=false; c.isInPitlane=false end
+  for fn in pairs(HOST.sessions) do fn(0,true) end
+  H.tick(HOST,0.5)
+  assert(HOST.sim.raceFlagType==C.K.flagStop and not HUMANAI.host.flagOverride and HUMANAI.host.flagLeftover,'5 still shown after the restore: kept as the app s own')
+  HOST.transparent={}; script.HUMANAI__HUD()
+  assert(e.panel.kind~='black','overlay never on a black flag for the app s own red')
+  assert(not logged('drapeau d AC: 5'),'not logged as an AC black flag')
+  H.tick(HOST,5)
+  assert(logged('drapeau 5 de l app encore affiche apres restitution') and logged('remplace par le drapeau de depart d AC'),'restore re-sent, then the AC start flag written')
+  assert(HOST.sim.raceFlagType==C.K.flagStart and not HUMANAI.host.flagLeftover,'panels back to the AC start flag')
+  assert(not logged('voulu, non ecrit (drapeau natif 5)'),'no refusal loop on the app s own 5')
+  -- Ensuite : un jaune voulu est écrit normalement.
+  HOST.stickyFlag=0; HOST.cars[0].splinePosition=0.995; HOST.cars[3].speedKmh=0; HOST.cars[3].velocity={x=0,z=0}
+  H.tick(HOST,8)
+  assert(HOST.flag==C.K.flagCaution,'yellow written again after the recovery')
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+ end)
+ -- Vrai drapeau noir d'AC (l'app n'a rien écrit) : toujours respecté, montré par l'overlay, jamais recouvert.
+ check('Beta 1.47 : vrai drapeau noir d AC respecté',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; HOST.hideRaceFlags=true
+  local sep=string.char(92); local function path(...) return table.concat({...},sep) end
+  HOST.files[path('tracks','test','extension','ext_config.ini')]='[INCLUDE]\nINCLUDE = common/conditions.ini, ext_config-flags.ini\n'
+  HOST.files[path('tracks','test','extension','ext_config-flags.ini')]='[MATERIAL_ADJUSTMENT_0]\nACTIVE=1\nCONDITION=RACING_FLAG\n'
+  HOST.files[path('cfgsys','tracks','common','conditions.ini')]='[CONDITION_85]\nNAME=RACING_FLAG\nINPUT=FLAG_TYPE\n'
+  HOST.nativeFlag=C.K.flagStop; HOST.sim.raceFlagType=C.K.flagStop
+  assert(loadstring(source))()
+  local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); E.changed(e)
+  local function logged(text) for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end return false end
+  HOST.cars[0].splinePosition=0.995; HOST.cars[3].speedKmh=0; HOST.cars[3].velocity={x=0,z=0}
+  H.tick(HOST,8)
+  assert(HOST.flagOverrides==0 and HOST.sim.raceFlagType==C.K.flagStop and not HUMANAI.host.flagLeftover,'AC black flag untouched')
+  assert(logged('drapeau d AC: 5 (noir)') and logged('voulu, non ecrit (drapeau natif 5)'),'native black flag logged and respected')
+  HOST.transparent={}; script.HUMANAI__HUD(); assert(e.panel.kind=='black','overlay shows the AC black flag')
   HUMANAI.release()
  end)
  return results

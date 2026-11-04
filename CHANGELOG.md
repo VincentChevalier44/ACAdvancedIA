@@ -1,5 +1,110 @@
 # Changelog
 
+## Beta 1.47 — 4 November 2026
+
+AI behaviour fixes from the 4 November logs, and CSP display options kept ticked.
+
+### Race starts
+- The launch phase no longer ends on a brief yaw blip on the straight (the yaw must be held 0.3 s) or on the app's own
+  radar brake read back from the pedal; it ends at the AI's own first real braking, or 2.5 s before the point where the
+  pack ahead first braked, and never comes back.
+- Front radar before the first braking zone: brake capped at 0.18, and with a car close behind (less than 0.6 s, at
+  least 8 m: the same rule for an F1 at 300 km/h and a road car at 100 km/h), a throttle lift only (no brake). On the
+  Monza pack scene: radar brakings in the first 10 s 28 → 0. The start log line counts the lifts.
+- Standing still on the grid no longer counts as being stopped on track: a car still slow a second after the lights went
+  out was an obstacle to avoid, and the cars behind it swerved (AVOID) in the middle of the pack.
+
+### Careful first lap (new setting, Start section, on in the race presets)
+The driver's idea: on the first lap everyone is really careful. In a race, at the start and at every restart (green flag
+after the safety car, end of a red-flag restart lap, standing restart), every AI drives its first lap as a careful
+driver. Every rule is counted in time, never in metres, so it behaves the same for F1, GT3/GT4, road cars and mixed
+classes:
+- **Gap counted in time**: below 0.8 s to the car ahead, caution rises gently (up to ×1.3 under 0.25 s), never on the
+  launch straight; never a brake or a speed limit on a straight.
+- **Every braking zone of the lap anticipated**: braking points are learnt live where a car with nobody close ahead
+  brakes from 60 km/h or more (no fixed distance, no data needed from earlier sessions); with a car less than 0.8 s
+  ahead, caution rises 2 s before such a point or as soon as the car ahead brakes.
+- **Radar: throttle lift first.** Above 0.8 s to contact, or on a straight, or with a car close behind: lift only. Below
+  0.8 s while braking: a light brake (0.18). A full radar brake only for a contact less than 0.4 s away (a real
+  obstacle).
+- No defence, no tow-breaking, no dirty-air lift; overtakes only on a real straight, away from braking zones (its own,
+  the target's or a learnt point ahead), with 1.5× the usual advantage and a 1.3× longer free corridor.
+- Avoidance (AVOID) only for a stopped or very slow car (under 30 % of the AI's own speed, or under the obstacle speed):
+  a braking wave or a hairpin is never an obstacle.
+- Aggression at most 85 % of the base; overall caution at most 2× the base (start, following, radar and braking
+  multipliers stacked up to 3 or 4 and slowed the pack to a crawl into the first corner), except under yellow flags,
+  neutralisation or red flag.
+- The mode ends for each AI at its first crossing of the line (a crossing in the first 10 s after a restart does not
+  count), when the pack has spread around it (more than 2 s ahead and behind for 3 s), after 3 minutes at most, or when
+  it enters the pits; it is then released over 3 s. From lap 2 the commands are exactly those of a race without the mode.
+- Journal: `premier tour: mode attentif pour N IA (depart|relance|depart arrete)` at the start, `premier tour: fin du mode
+  attentif apres X s (… ligne franchie, peloton etire, delai, stands ; N point(s) de freinage appris)` at the end, and a
+  `premier tour attentif : …` segment in the minute summary (anticipations, radar lifts and brakes, avoidances refused,
+  overtakes held).
+- Start bench (tests/startbench147.lua, simplified model of AC's AI: Monza, Spa, a first corner 400 m from the grid, a
+  narrow street circuit × F1, GT3, road cars, mixed classes, 24 AI, 3 draws): lap-1 rear contacts 216 → 142 (AC alone
+  320), at the first braking zone 137 → 94, avoidances in the pack 29 → 7, radar brakings on straights 66 → 33 (18 of
+  them for a contact less than 0.4 s away), lap-1 time +0.5 %.
+
+### Red flag only when the track is really blocked (the driver's decision)
+- The red flag now needs at least 3 cars (setting unchanged) stopped for 10 s **because of an incident**: damage, a
+  spin, stopped off the racing line (more than 4 m) or off the track, or stopped alone on the track. Undamaged cars
+  waiting on the racing line behind a stopped car (the queue behind the accident) never count.
+- And the track must be really blocked: where those cars stand (within 40 m), they leave no 2.5 m passage across the
+  track width (each car's width plus 0.3 m on each side; checked for both sides of the line).
+- Otherwise the race goes on under yellows, VSC or Safety Car as before, by severity. The journal says why, once per
+  episode: `pas de drapeau rouge: N voitures arretees dont M dans la file[, piste encore passable]`; the red flag line
+  reads `drapeau rouge: N voitures accidentees immobilisees 10 s, piste bloquee`.
+- On the start bench (two cars spun at the first corner, 16 scenes × 3 draws), the pile-ups no longer stop the race:
+  383 of 384 AI complete lap 1 (before: 255, red flag in several draws with half the field sent to the pits), cars slowed
+  by a yellow 163 → 58, rear contacts 175 → 114.
+
+### Double yellow with an unknown pace
+- Before the pace is learnt (first lap of a session), the double-yellow speed is relative to the car: 35 % of its top
+  speed seen so far, never under the « unknown pace » speed (50 km/h). Before, every car, F1 or road car, was slowed to
+  50 km/h through the whole zone after a first-lap pile-up. Cars slowed by the yellow on the start bench: only those
+  at most about 350 m (9 s) before the incident.
+
+### Defence, overtaking, yielding
+- Defence only against a follower clearly to one side (≥ 0.5 m), at most 20 km/h faster (or ≥ 1.5 s to contact), on a
+  real straight with straight ahead, never alongside, on an out-lap, during the pit-exit guard or near the pit junction.
+  Every defence is logged (`defense:`).
+- Overtake loops: a pair ignored after "target faster" is no longer re-attacked on closing alone without a real
+  advantage, and needs 2.5× more closing.
+- Practice and qualifying: a yield nobody uses ends after 3.5 s.
+- Blue flag: a lapped car's yield is never refused or counted by the anti-zigzag cap; "laisse passer" no longer logged
+  twice when the lap gap flickers at the line.
+- Pit exit: the lateral offset restarts from zero.
+
+### Strategy and sanctions
+- Tyre wear threshold before a stop: default 30 % (was 75 %, never reached at the 1–1.4 % per lap measured in game),
+  minimum 10 %; profiles still on 75 % move to 30 % (data revision 20), tuned values stay.
+- Undercut and cover also for a mandatory stop still due.
+- No track-limits warning within 3 s of a contact (car pushed off).
+
+### Log
+- "carburant demande" only when the request changes by 5 L or more; the radar line notes the follower's gap; the
+  summary of the last, partial minute is written when the app closes.
+
+### CSP display options (Hide system messages, Hide race flags)
+- They now stay ticked while the app is installed and active, also with the game closed, so Content Manager shows them
+  ticked. Panic, closing the game, unloading the app or a crash no longer give your original values back.
+- Your original values come back when you switch the option off in Overlay › AC displays, switch the app off (APP
+  button), turn off the app's flag panel in the profile in use (flags), or when the overlay stops taking over AC's
+  messages (messages). An option you ticked yourself is never touched. After uninstalling the app, untick them in
+  Content Manager › Custom Shaders Patch › GUI if you want AC's own flags and messages back.
+
+### Track light panels and overlay after a red flag
+- After a red flag and a session restart (Monza, 4 November), CSP could keep showing the app's own red (AC's black flag, value 5) once it was handed back; the app then took it for a native AC black flag: panels stuck red, overlay stuck on the black flag, every later yellow or green refused (« drapeau natif 5 »).
+- The app now remembers the last flag it wrote. After handing it back, that value still shown is treated as its own (never a native black flag, overwritten when a new colour is wanted); the restore is sent again (3 times, 1 s apart), then AC's start flag is written and handed back. Every new session, restarts included, hands the flag back again. A real AC black flag the app never wrote is still respected.
+- The missing « rouge » journal line at that red flag was dropped by the journal rate limit (20 « carburant demande » lines in the same second); those lines are now written only when the request changes.
+
+### Updates and bridge
+- The update report names the version that was really running before an in-app update (it could show « Beta 1.45 -> Beta 1.45 » when CSP had kept an older compiled copy of the app).
+- Includes the Beta 1.46 companion-app bridge for SpotterEnginer, still inactive unless SpotterEnginer is installed.
+
+**Verification**: 621 checks; 127 integration cases; 1,522 mutations, all detected; clean lint, parameter audit; the reference scenes are those of the 1.47 fixes, except the intended relative double-yellow fallback (identical again with the old fallback); the end-to-end race scene is identical; 8-hour soak with 0 errors (memory between 10.0 and 11.0 MB, peak frame 0.95 ms); engine bench, median of five alternating runs, 9 / 30 / 60 AI: 0.055 / 0.258 / 0.651 ms (Beta 1.46: 0.053 / 0.233 / 0.595 ms); long track (60.6 km, 46 AI): 0.290 ms, P99 0.604 ms (Beta 1.46: 0.281 ms, P99 0.561 ms); companion bridge with SpotterEnginer installed: 0.008 / 0.011 / 0.017 ms per frame (9 / 30 / 60 AI), none without it.
+
 ## Beta 1.46 — 4 November 2026
 
 Companion-app bridge for SpotterEnginer, inactive unless SpotterEnginer is installed.

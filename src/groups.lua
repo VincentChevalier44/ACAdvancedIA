@@ -14,7 +14,7 @@ M.sections={
   {'humanMistakes',{'mistakesEnabled','mistakeRate'}}},
  lateral={{'lateralSpeed',{'rampSpeed','rampAccel','lowPassTau'}},
   {'lateralLimits',{'maxSideOffset','cornerMin','cornerYawRef','lateralCooldown','emergencyReleaseFactor'}}},
- start={{'startStanding',{'startDelay','startCautionMult','startAggrMult','startRelax','startLaneHold'}}},
+ start={{'startStanding',{'startDelay','startCautionMult','startAggrMult','startRelax','startLaneHold','firstLapCare'}}},
  yield={{'yieldOrdinary',{'yieldEnabled','yieldSide','yieldOffset','yieldDetectBehind','yieldBehindMargin','yieldHorizon','confirmTime'}},
   {'yieldHold',{'yieldHoldMin','yieldHoldAfterMin','yieldHoldAfterMax','yieldMaxHold'}},
   {'yieldSlow',{'yieldSlowdownPct','inviteSlowdownPct'}},

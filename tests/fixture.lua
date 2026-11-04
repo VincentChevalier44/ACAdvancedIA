@@ -28,6 +28,12 @@ function M.place(f,i,z,kmh,x)
  local a=f.cars[i]; a.z=z; a.x=x or 0; a.splineLat=a.x; a.spline=(z/f.length)%1; a.lap=1+math.floor(z/f.length); a.kmh=kmh or 100; a.speed=a.kmh/3.6
  return a
 end
+-- Beta 1.47 : voitures arrêtées côte à côte en travers de la piste à z, réparties sur sa largeur : piste vraiment bloquée
+-- (drapeau rouge, décision du pilote).
+function M.block(f,list,z)
+ local n=#list
+ for k,i in ipairs(list) do local a=f.cars[i]; local w=a.leftWidth+a.rightWidth; M.place(f,i,z,0,-a.leftWidth+w*(k-0.5)/n) end
+end
 function M.tick(e,f,seconds,kinematic)
  local n=math.floor(seconds*60+0.5)
  for _=1,n do
@@ -39,9 +45,10 @@ function M.tick(e,f,seconds,kinematic)
    assert(s.offset==s.offset and math.abs(s.offset)<=0.950001,'offset bound')
    assert(s.directionCount<=6,'direction count')
    if cmd.active then assert(cmd.level>=0.3 and cmd.level<=1.1 and cmd.caution>=0.5 and cmd.caution<=16,'command bound') end
-   local old=s.testOffset
+   -- Beta 1.47 : dans la voie des stands, le décalage est rendu à AC (remis à zéro à la sortie) : pas un mouvement.
+   local old=not f.cars[i].pit and s.testOffset or nil
    if old and not cmd.gridWake then assert(not(row.left and s.offset<old-1e-9),'movement towards occupied left'); assert(not(row.right and s.offset>old+1e-9),'movement towards occupied right') end
-   s.testOffset=s.offset
+   s.testOffset=not f.cars[i].pit and s.offset or nil
   end
  end
 end

@@ -116,7 +116,7 @@ The repository download also contains the test bench and the technical documents
    - **Hotlap** has only the racing rules on: flag overlay, DRS beep, no AI to drive.
 6. **The overlay** appears centred at the top of the screen.
    - Move it, resize it or change its look in **SETTINGS › ADVANCED › Overlay**.
-   - While the app is active, it hides Assetto Corsa's own flags and its top message banner (CSP options **Hide race flags** and **Hide system messages**), restoring your values when it stops (see [CSP display options](#csp-display-options)). CSP may only apply them at the next game launch; **HOME › TO CHECK** says so.
+   - While the app is active, it hides Assetto Corsa's own flags and its top message banner (CSP options **Hide race flags** and **Hide system messages**). Since Beta 1.47 they stay ticked, also with the game closed, so Content Manager shows them ticked; your values come back when you switch the app or the option off (see [CSP display options](#csp-display-options)). CSP may only apply them at the next game launch; **HOME › TO CHECK** says so.
 7. **Track days on long circuits (7 km and more) with many AI.**
    - CSP's *AI flood* spawns the AI around you. The app switches it off for you, but CSP only reads that setting when the game starts.
    - So the first such session is still CSP's, and the full-track distribution applies from the **next launch**. The overlay announces it (**AI flood (CSP)**).
@@ -175,7 +175,7 @@ Rolling back from the app keeps your settings since Beta 1.35. Before going back
    - The app disables AI flood in your CSP user settings. Deleting the app does not turn it back on.
    - The simplest way: tick the **General** section, set **AI distribution at session start** to **Native (game)**, run a Track day session with AI, then restart the game. The app writes back the original values it saved before its first change.
    - Or edit the `[AI_FLOOD]` section of `Documents/Assetto Corsa/cfg/extension/new_behaviour.ini` by hand.
-2. **If you kept the two CSP display options on** (Overlay section), untick them (or switch the app off with the on/off switch in the header) while the game runs: the app writes your original `gui.ini` values back at once. Otherwise `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-cspgui.ini` holds them (the original file follows the `original` line).
+2. **If you kept the two CSP display options on** (Overlay section), untick them (or switch the app off with the on/off switch in the header) while the game runs: the app writes your original `gui.ini` values back at once. Closing the game does not give them back (Beta 1.47): after uninstalling, they stay ticked; untick them in Content Manager › **Custom Shaders Patch › GUI** if you want AC's own flags and messages back. Otherwise `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-cspgui.ini` holds them (the original file follows the `original` line).
 3. Close Assetto Corsa and delete the folder `assettocorsa/apps/lua/ACAdvancedIA`. Keep a copy of your own `tracks/*.lua` zone files first if you want them later.
 4. Optionally, delete what the app left in your Documents folder:
    - its settings and custom presets: `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini`;
@@ -449,6 +449,13 @@ Section **Start** (sidebar **DRIVING**). Race only; ticked by **Realistic race**
   - On the straight there is no start caution and no following caution, so the AI stay close to the car ahead.
   - **Caution at the start** (×1.3) and **Aggression at the start** (×0.8) apply only under braking and in corners, so at the first corner. They relax gradually over **Settling time after the start (s)** (25 s).
   - No overtaking or yielding is commanded during that settling time.
+- **Careful first lap (start and restarts)** (Beta 1.47, on in the race profile): at the start and at every restart,
+  each AI drives its first lap carefully. Gaps are counted in time (same behaviour for F1, GT and road cars); every
+  braking zone of the lap is anticipated (braking points learnt from the leading cars, braking of the car ahead); the
+  radar lifts off before it brakes (a full brake only for a contact less than 0.4 s away); no defence, tow-breaking or
+  dirty air; overtakes only on a real straight with a real advantage; avoidance only of a stopped or very slow car;
+  aggression and overall caution capped. It ends at the AI's first crossing of the line, when the pack has spread
+  around it, or after 3 minutes, then it is released over 3 s.
 - **Hold the grid lane at the start** (off by default):
   - Each AI records its position on the grid. After the green light, while a car runs alongside it (and while braking), it keeps that lane instead of cutting across its neighbours towards the racing line.
   - It then joins the line gradually, never towards an occupied side.
@@ -644,7 +651,7 @@ Safety Car escalation (**Safety Car if the incident escalates**, on by default i
 **Red flag on a serious accident (practice, qualifying, race)**, on by default.
 
 **In the race:**
-- **Trigger.** At least 3 cars are stopped on the track at the same time (**Red flag: cars stopped on track**). A car counts after 5 s stationary; a car still spinning does not count, and neither does yours.
+- **Trigger** (Beta 1.47, only when the track is really blocked). At least 3 cars (**Red flag: cars stopped on track**) stopped for 10 s **because of an incident**: damage, a spin, stopped off the racing line or off the track, or stopped alone on the track. Cars that only wait undamaged in the queue behind the accident, on the racing line, never count. And the track must be blocked: where those cars stand, they leave no 2.5 m passage across the width of the track. Otherwise the race goes on under yellow flags, VSC or Safety Car as before, and the journal says why (`pas de drapeau rouge: 5 voitures arretees dont 4 dans la file`). A car still spinning does not count, and neither does yours.
 - **The AI.** All AI return to their pit box at the red-flag delta (+60%, 80 km/h fallback) without overtaking, and stay there. An AI stopped on the track is recovered to its pit box.
 - **You.** Enter the pit lane too, within the delta. The overlay shows **RED FLAG**, flashing, with the *PIT: RETURN TO THE PIT LANE* pill.
   - The restart waits for you, at most until the maximum delay. Refusing to come in holds the AI until that delay.
@@ -869,16 +876,16 @@ Assetto Corsa displays (**ASSETTO CORSA DISPLAYS**):
 - **Hide the original AC messages** (on by default since Beta 1.26).
   - At launch, the app checks that hidden messages still reach the overlay. If not, hiding lifts itself until the next launch, and the log says so.
 - **Hide AC system messages (CSP option)** (on, Beta 1.40): CSP's **Hide system messages** while the overlay takes over the messages; it hides AC's top banner for assists and similar messages. AC's red cut and penalty banners (*CUT DETECTED: LAP WILL NOT COUNT*, *PENALTY, SLOW DOWN FOR … SECONDS*, drive-through, disqualification) stay drawn by AC even with this option: CSP offers no way to hide them (Beta 1.40 sessions). Since Beta 1.41 the overlay no longer shows them again, so they are never seen twice; they are still written to the session log. See [CSP display options](#csp-display-options).
-- **Hide AC's own flags (CSP option)** (on, Beta 1.40): CSP's **Hide race flags** while the app is active.
+- **Hide AC's own flags (CSP option)** (on, Beta 1.40): CSP's **Hide race flags** while the app is active and its flag panel (**App flag panel while driving**) stays ticked in the profile in use.
 - A status line under these two switches says whether CSP applies them now, at the next launch, or not at all.
 - Other AC HUD elements (fuel, starting lights, damage, leaderboard, proximity, mirror, wrong way, ping) stay: the overlay does not fully replace them.
 - **Click-through when locked** (on), **Hide in replays** (on), **Hide in the pits** (off).
 
-<a id="csp-display-options"></a>**CSP display options** (Beta 1.40):
+<a id="csp-display-options"></a>**CSP display options** (Beta 1.40, kept ticked since Beta 1.47):
 - **Where.** `[HIDE]` section of your CSP user settings, `Documents/Assetto Corsa/cfg/extension/gui.ini` (the file Content Manager writes for **Custom Shaders Patch › GUI**). Only `HIDE_SYSTEM_MESSAGES` and `HIDE_RACE_FLAGS` change; the rest of the file stays as it is.
-- **Never your own choice.** An option you already ticked is left alone, and so is a value you change while the app holds it.
-- **Saved first.** The original file and values go to `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-cspgui.ini` before the first write, so they survive a crash. The app restores them when it, **PANIC** or the switch stops hiding, byte for byte when nothing else changed the file.
-- **When it applies.** If CSP re-reads `gui.ini` during the session (log `options CSP: gui.ini relu par CSP en cours de partie`), at once, and your values come back when the app unloads. Otherwise at the next game launch (`… effet au prochain lancement du jeu`), and the options are kept until then.
+- **Never your own choice.** An option you ticked yourself before the app did is left alone. An option the app ticked stays ticked while the app is active: unticking it in Content Manager is undone at the next launch, so use the app's switch instead.
+- **Saved first.** The original file and values go to `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-cspgui.ini` before the first write, so they survive a crash. **Ticked for good (Beta 1.47).** The options stay ticked when the game closes, when the app unloads, during **PANIC** and after a crash, so Content Manager shows them ticked. The app gives your values back, byte for byte when nothing else changed the file, only when hiding stops: you switch the option off, you switch the app off (APP button), you turn off the app's flag panel in the profile in use (flags), or the overlay stops taking over AC's messages (messages).
+- **When it applies.** If CSP re-reads `gui.ini` during the session (log `options CSP: gui.ini relu par CSP en cours de partie`), at once. Otherwise at the next game launch (`… effet au prochain lancement du jeu`).
 - **Red on the light panels** waits until CSP has applied **Hide race flags**, never on the file alone. Otherwise the red value would show as AC's black flag.
 - **Safety.** At most 8 writes of `gui.ini` per game session, and no `.bak` left behind. If hidden messages stop reaching the overlay, **Hide system messages** is given back and the window says so; tick the switch again to retry.
 - **In the log:** lines starting with `options CSP:`.
@@ -1177,6 +1184,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Aggression at the start** | 0.2 – 1 | 1 | 1 | 0.8 |
 | **Settling time after the start (s)** | 2 – 30 | 12 | 12 | 25 |
 | **Hold the grid lane at the start** | on / off | off | off | off |
+| **Careful first lap (start and restarts)** | on / off | off | off | on |
 
 #### Yielding (sidebar: **Yielding**)
 
@@ -1499,7 +1507,7 @@ Ticked by default in every profile, Hotlap included. See [Track light panels](#t
 | `drapeau d AC:` | Since Beta 1.34: every change of AC's own race flag while the app does not set it (`1 (depart)`, `2 (jaune)`, `12 (bleu)`…), to check the track light panels in game |
 | `capacite <name>: echec (…)` / `capacite <name>: coupee apres 3 echecs` | Since Beta 1.34: the first failure of a CSP function the app uses, with CSP's error text, and when the app stops using it after three failures (once per launch) |
 | `relance:` / `grille:` / `feux:` | Since Beta 1.34: how a race restarts after a red flag (`relance: depart arrete (SS)`, `relance arretee indisponible (<reason>): depart lance`), the grid (`grille: formation, 12 voitures, 24 places (AC_START)` or `places calculees`, `grille: delai maximal`), the lights (`feux: allumage`, `feux eteints apres 6.4 s: depart`), `faux depart du joueur`, `depart arrete annule: nouvel incident` |
-| `panneaux lumineux du circuit:` | Since Beta 1.32: light panels found in the track configuration or not (`detectes (extension\ext_config.ini)`, `non detectes`; since Beta 1.41 followed by how many files were read and how many includes were not read: not found, outside the track and CSP folders, beyond the limit), then each colour the app shows on them and why (`jaune (drapeau jaune)`, `bleu (drapeau bleu)`, `rendus a AC`) |
+| `panneaux lumineux du circuit:` | Since Beta 1.32: light panels found in the track configuration or not (`detectes (extension\ext_config.ini)`, `non detectes`; since Beta 1.41 followed by how many files were read and how many includes were not read: not found, outside the track and CSP folders, beyond the limit), then each colour the app shows on them and why (`jaune (drapeau jaune)`, `bleu (drapeau bleu)`, `rendus a AC`); since Beta 1.47, `drapeau 5 de l app encore affiche apres restitution, restitution renvoyee` when CSP keeps showing the app's last flag after handing it back, then (WARN) `… remplace par le drapeau de depart d AC` after 3 restores |
 | `vehicule lent devant le joueur` | Since Beta 1.32: white flag; the slow car, its speed and how far ahead of you |
 | `avertissement du joueur` | Since Beta 1.32: your last tolerated infringement (black-and-white flag) |
 | `voiture du joueur endommagee` | Since Beta 1.32: black flag with an orange disc, with the damage read |

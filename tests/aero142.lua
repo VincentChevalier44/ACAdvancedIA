@@ -149,7 +149,8 @@ local function finalScene(lapsLeft,setup,gap,kmh3)
  if setup then setup(e,f) end
  E.changed(e)
  f.sessionLaps=10; f.leaderLaps=10-lapsLeft; f.timedRace=false
- F.place(f,1,-4000,100); F.place(f,2,1000,200); F.place(f,3,1000-(gap or 25)-4.4,kmh3 or 200)
+ -- Beta 1.47 : suiveur nettement d'un côté (condition de la défense).
+ F.place(f,1,-4000,100); F.place(f,2,1000,200); F.place(f,3,1000-(gap or 25)-4.4,kmh3 or 200,0.8)
  -- Relecture 1.42 : tours restants de chaque voiture (même tour que le leader ici).
  for k=1,f.count do f.cars[k].lap=f.leaderLaps end
  return e,f

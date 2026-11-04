@@ -157,7 +157,10 @@ function M.create(native110,options)
  -- Arrêt forcé : admis hors piste (voiture accidentée), jamais au-delà d'une impulsion courte.
  physics.setAIStopCounter=function(index,value) weatherVerify(index); assert(value>=0 and value<=2,'stop pulse'); h.stops[index]=value end
  -- Drapeau du joueur : global, reflété par raceFlagType comme dans CSP.
- physics.overrideRacingFlag=function(flag) assert(not h.sim.isOnlineRace and (h.releasing or not h.sim.isReplayActive and not h.sim.isPaused)); h.flagOverrides=h.flagOverrides+1; h.sim.raceFlagType=flag==0 and h.nativeFlag or flag; h.flag=flag end
+ physics.overrideRacingFlag=function(flag) assert(not h.sim.isOnlineRace and (h.releasing or not h.sim.isReplayActive and not h.sim.isPaused)); h.flagOverrides=h.flagOverrides+1
+  -- Beta 1.47 : h.stickyFlag restitutions ignorées (CSP qui garde la valeur imposée, Monza 17:26).
+  if flag==0 and (h.stickyFlag or 0)>0 then h.stickyFlag=h.stickyFlag-1; h.flag=flag; return end
+  h.sim.raceFlagType=flag==0 and h.nativeFlag or flag; h.flag=flag end
  -- Comme CSP : les écouteurs reçoivent aussi les messages de l'app ; h.blockSwallows : un masquage les leur retire.
  ac.setMessage=function(title,text,kind,time)
   h.messages[#h.messages+1]=title..' | '..text

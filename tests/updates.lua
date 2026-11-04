@@ -667,4 +667,14 @@ tests.UPDATE_SNAPSHOT_CHANGED_137=function()
  end)
  f.restore(); assert(ok,err)
 end
+-- Beta 1.47 : CSP a fait tourner l'ancien code (1.44) alors que le disque portait la 1.45 ; la mise à jour a écrit
+-- « 1.45 -> 1.45 ». Le compte rendu porte la version qui tournait ; le repère garde celle du disque (reprise).
+tests.UPDATE_REPORT_RUNNING_147=function()
+ local u,p=ready({installed='Beta 1.34'})
+ assert(u.installed=='Beta 1.33' and Up.install(u,p,true)); Up.tick(u,p,true,200)
+ assert(find(p.calls,'mark update Beta 1.34 -> Beta 1.34'),'marker: version on disk (recovery)')
+ assert(find(p.calls,'report update Beta 1.33 -> Beta 1.34'),'report: version that was running')
+ u,p=ready({installed='Beta 1.33'}); Up.install(u,p,true); Up.tick(u,p,true,200)
+ assert(find(p.calls,'report update Beta 1.33 -> Beta 1.34') and find(p.calls,'mark update Beta 1.33 -> Beta 1.34'),'same versions: unchanged')
+end
 return tests
