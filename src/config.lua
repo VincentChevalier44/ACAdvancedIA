@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.44',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights','strategy','sanctions'}}
+local M={version=3,release='Beta 1.45',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights','strategy','sanctions'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}

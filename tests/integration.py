@@ -9,6 +9,9 @@ manifest.read(APP/'manifest.ini',encoding='utf-8')
 assert not manifest.has_section('SIM_CALLBACKS') and dict(manifest['UI_CALLBACKS'])=={'in_game':'HUMANAI__HUD'}
 assert manifest['CORE']['LAZY']=='NONE'
 assert 'SETUP' in manifest['WINDOW_0']['FLAGS'].split(',') and manifest['WINDOW_0']['GROUP']=='SETTINGS'
+# Beta 1.45 : ni fond ni marge de CSP autour de la fenêtre (plus de cadre gris), comme SetupLab ; l'app peint tout.
+assert 'NO_BACKGROUND' in manifest['WINDOW_0']['FLAGS'].split(',') and manifest['WINDOW_0'].get('PADDING')=='0,0'
+assert 'background_color' not in manifest['WINDOW_0']
 # Overlay en jeu : plus une fenêtre d'app (Beta 1.25), la fenêtre de réglages reste la seule.
 assert not manifest.has_section('WINDOW_1')
 lua.execute("rawset(_G,'HOST',false)")

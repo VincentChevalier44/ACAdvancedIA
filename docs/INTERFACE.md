@@ -77,3 +77,6 @@ DWrite weight names are CSP's (`ui.DWriteFont.Weight`): Regular is 400 and Ultra
 - One addition to the mockup: the throttle-cut notice (« Throttle cut 5 s (corner cut) »), with the CUT code, like the four other notices.
 - On purpose: the notice never hides one of your flags. It takes the band only when it is free (nothing shown, or green, start, lap or update information). Otherwise the flag stays, and the notice is written on the session line (title · text), as in Beta 1.42.
 
+## Beta 1.45: window edge
+
+The settings window is declared like SetupLab: `FLAGS=MAIN,SETUP,NO_TITLE_BAR,NO_BACKGROUND,NO_SCROLLBAR,NO_SCROLL_WITH_MOUSE` and `PADDING=0,0`, without `BACKGROUND_COLOR`. CSP therefore draws neither its window background nor its padding (the grey frame of Beta 1.44 and earlier); `W.begin` already filled the content area from `ui.getCursor()` over `ui.availableSpace()` with the kit background `#0A0B0E`, which is now the whole window. The layout never depended on the CSP padding: every position is relative to that origin. CSP reads the declaration when the game loads the app, so the change shows from the next game launch.

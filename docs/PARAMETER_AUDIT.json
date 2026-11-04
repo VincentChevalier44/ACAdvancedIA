@@ -1,5 +1,5 @@
 {
-  "version": "Beta 1.44",
+  "version": "Beta 1.45",
   "scope": "Static inventory + UI/storage checks and engine bounds; no physical certification.",
   "globalParameters": [
     {
@@ -9836,7 +9836,7 @@
     "src/calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
     "src/caps.lua": "a16af5366b4e2405fa7ee4d0eb11cf1796693765391ea0cec016923fba395108",
     "src/classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-    "src/config.lua": "f6ef83728b3f6c09ea5d0b7c36654641ea11fd87a1e646702d696c0a41947db9",
+    "src/config.lua": "664aa9f599c7fd1c453b250458f9c63860c591e085ff03ed2c0d70db2d1714a2",
     "src/cspgui.lua": "3febc6bfeebda74b2f0f356e008a6f2d0724cfb0f15d7e5bd475860b6a9cce21",
     "src/delta.lua": "fb7110d08c5e1b65d90f1c89f5bff8d2aafc0b5ce0f1a359f120387d8737abff",
     "src/director.lua": "6dd219e0591c6af5309f99e63a43f990b8a789e5e2b1e45bb7e4f5855bef63a0",

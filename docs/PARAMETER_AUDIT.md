@@ -1,4 +1,4 @@
-# Settings and functions inventory Beta 1.44
+# Settings and functions inventory Beta 1.45
 
 This inventory links every declared parameter to its consumers. A static reference shows a connection, not proof of a physical result. The `PARAMETER_BOUNDARY_ENGINE` tests and the two full walks through the interface complete this trace.
 

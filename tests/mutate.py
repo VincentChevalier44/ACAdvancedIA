@@ -1487,6 +1487,9 @@ MUTATIONS = [
     ('1.44 sortie des stands non notée', 'src/merge.lua', '  if c.wasPit and not a.pit and not a.teleport then c.exitAt=now end\n', '', 'MERGE_EXITED_CAR_NOT_TRAFFIC_144'),
     ('1.44 instant de sortie non recalé', 'src/engine.lua', '; Merge.rebase(e.merge,amount)', '', 'MERGE_EXITED_CAR_NOT_TRAFFIC_144'),
     ('1.44 véhicule lent à la hauteur du joueur', 'src/lights.lua', ' local nearest=j==l.slowSlot and -K.slowVehicleBehind or K.slowVehicleAhead\n', ' local nearest=-K.slowVehicleBehind\n', 'SLOW_VEHICLE_NOT_ALONGSIDE_144'),
+    ('1.45 fond de CSP revenu autour des réglages', 'manifest.ini', 'NO_TITLE_BAR,NO_BACKGROUND,', 'NO_TITLE_BAR,', 'WINDOW_EDGE_145'),
+    ('1.45 marge de CSP revenue autour des réglages', 'manifest.ini', 'PADDING=0,0\n', '', 'WINDOW_EDGE_145'),
+    ('1.45 couleur de fond de CSP revenue', 'manifest.ini', 'GROUP=SETTINGS\n', 'GROUP=SETTINGS\nBACKGROUND_COLOR=SETUP\n', 'WINDOW_EDGE_145'),
 ]
 
 def run(root, name):

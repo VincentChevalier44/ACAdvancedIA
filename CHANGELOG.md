@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta 1.45 — 4 November 2026
+
+No grey frame around the settings window any more: the window has no CSP background or padding, like SetupLab, and the app paints its dark background edge to edge.
+
+- **Window**: `manifest.ini` `[WINDOW_0]` gains `NO_BACKGROUND` and `PADDING=0,0`, and loses `BACKGROUND_COLOR=SETUP`. Nothing else changes: same size, minimum size, settings group, no title bar, no scroll bar.
+- **When it shows**: CSP reads the window declaration when the game loads the app (`App is loaded … windows: 1` in `custom_shaders_patch.log`); the restart after an in-app update only reloads the script. After updating from the app, the window keeps its old frame until the next game launch.
+
+**Verification**: 588 checks; 124 integration cases; 1,444 mutations, all detected; clean lint, parameter audit; the reference scenes identical to Beta 1.44 and the end-to-end race scene too; 8-hour soak with 0 errors (memory between 7.1 and 7.9 MB, peak frame 3.51 ms); engine bench, median of five alternating runs, 9 / 30 / 60 AI: 0.063 / 0.299 / 0.776 ms (Beta 1.44: 0.065 / 0.285 / 0.731 ms); long track (60.6 km, 46 AI): 0.286 ms, P99 0.624 ms (Beta 1.44: 0.311 ms, P99 0.786 ms).
+
 ## Beta 1.44 — 4 November 2026
 
 The AI no longer stays behind you when you slow down or move aside to let it by (practice, qualifying and track day).

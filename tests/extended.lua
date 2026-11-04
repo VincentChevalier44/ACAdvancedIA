@@ -3602,6 +3602,16 @@ tests.NO_TITLE_BAR=function()
  -- Beta 1.25 : l'overlay en jeu n'est plus une fenêtre d'app mais le rappel IN_GAME (fenêtre transparente dessinée).
  assert(windows==1 and text:find('\n%[UI_CALLBACKS%]%s*\r?\nIN_GAME=HUMANAI__HUD'),'settings window only, overlay drawn in game')
 end
+-- Beta 1.45 : fenêtre de réglages sans fond ni marge de CSP (plus de cadre gris autour), comme SetupLab ; W.begin
+-- peint le fond de l'app sur toute la fenêtre.
+tests.WINDOW_EDGE_145=function()
+ local root=package.path:match('^([^;]+)/%?%.lua'); local file=assert(openFile(root..'/manifest.ini','rb')); local text=file:read('*a'); file:close()
+ local w=text:match('%[WINDOW_0%][^\n]*\n(.-)\r?\n%s*\r?\n'); assert(w,'settings window section')
+ local flags=w:match('FLAGS=([^\r\n]*)') or ''
+ assert((','..flags..','):find(',NO_BACKGROUND,',1,true),'no CSP background: '..flags)
+ assert(w:find('PADDING=0,0',1,true),'no CSP padding')
+ assert(not w:find('BACKGROUND_COLOR=',1,true),'no CSP background colour')
+end
 -- Beta 1.11 : drapeaux et pénalités natifs d'AC repris par le panneau (affichage d'origine masqué dans CSP), y compris
 -- onglet Règles décoché et app à l'arrêt ; le jaune imposé par l'app n'est jamais repris comme drapeau du jeu.
 tests.NATIVE_FLAGS_MIRRORED=function()
