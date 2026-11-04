@@ -1,5 +1,16 @@
 # Changelog
 
+## Beta 1.46 — 4 November 2026
+
+Companion-app bridge for SpotterEnginer, inactive unless SpotterEnginer is installed.
+
+- **Bridge**: when `apps/lua/SpotterEnginer/manifest.ini` exists (checked once at launch), the app opens two shared structures (`ac.connect`, layout v1 in `src/bridge_layout.lua`, identical in both apps) and copies its engine state into them every frame, read only. SpotterEnginer reads them to speak flags, neutralisations, the delta, penalties, the pit window and the AI sanctions and stops.
+- **Without SpotterEnginer**: nothing is opened or computed; one journal line « pont des apps compagnes: SpotterEnginer absent, pont inactif ». The AI, the windows and the overlay behave exactly as in Beta 1.45.
+- **Isolation**: the bridge never writes into the engine; an error in it closes the bridge alone (one journal line), never the engine or the interface; it is closed when the app unloads.
+- **Dev tools**: `tests/devtools.py install` now gives copied files a fresh modification time (CSP kept running Beta 1.44 code after a 1.45 install that preserved the old dates).
+
+**Verification**: 588 checks; 125 integration cases; 1,453 mutations, all detected; clean lint, parameter audit; the reference scenes identical to Beta 1.45 and the end-to-end race scene too; 8-hour soak with 0 errors (memory between 9.5 and 10.6 MB, peak frame 0.85 ms); engine bench, median of five alternating runs, 9 / 30 / 60 AI: 0.055 / 0.254 / 0.647 ms (Beta 1.45: 0.055 / 0.260 / 0.652 ms); long track (60.6 km, 46 AI): 0.306 ms, P99 0.713 ms (Beta 1.45: 0.301 ms, P99 0.713 ms); companion bridge with SpotterEnginer installed: 0.006 / 0.010 / 0.040 ms per frame (9 / 30 / 60 AI), none without it.
+
 ## Beta 1.45 — 4 November 2026
 
 No grey frame around the settings window any more: the window has no CSP background or padding, like SetupLab, and the app paints its dark background edge to edge.

@@ -1141,4 +1141,43 @@ function M.recover(a,frame)
   end
  end
 end
+-- Pont vers les apps compagnes (Beta 1.46, SpotterEnginer, src/bridge.lua). App lectrice installée : dossier
+-- apps/lua/<nom> avec son manifest.ini, lu une fois au lancement ; toute erreur vaut « absente » (pont jamais ouvert).
+function M.companionInstalled(name)
+ if type(name)~='string' or not name:match('^[%w_%-]+$') then return false end
+ local ok,yes=pcall(function()
+  if not ac or not callable(ac.getFolder) or type(ac.FolderID)~='table' or not ac.FolderID.ACAppsLua then return false end
+  if not io or not callable(io.fileExists) then return false end
+  local root=ac.getFolder(ac.FolderID.ACAppsLua)
+  if type(root)~='string' or root=='' then return false end
+  return io.fileExists(root..'\\'..name..'\\manifest.ini')==true
+ end)
+ return ok and yes==true
+end
+-- Deux structures partagées entre apps Lua (ac.connect), décrites par src/bridge_layout.lua ; la clé de chacune (champ
+-- « key ») évite toute collision. Sans ac.connect (autre version de CSP, bancs de mesure) : nil et la raison, rien n'est
+-- publié.
+local function bridgeItem(f)
+ local S=ac.StructItem; local kind=f[2]
+ if kind=='bool' then return S.boolean() elseif kind=='int' then return S.int32() elseif kind=='uint' then return S.uint32()
+ elseif kind=='float' then return S.float() elseif kind=='double' then return S.double() elseif kind=='string' then return S.string(f[3]) end
+ error('pont: type inconnu '..tostring(kind),0)
+end
+local function bridgeStruct(key,list)
+ local t={}
+ if key then t.key=ac.StructItem.key(key) end
+ for k=1,#list do t[list[k][1]]=bridgeItem(list[k]) end
+ return t
+end
+function M.bridgeOpen(layout)
+ if not ac or not callable(ac.connect) or type(ac.StructItem)~='table' or type(layout)~='table' then return nil,'ac.connect absent' end
+ local ok,port=pcall(function()
+  local hello=ac.connect(bridgeStruct(layout.helloKey,layout.hello))
+  local data=bridgeStruct(layout.dataKey,layout.fields)
+  data.cars=ac.StructItem.array(ac.StructItem.struct(bridgeStruct(nil,layout.car)),layout.maxCars)
+  return {hello=hello,data=ac.connect(data)}
+ end)
+ if ok and type(port)=='table' and port.hello and port.data then return port end
+ return nil,tostring(port):sub(1,160)
+end
 return M

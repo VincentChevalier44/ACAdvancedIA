@@ -239,6 +239,12 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 - `ac.getFolder(ac.FolderID.Logs)` gives `Documents/Assetto Corsa/logs`. The app writes there with `io.open(path, 'a')` every two seconds (small appends, never a complete rewrite), after an `io.fileExists` / `io.move` rotation on the first cycle of a game launch (since 1.8.0, a marker in `ac.store` makes it continue the same file after an app reload). `os.date` timestamps the lines. If `io.open` is missing or fails three times, the log switches off with no effect on the engine.
 - The CSP and AC logs are truncated when they exceed their maximum size, often as soon as a 30-car grid is loaded: they then do not cover the race. The app's log is independent of this limit.
 
+## Beta 1.46: companion-app bridge (`ac.connect`)
+
+- `ac.connect(layout)` (`common/ac_extras_connect.lua`) creates a shared structure between Lua scripts of the session; both sides must pass exactly the same layout. The layout lives in `src/bridge_layout.lua`, byte-identical in ACAdvancedIA and SpotterEnginer; a field named `key` holds `ac.StructItem.key(...)` to avoid collisions; types used: `boolean`, `int32`, `uint32`, `float`, `double`, `string(capacity)`, and an `array(struct(...), 61)` for the cars.
+- Opened by `Applier.bridgeOpen` only when `Applier.companionInstalled('SpotterEnginer')` finds `apps/lua/SpotterEnginer/manifest.ini` (`ac.getFolder(ac.FolderID.ACAppsLua)` and `io.fileExists`, once at launch, inside `pcall`). Without it, `ac.connect` is never called.
+- Publishing (`src/bridge.lua`) is pure Lua, read only, run once per frame after `update()` inside `pcall`; strings are written only when they change, cut at their capacity on a UTF-8 boundary.
+
 ## Beta 1.42: AI strategy and sanctions
 
 - `physics.setAIThrottleLimit(index, limit)` (0 to 1): the throttle cut of a sanction, dirty air and failures. The app lowers it gradually (never below 0.3), writes it once per change, returns exactly 1 when the limit comes back above 0.99, and gives it back when the car is not driven (pits, off track, release). After a reload on error, every recovered car gets its throttle back.

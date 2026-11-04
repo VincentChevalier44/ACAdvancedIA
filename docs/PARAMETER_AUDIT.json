@@ -1,5 +1,5 @@
 {
-  "version": "Beta 1.45",
+  "version": "Beta 1.46",
   "scope": "Static inventory + UI/storage checks and engine bounds; no physical certification.",
   "globalParameters": [
     {
@@ -2984,6 +2984,8 @@
         "C": 5
       },
       "consumers": [
+        "src/bridge.lua:138",
+        "src/bridge_layout.lua:49",
         "src/engine.lua:772",
         "src/groups.lua:36",
         "src/lang_en.lua:167",
@@ -3011,6 +3013,7 @@
         "C": 5
       },
       "consumers": [
+        "src/bridge.lua:142",
         "src/engine.lua:739",
         "src/engine.lua:754",
         "src/engine.lua:758",
@@ -3456,6 +3459,8 @@
         "C": 0
       },
       "consumers": [
+        "src/bridge.lua:153",
+        "src/bridge_layout.lua:57",
         "src/engine.lua:819",
         "src/engine.lua:822",
         "src/groups.lua:63",
@@ -3600,6 +3605,8 @@
         "C": 0
       },
       "consumers": [
+        "src/bridge.lua:153",
+        "src/bridge_layout.lua:58",
         "src/groups.lua:64",
         "src/lang_en.lua:172",
         "src/lang_en.lua:279",
@@ -3622,6 +3629,8 @@
         "C": 0
       },
       "consumers": [
+        "src/bridge.lua:153",
+        "src/bridge_layout.lua:57",
         "src/groups.lua:64",
         "src/lang_en.lua:172",
         "src/lang_en.lua:279",
@@ -3674,6 +3683,8 @@
         "C": "open"
       },
       "consumers": [
+        "src/bridge.lua:122",
+        "src/bridge_layout.lua:37",
         "src/engine.lua:811",
         "src/engine.lua:862",
         "src/groups.lua:65",
@@ -4454,7 +4465,7 @@
         "C": 1.5
       },
       "consumers": [
-        "ACAdvancedIA.lua:413",
+        "ACAdvancedIA.lua:419",
         "src/applier.lua:465",
         "src/applier.lua:495",
         "src/applier.lua:496",
@@ -5181,172 +5192,187 @@
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 98,
+      "line": 99,
       "name": "announce"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 112,
+      "line": 113,
       "name": "dirty"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 120,
+      "line": 121,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 128,
+      "line": 129,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 131,
+      "line": 132,
       "name": "cspLog"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 136,
+      "line": 137,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 145,
+      "line": 146,
       "name": "cspStep"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 164,
+      "line": 165,
       "name": "writeJournal"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 176,
+      "line": 177,
       "name": "cancelProbe"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 177,
+      "line": 178,
       "name": "syncRestored"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 187,
+      "line": 188,
       "name": "anyOwned"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 192,
+      "line": 193,
       "name": "step"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 198,
+      "line": 199,
       "name": "stop"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 204,
+      "line": 205,
       "name": "saveRace"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 213,
+      "line": 218,
       "name": "release"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 231,
+      "line": 237,
       "name": "updateLog"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 235,
+      "line": 241,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 250,
+      "line": 256,
       "name": "startProbe"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 251,
+      "line": 257,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 279,
+      "line": 285,
       "name": "session"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 288,
+      "line": 294,
       "name": "lightsCheck"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 295,
+      "line": 301,
       "name": "update"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 321,
+      "line": 327,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 322,
+      "line": 328,
       "name": "(anonymous)"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 426,
+      "line": 432,
       "name": "updateTick"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 446,
+      "line": 452,
       "name": "protect"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 462,
+      "line": 482,
+      "name": "bridgeWork"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 483,
+      "name": "bridgeStep"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 492,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "ACAdvancedIA.lua",
+      "line": 493,
       "name": "script.HUMANAI__UPDATE"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 485,
+      "line": 517,
       "name": "script.update"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 486,
+      "line": 518,
       "name": "script.HUMANAI__MENU"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 489,
+      "line": 521,
       "name": "protectUI"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 503,
+      "line": 535,
       "name": "timedUI"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 518,
+      "line": 550,
       "name": "script.HUMANAI__MAIN"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 530,
+      "line": 562,
       "name": "script.HUMANAI__FLAGS"
     },
     {
       "file": "ACAdvancedIA.lua",
-      "line": 532,
+      "line": 564,
       "name": "script.HUMANAI__HUD"
     },
     {
@@ -5958,6 +5984,111 @@
       "file": "src/applier.lua",
       "line": 1120,
       "name": "M.recover"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 1146,
+      "name": "M.companionInstalled"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 1148,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 1160,
+      "name": "bridgeItem"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 1166,
+      "name": "bridgeStruct"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 1172,
+      "name": "M.bridgeOpen"
+    },
+    {
+      "file": "src/applier.lua",
+      "line": 1174,
+      "name": "(anonymous)"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 15,
+      "name": "finite"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 16,
+      "name": "num"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 17,
+      "name": "int"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 18,
+      "name": "bool"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 20,
+      "name": "index"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 22,
+      "name": "left"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 24,
+      "name": "fit"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 30,
+      "name": "M.new"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 35,
+      "name": "text"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 40,
+      "name": "code"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 42,
+      "name": "M.beat"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 48,
+      "name": "M.close"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 49,
+      "name": "cars"
+    },
+    {
+      "file": "src/bridge.lua",
+      "line": 87,
+      "name": "M.publish"
+    },
+    {
+      "file": "src/bridge_layout.lua",
+      "line": 84,
+      "name": "L.code"
     },
     {
       "file": "src/calibration.lua",
@@ -9831,12 +9962,14 @@
     }
   ],
   "sources": {
-    "ACAdvancedIA.lua": "412ed51fe685bb2c52d582adb9243ac052ecfcacab5865a22ec19e392c69ea8c",
-    "src/applier.lua": "b1a24fc049d81e524a11f39c02abd302c4ceb286b0bd9c5494659434255c30a7",
+    "ACAdvancedIA.lua": "d960e97be68427e0ce9b88dd3034b757e5a056eaae3c2c6c8ccaf7106b38b469",
+    "src/applier.lua": "1a3789809cc48d86afb6fca670f347b4c8c157c760551d90a781c3cfec58681d",
+    "src/bridge.lua": "015517e1588f39d314f5cf2cb1c28a14ce8cb471c6a41548ae09c2935f4272a8",
+    "src/bridge_layout.lua": "9e5f5dcd3e4eb486fc5107925a4130756959585ee941c2f518c241647f23357f",
     "src/calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
     "src/caps.lua": "a16af5366b4e2405fa7ee4d0eb11cf1796693765391ea0cec016923fba395108",
     "src/classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-    "src/config.lua": "664aa9f599c7fd1c453b250458f9c63860c591e085ff03ed2c0d70db2d1714a2",
+    "src/config.lua": "12b70680d5bee873b024181e8272281489e70166010e69a1488c77521d8b9311",
     "src/cspgui.lua": "3febc6bfeebda74b2f0f356e008a6f2d0724cfb0f15d7e5bd475860b6a9cce21",
     "src/delta.lua": "fb7110d08c5e1b65d90f1c89f5bff8d2aafc0b5ce0f1a359f120387d8737abff",
     "src/director.lua": "6dd219e0591c6af5309f99e63a43f990b8a789e5e2b1e45bb7e4f5855bef63a0",

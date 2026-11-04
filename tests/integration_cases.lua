@@ -2562,5 +2562,68 @@ return function(source)
   e.hud.aiUntil=e.time-1; draw('none'); assert(not has(HOST.panelTexts,'Marco Weber'),'gone after its time')
   pause(false); HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
  end)
+ -- Beta 1.46 : pont des apps compagnes (SpotterEnginer). Absent : rien d'ouvert ni de calculé, commandes identiques ;
+ -- présent : structures ouvertes et publiées ; erreur : pont coupé seul ; déchargement : pont fermé.
+ check('Beta 1.46 : pont des apps compagnes inactif sans SpotterEnginer, ouvert avec, coupé sur erreur, fermé au déchargement',function()
+  local B=require('src/bridge'); local beat0,pub0=B.beat,B.publish
+  local beats,pubs=0,0
+  B.beat=function(...) beats=beats+1; return beat0(...) end
+  B.publish=function(...) pubs=pubs+1; return pub0(...) end
+  local connected={}
+  local function fakeStruct()
+   local SI={}
+   for _,k in ipairs({'boolean','int32','uint32','float','double'}) do SI[k]=function() return {kind=k} end end
+   SI.string=function(n) return {kind='string',cap=n} end
+   SI.key=function(s) return {kind='key',value=s} end
+   SI.struct=function(f) return {kind='struct',fields=f} end
+   SI.array=function(e,n) return {kind='array',elem=e,size=n} end
+   local function make(d)
+    if d.kind=='struct' then local o={}; for name,f in pairs(d.fields) do if f.kind~='key' then o[name]=make(f) end end; return o
+    elseif d.kind=='array' then local a={}; for i=0,d.size-1 do a[i]=make(d.elem) end; return a
+    elseif d.kind=='string' then return '' elseif d.kind=='boolean' then return false end
+    return 0
+   end
+   ac.StructItem=SI
+   ac.connect=function(layout) local o=make({kind='struct',fields=layout}); connected[#connected+1]=o; return o end
+  end
+  local function logged(prefix)
+   local q=HUMANAI.engine.log
+   for k=1,q.limit do local r=q[k]; if r and type(r.message)=='string' and r.message:sub(1,#prefix)==prefix then return true end end
+   return false
+  end
+  local function launch(present)
+   if HUMANAI then HUMANAI.release() end
+   HOST=H.create(true); connected={}; beats=0; pubs=0; fakeStruct()
+   ac.FolderID.ACAppsLua=1029; local getFolder=ac.getFolder
+   ac.getFolder=function(id) if id==1029 then return 'appslua' end return getFolder(id) end
+   if present then local sep=string.char(92); HOST.files['appslua'..sep..'SpotterEnginer'..sep..'manifest.ini']='[ABOUT]' end
+   assert(loadstring(source))()
+  end
+  -- Absent : aucune structure partagée, aucun travail du pont à chaque image.
+  launch(false); H.tick(HOST,3)
+  assert(#connected==0 and beats==0 and pubs==0 and HUMANAI.bridgePort()==nil,'absent: nothing opened or computed')
+  assert(logged('pont des apps compagnes: SpotterEnginer absent, pont inactif'),'absent: one journal line')
+  local callsAbsent,timeAbsent=HOST.calls,HUMANAI.engine.time
+  -- Présent : deux structures (hello, data), battement et état publiés à chaque image ; commandes identiques.
+  launch(true); H.tick(HOST,3)
+  local port=HUMANAI.bridgePort()
+  assert(port and #connected==2 and beats>0 and pubs==beats,'present: opened and published every frame')
+  assert(logged('pont des apps compagnes: ouvert (version 1)'),'present: journal line')
+  local hello,data=connected[1],connected[2]
+  assert(hello.bridgeVersion==1 and hello.release==C.release and hello.heartbeat==beats and hello.closed==false,'hello fields')
+  assert(data.serial==pubs and data.carCount>0 and data.cars[0].valid==true and data.profile==HUMANAI.engine.profile,'data fields')
+  assert(HOST.calls==callsAbsent and HUMANAI.engine.time==timeAbsent,'present: same commands as absent')
+  -- Déchargement : pont fermé, plus rien publié.
+  HUMANAI.release(); assert(hello.closed==true and HUMANAI.bridgePort()==nil,'release closes the bridge')
+  -- Erreur de publication : pont coupé seul, une ligne au journal, moteur intact.
+  launch(true); H.tick(HOST,1); hello=connected[1]
+  B.publish=function() error('boom') end
+  H.tick(HOST,2)
+  assert(HUMANAI.bridgePort()==nil and hello.closed==true and logged('pont des apps compagnes coupe: '),'error cuts the bridge only')
+  assert(not HUMANAI.engine.panic and HUMANAI.host.errors==0,'engine unaffected by a bridge error')
+  local b0=beats; H.tick(HOST,1); assert(beats==b0,'nothing more after the cut')
+  B.beat,B.publish=beat0,pub0; ac.connect=nil; ac.StructItem=nil
+  HUMANAI.release()
+ end)
  return results
 end

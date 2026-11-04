@@ -89,7 +89,10 @@ def install(stage, baseline, current, new):
         src, dst = Path(stage) / rel, LIVE / rel
         if src.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
+            # Date de modification neuve : CSP a gardé l'ancien code de la 1.44 après une copie qui conservait
+            # les dates (shutil.copy2) ; le contenu est copié, la date est celle de la copie.
+            shutil.copyfile(src, dst)
+            os.utime(dst, None)
             print('COPIE ' + rel)
         elif dst.exists():
             dst.unlink()

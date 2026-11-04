@@ -47,6 +47,7 @@ ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP
   - [Front radar and the other global options](#front-radar-and-the-other-global-options)
   - [In-game overlay](#in-game-overlay)
   - [Track light panels](#track-light-panels)
+  - [Companion apps (SpotterEnginer bridge)](#companion-apps-spotterenginer-bridge)
   - [Beeps](#beeps)
   - [Custom presets](#custom-presets)
   - [Track zones and class patterns](#track-zones-and-class-patterns)
@@ -941,6 +942,14 @@ Since Beta 1.37 the panels have their own section, **SETTINGS › RACE & SAFETY 
 - **AC's own display.** If AC's flags are shown (not hidden in CSP), its flag icon also shows the yellow, blue and green of the panels; the window says so. The **AC native yellow flag on the HUD** preference still applies on a track that is not equipped, or with the section unticked for the profile in use (it is greyed otherwise).
 - **Fixed in Beta 1.34.** In your Imola session on Beta 1.32, the panels never lit: AC keeps its own start flag up for a long time (the whole session in hotlap), and the app refused to write over it, without a word in the log. The start flag no longer blocks the panels. Every wanted colour that cannot be written is now logged once with its cause (`panneaux lumineux du circuit: jaune voulu, non ecrit (drapeau natif 12)`, `capacite missing`, `echec: …`), and every change of AC's own flag is logged (`drapeau d AC: 1 (depart)`). The track configuration is now also read when no section is ticked.
 - **Not confirmed in game yet.** The SDK marks the slippery (3) and slow vehicle (6) values as *does not work yet* for AC's own display; whether the panels show them, and red (5), is to be checked in game.
+
+### Companion apps (SpotterEnginer bridge)
+
+ACAdvancedIA can share its live state with a companion app, today **SpotterEnginer** (voice spotter and race engineer).
+
+- **Only when SpotterEnginer is installed**: at launch the app checks once for `apps/lua/SpotterEnginer/manifest.ini`. If it is absent, nothing is opened or computed and the journal says `pont des apps compagnes: SpotterEnginer absent, pont inactif`; ACAdvancedIA behaves exactly as without the bridge.
+- **When it is installed**: two shared structures are opened with `ac.connect` (`ACAdvancedIA.Bridge.Hello` and `ACAdvancedIA.Bridge.Data.v1`, layout in `src/bridge_layout.lua`, identical in both apps) and the engine state is copied into them every frame, read only: flags and neutralisations, the delta, the player's penalties, the pit window, the AI sanctions and stops. Journal: `pont des apps compagnes: ouvert (version 1)`.
+- **Isolation**: the bridge never writes into the engine, the commands or the settings; an error in it closes the bridge alone (`pont des apps compagnes coupe: …`), and it is closed when the app unloads, so the reader sees ACAdvancedIA as absent at once.
 
 ### Beeps
 

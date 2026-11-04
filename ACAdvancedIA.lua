@@ -68,6 +68,7 @@ local Journal=require('src/journal')
 local Locale=require('src/locale')
 local Lights=require('src/lights')
 local Cspgui=require('src/cspgui')
+local Bridge=require('src/bridge')
 local K=Config.K
 -- Cache des traces du compilateur JIT agrandi (machine virtuelle de l'app) : avec les 1 000 traces et 512 Ko de code
 -- machine par défaut, le moteur vide et recompile tout son code toutes les une à deux minutes (pics d'image). Sans
@@ -210,8 +211,13 @@ local function saveRace(force)
  if engine.strategy.dirty then engine.strategy.dirty=false; Applier.storeText('humanai:strategy',Strategy.serialize(engine.strategy,frame.session)) end
  if engine.sanctions.dirty then engine.sanctions.dirty=false; Applier.storeText('humanai:sanctions',Sanctions.serialize(engine.sanctions,frame.session)) end
 end
+-- Pont vers les apps compagnes (Beta 1.46, src/bridge.lua) : ouvert plus bas seulement si l'app lectrice est installée ;
+-- fermé au déchargement (les lecteurs passent à « absent » aussitôt).
+local bridge,bridgePort=nil,nil
+local companion='SpotterEnginer'
 local function release()
  if released then return end
+ if bridgePort then pcall(Bridge.close,bridge,bridgePort.hello); bridgePort=nil end
  -- Aucune image ne suivra : restitution complète, y compris en pause ou en replay.
  released=true; Snapshot.read(frame,K.dtMax,engine.time); pcall(saveRace,true); Applier.access(host); stop(true); Applier.unregister(host)
  pcall(Applier.reportCaps,host)
@@ -459,6 +465,31 @@ local booted=false
 local bootEngine,bootUI=0,0
 if port.unreadable then U.log(engine.log,0,'ERROR','mise a jour: module illisible, app chargee sans mise a jour ('..port.unreadable..')',-1) end
 HUMANAI={engine=engine,host=host,release=release,updater=updater,port=port,panel=panel}
+-- Pont vers les apps compagnes (Beta 1.46) : seulement si SpotterEnginer est installé (dossier apps/lua/SpotterEnginer et
+-- son manifest.ini, lus une fois au lancement), l'état du moteur est recopié à chaque image dans une structure partagée
+-- (ac.connect), après update(), même moteur arrêté (pause, replay, en ligne, app coupée : la raison est publiée). Sans
+-- lui : rien n'est ouvert ni calculé, une ligne au journal. Lecture seule du moteur ; une erreur coupe le pont seul (une
+-- ligne au journal), jamais le moteur ni l'interface.
+if Applier.companionInstalled(companion) then
+ local why
+ bridge=Bridge.new(Config.release)
+ bridgePort,why=Applier.bridgeOpen(Bridge.layout)
+ U.log(engine.log,0,'INFO',bridgePort and string.format('pont des apps compagnes: ouvert (version %d)',Bridge.layout.version) or 'pont des apps compagnes: indisponible ('..tostring(why)..')',-1)
+else
+ U.log(engine.log,0,'INFO','pont des apps compagnes: '..companion..' absent, pont inactif',-1)
+end
+-- Une seule fonction pour l'appel protégé : rien n'est créé à chaque image.
+local function bridgeWork() Bridge.beat(bridge,bridgePort.hello); Bridge.publish(bridge,bridgePort.data,engine,frame) end
+local function bridgeStep()
+ if released or not bridgePort then return end
+ local ok,err=pcall(bridgeWork)
+ if not ok then
+  pcall(Bridge.close,bridge,bridgePort.hello); bridgePort=nil
+  U.log(engine.log,engine.time or 0,'ERROR','pont des apps compagnes coupe: '..tostring(err):sub(1,200),-1)
+ end
+end
+-- Tests : port du pont (nil sans app lectrice, ou après une erreur ou le déchargement).
+HUMANAI.bridgePort=function() return bridgePort end
 function script.HUMANAI__UPDATE(dt)
  local before=Applier.clock(host)
  local ran=protect(update,dt)
@@ -474,6 +505,7 @@ function script.HUMANAI__UPDATE(dt)
   local okCsp,errCsp=pcall(cspStep,dt)
   if not okCsp then csp.writable=false; host.errors=host.errors+1; U.log(engine.log,engine.time,'ERROR','options CSP: '..tostring(errCsp):sub(1,200),-1) end
  end
+ bridgeStep()
  local after=before and Applier.clock(host)
  if after then
   local cost=math.max(0,after-before)*1000

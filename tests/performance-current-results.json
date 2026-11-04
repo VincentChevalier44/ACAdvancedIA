@@ -1,44 +1,46 @@
 {
-  "version": "Beta 1.45",
+  "version": "Beta 1.46",
   "profiling": false,
   "results": [
     {
+      "frames": 30000,
       "errors": 0,
       "ai": 9,
-      "meanMs": 0.08415657987740512,
-      "p99Ms": 0.32510003075003624,
-      "peakMs": 3.5934000043198466,
+      "meanMs": 0.0557746966893319,
+      "p99Ms": 0.1417000312358141,
+      "peakMs": 0.542099995072931,
       "vmstates": {},
-      "stacks": {},
-      "frames": 30000
+      "stacks": {}
     },
     {
+      "frames": 30000,
       "errors": 0,
       "ai": 30,
-      "meanMs": 0.3048191464622505,
-      "p99Ms": 0.797600019723177,
-      "peakMs": 3.3754000323824584,
+      "meanMs": 0.26506355665818165,
+      "p99Ms": 0.5738000036217272,
+      "peakMs": 2.655500022228807,
       "vmstates": {},
-      "stacks": {},
-      "frames": 30000
+      "stacks": {}
     },
     {
+      "frames": 30000,
       "errors": 0,
       "ai": 60,
-      "meanMs": 0.7717521733371541,
-      "p99Ms": 1.585699967108667,
-      "peakMs": 2.8113999869674444,
+      "meanMs": 0.6166789866460022,
+      "p99Ms": 1.184099994134158,
+      "peakMs": 8.05989996297285,
       "vmstates": {},
-      "stacks": {},
-      "frames": 30000
+      "stacks": {}
     }
   ],
   "sources": {
-    "applier.lua": "b1a24fc049d81e524a11f39c02abd302c4ceb286b0bd9c5494659434255c30a7",
+    "applier.lua": "1a3789809cc48d86afb6fca670f347b4c8c157c760551d90a781c3cfec58681d",
+    "bridge.lua": "015517e1588f39d314f5cf2cb1c28a14ce8cb471c6a41548ae09c2935f4272a8",
+    "bridge_layout.lua": "9e5f5dcd3e4eb486fc5107925a4130756959585ee941c2f518c241647f23357f",
     "calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
     "caps.lua": "a16af5366b4e2405fa7ee4d0eb11cf1796693765391ea0cec016923fba395108",
     "classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-    "config.lua": "664aa9f599c7fd1c453b250458f9c63860c591e085ff03ed2c0d70db2d1714a2",
+    "config.lua": "12b70680d5bee873b024181e8272281489e70166010e69a1488c77521d8b9311",
     "cspgui.lua": "3febc6bfeebda74b2f0f356e008a6f2d0724cfb0f15d7e5bd475860b6a9cce21",
     "delta.lua": "fb7110d08c5e1b65d90f1c89f5bff8d2aafc0b5ce0f1a359f120387d8737abff",
     "director.lua": "6dd219e0591c6af5309f99e63a43f990b8a789e5e2b1e45bb7e4f5855bef63a0",

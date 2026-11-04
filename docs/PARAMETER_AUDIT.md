@@ -1,4 +1,4 @@
-# Settings and functions inventory Beta 1.45
+# Settings and functions inventory Beta 1.46
 
 This inventory links every declared parameter to its consumers. A static reference shows a connection, not proof of a physical result. The `PARAMETER_BOUNDARY_ENGINE` tests and the two full walks through the interface complete this trace.
 
@@ -128,8 +128,8 @@ This inventory links every declared parameter to its consumers. A static referen
 | accidents | `deltaBeeps` — Delta: beeps | boolean | true / true / true / true | src/engine.lua:646, src/groups.lua:35, src/lang_en.lua:166, src/tips_en.lua:173 |
 | accidents | `playerPenalties` — Player penalties under flags | boolean | false / true / true / true | src/engine.lua:890, src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:77, src/penalties.lua:78, src/tips_en.lua:171 |
 | accidents | `deltaTolerance` — Delta: mini-sector tolerance (s) | 0 to 1 | 0.5 / 0.5 / 0.5 / 0.5 | src/delta.lua:137, src/groups.lua:36, src/lang_en.lua:167, src/tips_en.lua:172 |
-| accidents | `penaltySeconds` — Penalty: throttle cut (s) | 2 to 15 | 5 / 5 / 5 / 5 | src/engine.lua:772, src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:80, src/penalties.lua:81, src/penalties.lua:83, src/penalties.lua:87, src/penalties.lua:118, src/penalties.lua:128, src/penalties.lua:145, src/tips_en.lua:174 |
-| accidents | `penaltyDisqualify` — Offences allowed before disqualification | 1 to 20 | 5 / 5 / 5 / 5 | src/engine.lua:739, src/engine.lua:754, src/engine.lua:758, src/engine.lua:772, src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:53, src/penalties.lua:144, src/sanctions.lua:145, src/sanctions.lua:148, src/sanctions.lua:153, src/tips_en.lua:169 |
+| accidents | `penaltySeconds` — Penalty: throttle cut (s) | 2 to 15 | 5 / 5 / 5 / 5 | src/bridge.lua:138, src/bridge_layout.lua:49, src/engine.lua:772, src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:80, src/penalties.lua:81, src/penalties.lua:83, src/penalties.lua:87, src/penalties.lua:118, src/penalties.lua:128, src/penalties.lua:145, src/tips_en.lua:174 |
+| accidents | `penaltyDisqualify` — Offences allowed before disqualification | 1 to 20 | 5 / 5 / 5 / 5 | src/bridge.lua:142, src/engine.lua:739, src/engine.lua:754, src/engine.lua:758, src/engine.lua:772, src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:53, src/penalties.lua:144, src/sanctions.lua:145, src/sanctions.lua:148, src/sanctions.lua:153, src/tips_en.lua:169 |
 | accidents | `aiPenalties` — AI sanctions under flags | boolean | false / true / true / true | src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:155, src/tips_en.lua:170 |
 | rules | `noMoveBraking` — No change of direction under braking | boolean | true / true / true / true | src/director.lua:682, src/groups.lua:56, src/lang_en.lua:168, src/tips_en.lua:179 |
 | rules | `neutralization` — Neutralisation after a major incident | local, fcy, vsc, sc | local / local / local / local | src/engine.lua:63, src/groups.lua:56, src/incidents.lua:265, src/incidents.lua:404, src/lang_en.lua:168, src/tips_en.lua:180 |
@@ -148,16 +148,16 @@ This inventory links every declared parameter to its consumers. A static referen
 | rules | `redFlagHold` — Red flag: minimum suspension (s) | 20 to 600 | 60 / 60 / 60 / 60 | src/groups.lua:58, src/incidents.lua:373, src/incidents.lua:389, src/lang_en.lua:170, src/lang_en.lua:306, src/tips_en.lua:193 |
 | rules | `redFlagWork` — Red flag: tyres changed in the pits (stop counts) | boolean | false / false / false / false | src/groups.lua:58, src/lang_en.lua:170, src/lang_en.lua:307, src/pits.lua:106, src/pits.lua:138, src/pits.lua:143, src/strategy.lua:414, src/tips_en.lua:195 |
 | rules | `redRestart` — Restart after a red flag | rolling, standing | rolling / rolling / rolling / rolling | src/groups.lua:55, src/groups.lua:58, src/incidents.lua:90, src/incidents.lua:287, src/lang_en.lua:170, src/panel.lua:168, src/tips_en.lua:194 |
-| rules | `mandatoryStops` — Mandatory stops in the race | 0 to 3 | 0 / 0 / 0 / 0 | src/engine.lua:819, src/engine.lua:822, src/groups.lua:63, src/hudinfo.lua:111, src/hudinfo.lua:112, src/hudinfo.lua:113, src/lang_en.lua:171, src/pits.lua:52, src/pits.lua:62, src/pits.lua:67, src/pits.lua:118, src/pits.lua:120, src/pits.lua:134, src/pits.lua:181, src/pits.lua:182, src/strategy.lua:374, src/tips_en.lua:196 |
+| rules | `mandatoryStops` — Mandatory stops in the race | 0 to 3 | 0 / 0 / 0 / 0 | src/bridge.lua:153, src/bridge_layout.lua:57, src/engine.lua:819, src/engine.lua:822, src/groups.lua:63, src/hudinfo.lua:111, src/hudinfo.lua:112, src/hudinfo.lua:113, src/lang_en.lua:171, src/pits.lua:52, src/pits.lua:62, src/pits.lua:67, src/pits.lua:118, src/pits.lua:120, src/pits.lua:134, src/pits.lua:181, src/pits.lua:182, src/strategy.lua:374, src/tips_en.lua:196 |
 | rules | `pitWindowOpenPct` — Window opens (% of race) | 5 to 95 | 25 / 25 / 25 / 25 | src/groups.lua:63, src/lang_en.lua:171, src/pits.lua:58, src/tips_en.lua:197 |
 | rules | `pitWindowClosePct` — Window closes (% of race) | 5 to 100 | 75 / 75 / 75 / 75 | src/groups.lua:63, src/lang_en.lua:171, src/pits.lua:58, src/tips_en.lua:198 |
 | rules | `pitTyres` — New tyres at every stop (pit rules active) | boolean | true / true / true / true | src/groups.lua:64, src/lang_en.lua:171, src/lang_en.lua:310, src/pits.lua:138, src/strategy.lua:414, src/tips_en.lua:199 |
 | rules | `pitRepair` — Repairs at every stop in the race (bodywork, suspension, engine) | boolean | true / true / true / true | src/applier.lua:386, src/engine.lua:127, src/engine.lua:877, src/groups.lua:64, src/lang_en.lua:171, src/lang_en.lua:310, src/pits.lua:112, src/pits.lua:143, src/pits.lua:145, src/sanctions.lua:7, src/sanctions.lua:443, src/tips_en.lua:200 |
 | rules | `pitCompoundChange` — Change dry compound (F1) | boolean | false / false / false / false | src/groups.lua:64, src/lang_en.lua:171, src/pits.lua:38, src/pits.lua:61, src/tips_en.lua:201 |
-| rules | `minPitTime` — Minimum stop time (s, 0 = free) | 0 to 120 | 0 / 0 / 0 / 0 | src/groups.lua:64, src/lang_en.lua:172, src/lang_en.lua:279, src/pits.lua:52, src/pits.lua:137, src/tips_en.lua:202 |
-| rules | `maxStintMin` — Maximum stint (min, 0 = free) | 0 to 240 | 0 / 0 / 0 / 0 | src/groups.lua:64, src/lang_en.lua:172, src/lang_en.lua:279, src/pits.lua:52, src/pits.lua:129, src/pits.lua:187, src/tips_en.lua:204 |
+| rules | `minPitTime` — Minimum stop time (s, 0 = free) | 0 to 120 | 0 / 0 / 0 / 0 | src/bridge.lua:153, src/bridge_layout.lua:58, src/groups.lua:64, src/lang_en.lua:172, src/lang_en.lua:279, src/pits.lua:52, src/pits.lua:137, src/tips_en.lua:202 |
+| rules | `maxStintMin` — Maximum stint (min, 0 = free) | 0 to 240 | 0 / 0 / 0 / 0 | src/bridge.lua:153, src/bridge_layout.lua:57, src/groups.lua:64, src/lang_en.lua:172, src/lang_en.lua:279, src/pits.lua:52, src/pits.lua:129, src/pits.lua:187, src/tips_en.lua:204 |
 | rules | `pitFuel` — Fuel at enforced stops | refuel, plan, ac | refuel / refuel / refuel / refuel | src/groups.lua:65, src/lang_en.lua:172, src/lang_en.lua:280, src/pits.lua:194, src/tips_en.lua:203 |
-| rules | `pitsClosed` — Pit lane closed under neutralisation | open, pitFcy, pitFcySc | open / open / open / open | src/engine.lua:811, src/engine.lua:862, src/groups.lua:65, src/incidents.lua:20, src/incidents.lua:31, src/incidents.lua:361, src/incidents.lua:364, src/lang_en.lua:172, src/lang_en.lua:280, src/sanctions.lua:583, src/strategy.lua:286, src/strategy.lua:382, src/strategy.lua:401, src/tips_en.lua:205 |
+| rules | `pitsClosed` — Pit lane closed under neutralisation | open, pitFcy, pitFcySc | open / open / open / open | src/bridge.lua:122, src/bridge_layout.lua:37, src/engine.lua:811, src/engine.lua:862, src/groups.lua:65, src/incidents.lua:20, src/incidents.lua:31, src/incidents.lua:361, src/incidents.lua:364, src/lang_en.lua:172, src/lang_en.lua:280, src/sanctions.lua:583, src/strategy.lua:286, src/strategy.lua:382, src/strategy.lua:401, src/tips_en.lua:205 |
 | rules | `pitMessage` — Pit window opening message | boolean | true / true / true / true | src/groups.lua:63, src/lang_en.lua:172, src/lang_en.lua:309, src/pits.lua:64, src/pits.lua:74, src/tips_en.lua:206 |
 | rules | `overtakeMode` — Overtake Mode (F1 2026, within one second at detection) | boolean | false / false / false / false | src/director.lua:1136, src/groups.lua:59, src/lang_en.lua:173, src/lang_en.lua:307, src/tips_en.lua:207 |
 | rules | `overtakeModeGap` — Overtake Mode: detection gap (s) | 0.3 to 2 | 1 / 1 / 1 / 1 | src/director.lua:1138, src/groups.lua:59, src/lang_en.lua:173, src/lang_en.lua:307, src/tips_en.lua:208 |
@@ -193,7 +193,7 @@ This inventory links every declared parameter to its consumers. A static referen
 | lights | `lightsOrange` — Orange · slippery track | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:128, src/tips_en.lua:231 |
 | lights | `lightsGreen` — Green · end of zone, neutralisation and restart | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:97, src/lights.lua:123, src/tips_en.lua:232 |
 | lights | `lightsGreenTime` — Green duration (s) | 0 to 15 | 5 / 5 / 5 / 5 | src/groups.lua:54, src/lang_en.lua:177, src/lang_en.lua:279, src/lights.lua:96, src/lights.lua:123, src/tips_en.lua:233 |
-| lights | `lightsHold` — Delay before a less important colour (s) | 0.5 to 5 | 1.5 / 1.5 / 1.5 / 1.5 | ACAdvancedIA.lua:413, src/applier.lua:465, src/applier.lua:495, src/applier.lua:496, src/groups.lua:54, src/lang_en.lua:177, src/tips_en.lua:234 |
+| lights | `lightsHold` — Delay before a less important colour (s) | 0.5 to 5 | 1.5 / 1.5 / 1.5 / 1.5 | ACAdvancedIA.lua:419, src/applier.lua:465, src/applier.lua:495, src/applier.lua:496, src/groups.lua:54, src/lang_en.lua:177, src/tips_en.lua:234 |
 | strategy | `strategyEnabled` — Individual pit-stop strategy | boolean | false / false / false / true | src/groups.lua:44, src/lang_en.lua:148, src/strategy.lua:299, src/tips_en.lua:21 |
 | strategy | `strategyTyreWearPct` — Tyre wear before stopping (%) | 30 to 95 | 75 / 75 / 75 / 75 | src/groups.lua:44, src/lang_en.lua:148, src/strategy.lua:123, src/strategy.lua:192, src/strategy.lua:197, src/tips_en.lua:22 |
 | strategy | `strategyFuelMarginLaps` — Fuel margin (laps) | 0 to 3 | 1 / 1 / 1 / 1 | src/groups.lua:44, src/lang_en.lua:148, src/lang_en.lua:279, src/pits.lua:216, src/strategy.lua:131, src/tips_en.lua:23 |
@@ -245,7 +245,7 @@ The section switches go through `C.on`/`C.effective` and are walked by the inter
 
 ## Functions examined
 
-List taken from the AST of the 42 active files, including local and anonymous functions. The review, fixes and limits are in AUDIT_V1.md. This list does not mean 100% branch coverage.
+List taken from the AST of the 44 active files, including local and anonymous functions. The review, fixes and limits are in AUDIT_V1.md. This list does not mean 100% branch coverage.
 
 | File | Line | Function |
 |---|---|---|
@@ -263,40 +263,43 @@ List taken from the AST of the 42 active files, including local and anonymous fu
 | ACAdvancedIA.lua | 47 | `script.HUMANAI__MENU` |
 | ACAdvancedIA.lua | 48 | `script.HUMANAI__FLAGS` |
 | ACAdvancedIA.lua | 49 | `script.HUMANAI__HUD` |
-| ACAdvancedIA.lua | 98 | `announce` |
-| ACAdvancedIA.lua | 112 | `dirty` |
-| ACAdvancedIA.lua | 120 | `(anonymous)` |
-| ACAdvancedIA.lua | 128 | `(anonymous)` |
-| ACAdvancedIA.lua | 131 | `cspLog` |
-| ACAdvancedIA.lua | 136 | `(anonymous)` |
-| ACAdvancedIA.lua | 145 | `cspStep` |
-| ACAdvancedIA.lua | 164 | `writeJournal` |
-| ACAdvancedIA.lua | 176 | `cancelProbe` |
-| ACAdvancedIA.lua | 177 | `syncRestored` |
-| ACAdvancedIA.lua | 187 | `anyOwned` |
-| ACAdvancedIA.lua | 192 | `step` |
-| ACAdvancedIA.lua | 198 | `stop` |
-| ACAdvancedIA.lua | 204 | `saveRace` |
-| ACAdvancedIA.lua | 213 | `release` |
-| ACAdvancedIA.lua | 231 | `updateLog` |
-| ACAdvancedIA.lua | 235 | `(anonymous)` |
-| ACAdvancedIA.lua | 250 | `startProbe` |
-| ACAdvancedIA.lua | 251 | `(anonymous)` |
-| ACAdvancedIA.lua | 279 | `session` |
-| ACAdvancedIA.lua | 288 | `lightsCheck` |
-| ACAdvancedIA.lua | 295 | `update` |
-| ACAdvancedIA.lua | 321 | `(anonymous)` |
-| ACAdvancedIA.lua | 322 | `(anonymous)` |
-| ACAdvancedIA.lua | 426 | `updateTick` |
-| ACAdvancedIA.lua | 446 | `protect` |
-| ACAdvancedIA.lua | 462 | `script.HUMANAI__UPDATE` |
-| ACAdvancedIA.lua | 485 | `script.update` |
-| ACAdvancedIA.lua | 486 | `script.HUMANAI__MENU` |
-| ACAdvancedIA.lua | 489 | `protectUI` |
-| ACAdvancedIA.lua | 503 | `timedUI` |
-| ACAdvancedIA.lua | 518 | `script.HUMANAI__MAIN` |
-| ACAdvancedIA.lua | 530 | `script.HUMANAI__FLAGS` |
-| ACAdvancedIA.lua | 532 | `script.HUMANAI__HUD` |
+| ACAdvancedIA.lua | 99 | `announce` |
+| ACAdvancedIA.lua | 113 | `dirty` |
+| ACAdvancedIA.lua | 121 | `(anonymous)` |
+| ACAdvancedIA.lua | 129 | `(anonymous)` |
+| ACAdvancedIA.lua | 132 | `cspLog` |
+| ACAdvancedIA.lua | 137 | `(anonymous)` |
+| ACAdvancedIA.lua | 146 | `cspStep` |
+| ACAdvancedIA.lua | 165 | `writeJournal` |
+| ACAdvancedIA.lua | 177 | `cancelProbe` |
+| ACAdvancedIA.lua | 178 | `syncRestored` |
+| ACAdvancedIA.lua | 188 | `anyOwned` |
+| ACAdvancedIA.lua | 193 | `step` |
+| ACAdvancedIA.lua | 199 | `stop` |
+| ACAdvancedIA.lua | 205 | `saveRace` |
+| ACAdvancedIA.lua | 218 | `release` |
+| ACAdvancedIA.lua | 237 | `updateLog` |
+| ACAdvancedIA.lua | 241 | `(anonymous)` |
+| ACAdvancedIA.lua | 256 | `startProbe` |
+| ACAdvancedIA.lua | 257 | `(anonymous)` |
+| ACAdvancedIA.lua | 285 | `session` |
+| ACAdvancedIA.lua | 294 | `lightsCheck` |
+| ACAdvancedIA.lua | 301 | `update` |
+| ACAdvancedIA.lua | 327 | `(anonymous)` |
+| ACAdvancedIA.lua | 328 | `(anonymous)` |
+| ACAdvancedIA.lua | 432 | `updateTick` |
+| ACAdvancedIA.lua | 452 | `protect` |
+| ACAdvancedIA.lua | 482 | `bridgeWork` |
+| ACAdvancedIA.lua | 483 | `bridgeStep` |
+| ACAdvancedIA.lua | 492 | `(anonymous)` |
+| ACAdvancedIA.lua | 493 | `script.HUMANAI__UPDATE` |
+| ACAdvancedIA.lua | 517 | `script.update` |
+| ACAdvancedIA.lua | 518 | `script.HUMANAI__MENU` |
+| ACAdvancedIA.lua | 521 | `protectUI` |
+| ACAdvancedIA.lua | 535 | `timedUI` |
+| ACAdvancedIA.lua | 550 | `script.HUMANAI__MAIN` |
+| ACAdvancedIA.lua | 562 | `script.HUMANAI__FLAGS` |
+| ACAdvancedIA.lua | 564 | `script.HUMANAI__HUD` |
 | src/applier.lua | 14 | `note` |
 | src/applier.lua | 17 | `callable` |
 | src/applier.lua | 25 | `nativeClock` |
@@ -419,6 +422,27 @@ List taken from the AST of the 42 active files, including local and anonymous fu
 | src/applier.lua | 1108 | `M.clipboard` |
 | src/applier.lua | 1109 | `M.checkpoint` |
 | src/applier.lua | 1120 | `M.recover` |
+| src/applier.lua | 1146 | `M.companionInstalled` |
+| src/applier.lua | 1148 | `(anonymous)` |
+| src/applier.lua | 1160 | `bridgeItem` |
+| src/applier.lua | 1166 | `bridgeStruct` |
+| src/applier.lua | 1172 | `M.bridgeOpen` |
+| src/applier.lua | 1174 | `(anonymous)` |
+| src/bridge.lua | 15 | `finite` |
+| src/bridge.lua | 16 | `num` |
+| src/bridge.lua | 17 | `int` |
+| src/bridge.lua | 18 | `bool` |
+| src/bridge.lua | 20 | `index` |
+| src/bridge.lua | 22 | `left` |
+| src/bridge.lua | 24 | `fit` |
+| src/bridge.lua | 30 | `M.new` |
+| src/bridge.lua | 35 | `text` |
+| src/bridge.lua | 40 | `code` |
+| src/bridge.lua | 42 | `M.beat` |
+| src/bridge.lua | 48 | `M.close` |
+| src/bridge.lua | 49 | `cars` |
+| src/bridge.lua | 87 | `M.publish` |
+| src/bridge_layout.lua | 84 | `L.code` |
 | src/calibration.lua | 7 | `M.new` |
 | src/calibration.lua | 8 | `resetSafe` |
 | src/calibration.lua | 18 | `safe` |

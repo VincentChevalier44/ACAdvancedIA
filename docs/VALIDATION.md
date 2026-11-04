@@ -28,6 +28,12 @@ The real log `Documents/Assetto Corsa/logs/custom_shaders_patch.log`, consulted 
 
 ## In-game tests still open
 
+To check first (Beta 1.46), companion-app bridge:
+
+- [ ] Without `apps/lua/SpotterEnginer`: one journal line `pont des apps compagnes: SpotterEnginer absent, pont inactif`; nothing else changes.
+- [ ] With SpotterEnginer installed: `pont des apps compagnes: ouvert (version 1)`; SpotterEnginer leaves its « sans pont » state and speaks; no `pont des apps compagnes coupe` line; no new `Slow script` line for ACAdvancedIA in `custom_shaders_patch.log`.
+- [ ] After a devtools install, the first journal line shows the new version at the next game launch (fresh file dates).
+
 To check first (Beta 1.45), the settings window:
 
 - [ ] After the update from the app, then a game restart: no grey frame around the settings window; the dark background reaches every edge, the header starts at the top-left corner, the window still moves and resizes (bottom-right corner) and nothing is cut at the right or bottom edge.

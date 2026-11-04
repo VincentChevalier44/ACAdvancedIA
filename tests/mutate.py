@@ -1490,6 +1490,16 @@ MUTATIONS = [
     ('1.45 fond de CSP revenu autour des réglages', 'manifest.ini', 'NO_TITLE_BAR,NO_BACKGROUND,', 'NO_TITLE_BAR,', 'WINDOW_EDGE_145'),
     ('1.45 marge de CSP revenue autour des réglages', 'manifest.ini', 'PADDING=0,0\n', '', 'WINDOW_EDGE_145'),
     ('1.45 couleur de fond de CSP revenue', 'manifest.ini', 'GROUP=SETTINGS\n', 'GROUP=SETTINGS\nBACKGROUND_COLOR=SETUP\n', 'WINDOW_EDGE_145'),
+    # Beta 1.46 : pont des apps compagnes (SpotterEnginer) : ouvert seulement si l'app est installée, isolé, fermé.
+    ('1.46 pont ouvert sans SpotterEnginer', 'src/applier.lua', ' return ok and yes==true\nend\n-- Deux structures', ' return true\nend\n-- Deux structures', 'INT:Beta 1.46 : pont des apps compagnes'),
+    ('1.46 controle d installation saute', 'ACAdvancedIA.lua', 'if Applier.companionInstalled(companion) then\n', 'if true then\n', 'INT:Beta 1.46 : pont des apps compagnes'),
+    ('1.46 pont appele sans port', 'ACAdvancedIA.lua', ' if released or not bridgePort then return end\n local ok,err=pcall(bridgeWork)\n', ' if released then return end\n local ok,err=pcall(bridgeWork)\n', 'INT:Beta 1.46 : pont des apps compagnes'),
+    ('1.46 erreur du pont non isolee', 'ACAdvancedIA.lua', ' local ok,err=pcall(bridgeWork)\n', ' local ok,err=true,bridgeWork()\n', 'INT:Beta 1.46 : pont des apps compagnes'),
+    ('1.46 pont non ferme sur erreur', 'ACAdvancedIA.lua', "  pcall(Bridge.close,bridge,bridgePort.hello); bridgePort=nil\n  U.log(engine.log,engine.time or 0,'ERROR'", "  bridgePort=nil\n  U.log(engine.log,engine.time or 0,'ERROR'", 'INT:Beta 1.46 : pont des apps compagnes'),
+    ('1.46 pont non ferme au dechargement', 'ACAdvancedIA.lua', ' if bridgePort then pcall(Bridge.close,bridge,bridgePort.hello); bridgePort=nil end\n', '', 'INT:Beta 1.46 : pont des apps compagnes'),
+    ('1.46 pont jamais publie', 'ACAdvancedIA.lua', ' bridgeStep()\n local after=before and Applier.clock(host)\n', ' local after=before and Applier.clock(host)\n', 'INT:Beta 1.46 : pont des apps compagnes'),
+    ('1.46 port gardé apres erreur', 'ACAdvancedIA.lua', '  pcall(Bridge.close,bridge,bridgePort.hello); bridgePort=nil\n  U.log', '  pcall(Bridge.close,bridge,bridgePort.hello)\n  U.log', 'INT:Beta 1.46 : pont des apps compagnes'),
+    ('1.46 manifeste du lecteur ignore', 'src/applier.lua', "manifest.ini')==true", "manifest.ini')~=nil", 'INT:Beta 1.46 : pont des apps compagnes'),
 ]
 
 def run(root, name):

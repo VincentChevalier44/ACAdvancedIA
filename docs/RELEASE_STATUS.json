@@ -1,5 +1,5 @@
 {
-  "version": "Beta 1.45",
+  "version": "Beta 1.46",
   "accepted": false,
   "soakScope": "Eight simulated hours of the core (track day, 40 AI, weather and spacing), then one hour of a race with racing rules (neutralisations, delta time, DRS, driving mistakes); SDK calls and interface simulated separately.",
   "scenarios": {
@@ -10,53 +10,55 @@
   },
   "integration": {
     "ok": true,
-    "cases": 124
+    "cases": 125
   },
   "lint": {
     "ok": true,
-    "runtimeFiles": 42
+    "runtimeFiles": 44
   },
   "soak": {
-    "rulesPeakMs": 4.7061999794095755,
-    "rulesNeutralisations": 6,
-    "rulesMemoryDriftKB": 1185.4296875,
-    "rulesMemoryMinKB": 16986.50390625,
-    "rulesMemoryMaxKB": 18171.93359375,
-    "rulesErrors": 0,
-    "frames": 1728000,
+    "peakCriterion": true,
+    "states": 61,
+    "paceBins": 400,
+    "maxLog": 200,
+    "maxDirections": 6,
     "rulesFrames": 216000,
+    "rulesMeanMs": 0.451882826383452,
+    "rulesPeakMs": 52.15260002296418,
+    "rulesNeutralisations": 6,
+    "rulesMemoryDriftKB": 1102.171875,
+    "rulesMemoryMinKB": 20272.140625,
+    "rulesMemoryMaxKB": 21374.3125,
+    "rulesErrors": 0,
+    "errors": 0,
+    "meanCriterion": true,
+    "frames": 1728000,
     "ok": false,
     "simulatedHours": 8,
     "ai": 40,
-    "seconds": 549.2442336999811,
-    "meanSoakMs": 0.31784967228008165,
-    "memoryMinKB": 7227.3984375,
-    "memoryMaxKB": 8111.08203125,
-    "memoryDriftKB": 883.68359375,
-    "memoryLastHourDriftKB": 10.1015625,
+    "seconds": 482.4289731000317,
+    "meanSoakMs": 0.2791834335069628,
+    "memoryMinKB": 9728.65234375,
+    "memoryMaxKB": 10846.73828125,
+    "memoryDriftKB": 1118.0859375,
+    "memoryLastHourDriftKB": 10.15234375,
     "benchmarkAI": 30,
     "benchmarkFrames": 30000,
-    "meanMs": 0.20145169984316452,
-    "peakMs": 3.5134999779984355,
-    "p99Ms": 0.5324999801814556,
+    "meanMs": 0.1671789700301209,
+    "peakMs": 0.8530999766662717,
+    "p99Ms": 0.3163000219501555,
     "memoryCriterion": false,
-    "peakCriterion": false,
-    "states": 61,
-    "paceBins": 400,
-    "errors": 0,
-    "maxLog": 200,
-    "maxDirections": 6,
-    "meanCriterion": true,
-    "rulesMeanMs": 0.3684840384774833,
-    "version": "Beta 1.45",
+    "version": "Beta 1.46",
     "sources": {
-      "ACAdvancedIA.lua": "412ed51fe685bb2c52d582adb9243ac052ecfcacab5865a22ec19e392c69ea8c",
-      "manifest.ini": "517591d85c20aa392da6644f14bf3f3ce29544ee6fbe35134349456e580ebf32",
-      "src/applier.lua": "b1a24fc049d81e524a11f39c02abd302c4ceb286b0bd9c5494659434255c30a7",
+      "ACAdvancedIA.lua": "d960e97be68427e0ce9b88dd3034b757e5a056eaae3c2c6c8ccaf7106b38b469",
+      "manifest.ini": "bc26a97864e6017abe9b7842df4fb7aecf3ef8a187613fe65bb2e599ea04b4d9",
+      "src/applier.lua": "1a3789809cc48d86afb6fca670f347b4c8c157c760551d90a781c3cfec58681d",
+      "src/bridge.lua": "015517e1588f39d314f5cf2cb1c28a14ce8cb471c6a41548ae09c2935f4272a8",
+      "src/bridge_layout.lua": "9e5f5dcd3e4eb486fc5107925a4130756959585ee941c2f518c241647f23357f",
       "src/calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
       "src/caps.lua": "a16af5366b4e2405fa7ee4d0eb11cf1796693765391ea0cec016923fba395108",
       "src/classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-      "src/config.lua": "664aa9f599c7fd1c453b250458f9c63860c591e085ff03ed2c0d70db2d1714a2",
+      "src/config.lua": "12b70680d5bee873b024181e8272281489e70166010e69a1488c77521d8b9311",
       "src/cspgui.lua": "3febc6bfeebda74b2f0f356e008a6f2d0724cfb0f15d7e5bd475860b6a9cce21",
       "src/delta.lua": "fb7110d08c5e1b65d90f1c89f5bff8d2aafc0b5ce0f1a359f120387d8737abff",
       "src/director.lua": "6dd219e0591c6af5309f99e63a43f990b8a789e5e2b1e45bb7e4f5855bef63a0",
@@ -97,7 +99,6 @@
   },
   "openCriteria": [
     "Physical tests in the game and real CSP cost",
-    "Core raw peak <1 ms",
     "Total bench memory variation <256 KiB"
   ],
   "platform": {
@@ -106,13 +107,15 @@
     "architecture": "AMD64"
   },
   "sources": {
-    "ACAdvancedIA.lua": "412ed51fe685bb2c52d582adb9243ac052ecfcacab5865a22ec19e392c69ea8c",
-    "manifest.ini": "517591d85c20aa392da6644f14bf3f3ce29544ee6fbe35134349456e580ebf32",
-    "src/applier.lua": "b1a24fc049d81e524a11f39c02abd302c4ceb286b0bd9c5494659434255c30a7",
+    "ACAdvancedIA.lua": "d960e97be68427e0ce9b88dd3034b757e5a056eaae3c2c6c8ccaf7106b38b469",
+    "manifest.ini": "bc26a97864e6017abe9b7842df4fb7aecf3ef8a187613fe65bb2e599ea04b4d9",
+    "src/applier.lua": "1a3789809cc48d86afb6fca670f347b4c8c157c760551d90a781c3cfec58681d",
+    "src/bridge.lua": "015517e1588f39d314f5cf2cb1c28a14ce8cb471c6a41548ae09c2935f4272a8",
+    "src/bridge_layout.lua": "9e5f5dcd3e4eb486fc5107925a4130756959585ee941c2f518c241647f23357f",
     "src/calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
     "src/caps.lua": "a16af5366b4e2405fa7ee4d0eb11cf1796693765391ea0cec016923fba395108",
     "src/classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-    "src/config.lua": "664aa9f599c7fd1c453b250458f9c63860c591e085ff03ed2c0d70db2d1714a2",
+    "src/config.lua": "12b70680d5bee873b024181e8272281489e70166010e69a1488c77521d8b9311",
     "src/cspgui.lua": "3febc6bfeebda74b2f0f356e008a6f2d0724cfb0f15d7e5bd475860b6a9cce21",
     "src/delta.lua": "fb7110d08c5e1b65d90f1c89f5bff8d2aafc0b5ce0f1a359f120387d8737abff",
     "src/director.lua": "6dd219e0591c6af5309f99e63a43f990b8a789e5e2b1e45bb7e4f5855bef63a0",
@@ -152,38 +155,38 @@
   },
   "comparison": {
     "previous": {
-      "version": "Beta 1.44",
+      "version": "Beta 1.45",
       "profiling": false,
       "results": [
         {
-          "frames": 30000,
           "errors": 0,
           "ai": 9,
-          "meanMs": 0.06817088334355503,
-          "p99Ms": 0.20299997413530946,
+          "meanMs": 0.058321810114042215,
+          "p99Ms": 0.15540001913905144,
+          "peakMs": 0.8412000024691224,
           "vmstates": {},
           "stacks": {},
-          "peakMs": 0.7455000304616988
+          "frames": 30000
         },
         {
-          "frames": 30000,
           "errors": 0,
           "ai": 30,
-          "meanMs": 0.298722706597376,
-          "p99Ms": 0.7298999698832631,
+          "meanMs": 0.26519753329339435,
+          "p99Ms": 0.5684999632649124,
+          "peakMs": 4.924199951346964,
           "vmstates": {},
           "stacks": {},
-          "peakMs": 5.806000030133873
+          "frames": 30000
         },
         {
-          "frames": 30000,
           "errors": 0,
           "ai": 60,
-          "meanMs": 0.7458889800744752,
-          "p99Ms": 1.6047999961301684,
+          "meanMs": 0.6725205598631874,
+          "p99Ms": 1.3490999699570239,
+          "peakMs": 17.78339996235445,
           "vmstates": {},
           "stacks": {},
-          "peakMs": 4.066599998623133
+          "frames": 30000
         }
       ],
       "sources": {
@@ -191,7 +194,7 @@
         "calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
         "caps.lua": "a16af5366b4e2405fa7ee4d0eb11cf1796693765391ea0cec016923fba395108",
         "classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-        "config.lua": "f6ef83728b3f6c09ea5d0b7c36654641ea11fd87a1e646702d696c0a41947db9",
+        "config.lua": "664aa9f599c7fd1c453b250458f9c63860c591e085ff03ed2c0d70db2d1714a2",
         "cspgui.lua": "3febc6bfeebda74b2f0f356e008a6f2d0724cfb0f15d7e5bd475860b6a9cce21",
         "delta.lua": "fb7110d08c5e1b65d90f1c89f5bff8d2aafc0b5ce0f1a359f120387d8737abff",
         "director.lua": "6dd219e0591c6af5309f99e63a43f990b8a789e5e2b1e45bb7e4f5855bef63a0",
@@ -231,46 +234,48 @@
       }
     },
     "current": {
-      "version": "Beta 1.45",
+      "version": "Beta 1.46",
       "profiling": false,
       "results": [
         {
+          "frames": 30000,
           "errors": 0,
           "ai": 9,
-          "meanMs": 0.08415657987740512,
-          "p99Ms": 0.32510003075003624,
-          "peakMs": 3.5934000043198466,
+          "meanMs": 0.0557746966893319,
+          "p99Ms": 0.1417000312358141,
+          "peakMs": 0.542099995072931,
           "vmstates": {},
-          "stacks": {},
-          "frames": 30000
+          "stacks": {}
         },
         {
+          "frames": 30000,
           "errors": 0,
           "ai": 30,
-          "meanMs": 0.3048191464622505,
-          "p99Ms": 0.797600019723177,
-          "peakMs": 3.3754000323824584,
+          "meanMs": 0.26506355665818165,
+          "p99Ms": 0.5738000036217272,
+          "peakMs": 2.655500022228807,
           "vmstates": {},
-          "stacks": {},
-          "frames": 30000
+          "stacks": {}
         },
         {
+          "frames": 30000,
           "errors": 0,
           "ai": 60,
-          "meanMs": 0.7717521733371541,
-          "p99Ms": 1.585699967108667,
-          "peakMs": 2.8113999869674444,
+          "meanMs": 0.6166789866460022,
+          "p99Ms": 1.184099994134158,
+          "peakMs": 8.05989996297285,
           "vmstates": {},
-          "stacks": {},
-          "frames": 30000
+          "stacks": {}
         }
       ],
       "sources": {
-        "applier.lua": "b1a24fc049d81e524a11f39c02abd302c4ceb286b0bd9c5494659434255c30a7",
+        "applier.lua": "1a3789809cc48d86afb6fca670f347b4c8c157c760551d90a781c3cfec58681d",
+        "bridge.lua": "015517e1588f39d314f5cf2cb1c28a14ce8cb471c6a41548ae09c2935f4272a8",
+        "bridge_layout.lua": "9e5f5dcd3e4eb486fc5107925a4130756959585ee941c2f518c241647f23357f",
         "calibration.lua": "4ce2865711f4ed94716cb786d011604f4a907445c0d4ae924ee830aca225cc79",
         "caps.lua": "a16af5366b4e2405fa7ee4d0eb11cf1796693765391ea0cec016923fba395108",
         "classes.lua": "6fc0bf099550f9ce4566313a9f8b1dda7997859322aa7efe8f845041e3e2d0ae",
-        "config.lua": "664aa9f599c7fd1c453b250458f9c63860c591e085ff03ed2c0d70db2d1714a2",
+        "config.lua": "12b70680d5bee873b024181e8272281489e70166010e69a1488c77521d8b9311",
         "cspgui.lua": "3febc6bfeebda74b2f0f356e008a6f2d0724cfb0f15d7e5bd475860b6a9cce21",
         "delta.lua": "fb7110d08c5e1b65d90f1c89f5bff8d2aafc0b5ce0f1a359f120387d8737abff",
         "director.lua": "6dd219e0591c6af5309f99e63a43f990b8a789e5e2b1e45bb7e4f5855bef63a0",
