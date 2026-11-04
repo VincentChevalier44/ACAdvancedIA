@@ -127,6 +127,8 @@
     "Beta 1.43 : annonces des sanctions des IA en panneau dédié de l overlay (maquette)",
     "Beta 1.46 : pont des apps compagnes inactif sans SpotterEnginer, ouvert avec, coupé sur erreur, fermé au déchargement",
     "Beta 1.47 : rouge de l app resté affiché par CSP après une relance : repris, jamais un drapeau noir natif",
-    "Beta 1.47 : vrai drapeau noir d AC respecté"
+    "Beta 1.47 : vrai drapeau noir d AC respecté",
+    "Beta 1.48 : voiture de sécurité posée en piste par CSP (setCarPosition), jamais conduite hors de son emplacement",
+    "Beta 1.48 : drapeau rouge, ordre figé, voiture de sécurité posée par CSP, relance et vert sans repli"
   ]
 }

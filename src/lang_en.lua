@@ -83,7 +83,7 @@ return {
  capabilities='CSP capabilities',level='Level',aggression='Aggression',caution='Caution',offset='Offset',flash='Headlight flashes',gripLabel='Grip',brakeLabel='Braking',
  safetyCar='Safety Car: ',safetyNone='none chosen',safetyFilter='Filter the car database',safetyPick='Pick from the car database',safetyPickPrompt='— choose a car —',
  safetyModel='Model (content/cars folder)',safetyMissing='not on the grid: add this model to the grid in Content Manager (FCY fallback).',
- safetyPhases={none='—',parked='parked in the pits',call='called: field under FCY',out='on track',['in']='in this lap',parking='returning to the pits'},
+ safetyPhases={none='—',parked='parked in the pits',call='called: field under FCY',place='placed on track: field under FCY',out='on track',['in']='in this lap',parking='returning to the pits'},
  
  parkLabel='Safety Car parked',penaltyLabel='Player penalty (throttle cut)',drsLabel='DRS disabled by racing rules',drsActiveLabel='AI DRS (opening)',brakeMistakeLabel='AI mistakes: wheel lock-up',tractionMistakeLabel='AI mistakes: wheelspin',fuelLabel='Fuel requested at stops (AI)',fuelSetLabel='Fuel at the start (AI)',startDelayLabel='Wait in the pit box before leaving (AI)',awakeLabel='Wake a parked car (Safety Car)',positionLabel='Place an AI car on track (distribution)',velocityLabel='Launch an AI car placed on track (distribution)',floodTitle='AI flood (CSP)',floodOff='turned off for %d AI: relaunch from Content Manager to spread them over the whole track',floodOn='turned back on for %d AI (range %.1f km): takes effect at the next launch',floodRestored='original setting restored: takes effect at the next launch',repairBodyLabel='Bodywork repair (AI)',repairSuspensionLabel='Suspension repair (AI)',repairEngineLabel='Engine repair (AI)',teleportLabel='Return to pit box',
  journalShort='%s · %s bytes',carLoading='Reading the car base… %d / %d',thousands=',',diagFlash='Headlights',diagZones='Zones',splineLabel='spline ',meters='%.0f m',signLabel='Offset / side sign',journalOff='Session log off or unavailable.',
@@ -333,5 +333,6 @@ return {
  calibrationShort={waiting='Waiting',running='Measuring',ready='Confirmed',waiting_reset='Postponed',inconclusive='Inconclusive',aborted='Aborted'},
  capShort={present='Ready',missing='Missing',ready='OK',failures='Cut'},apiCount='%d functions',
  carsNote='%d · hover: reason',perfScope='AI loop, drawing excluded',perfLabels={'Mean','Maximum','Engine · API errors','Rejected data'},
+ restart={box='RESTART',pit='Stay in the pits · restart P%d behind %s',pitFirst='Restart P1 · %s',wait='Wait: %s leaves before you',waitFirst='Wait for your turn · P1 %s',go='Go: P%d behind %s',goFirst='Go: P1 · %s',pill='P%d · behind %s',pillFirst='P1 · %s',retake='Retake P%d: pass %s (allowed)',behindSc='behind the Safety Car',leading='leading',explainSc='Race suspended. Restart in the red-flag order: P%d, behind the Safety Car.',explain='Race suspended. Restart in the red-flag order: P%d.'},
  placeLabel='To %s',placeMeters='%d m',gridPlaced='IN POSITION',gridPassed='SLOT PASSED',gridPassedBy='SLOT PASSED · %d m',
 }

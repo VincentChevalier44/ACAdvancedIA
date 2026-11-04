@@ -42,6 +42,17 @@ local function byPosition(x,y)
  if px~=py then return px<py end
  return x<y
 end
+local sortRank
+local function byRank(x,y)
+ local rx,ry=sortRank[x],sortRank[y]
+ if rx and ry then return rx<ry end
+ if rx or ry then return rx~=nil end
+ return byPosition(x,y)
+end
+function M.sortByRank(list,n,cars,rank)
+ for k=#list,n+1,-1 do list[k]=nil end
+ sortCars=cars; sortRank=rank; table.sort(list,byRank); sortCars=nil; sortRank=nil
+end
 function M.sortByPosition(list,n,cars)
  for k=#list,n+1,-1 do list[k]=nil end
  sortCars=cars; table.sort(list,byPosition); sortCars=nil
@@ -89,7 +100,8 @@ function M.start(g,t,frame,now,log)
    if a.pit then g.pit[i]=true elseif a.splineValid then n=n+1; order[n]=i end
   end
  end
- M.sortByPosition(order,n,frame.cars)
+ -- Beta 1.48 : ordre figé au drapeau rouge (t.redRank) ; voitures absentes de l'ordre ensuite, au classement.
+ if (t.redOrderN or 0)>0 then M.sortByRank(order,n,frame.cars,t.redRank) else M.sortByPosition(order,n,frame.cars) end
  local slots,source,why=M.resolve(g.nodes,frame.length,n,g.slots)
  if not slots then return false end
  g.slots=slots; g.source=source

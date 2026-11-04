@@ -102,7 +102,10 @@ local function item(h,label,value,warn,best)
 end
 local function strip(h,frame,e,a)
  h.stripCount=0
- if a.position>0 then item(h,L.hudPosition,string.format('%d/%d',a.position,h.cars)) end
+ -- Beta 1.48 : place de l'ordre figé au drapeau rouge tant que la reprise dure.
+ local rank=e.incidents and e.incidents.restartRank or 0
+ if rank>0 then item(h,L.hudPosition,string.format('%d/%d',rank,h.cars))
+ elseif a.position>0 then item(h,L.hudPosition,string.format('%d/%d',a.position,h.cars)) end
  local race=e.profile=='C'
  if race and frame.sessionLaps>0 and not frame.timedRace then
   item(h,L.hudLap,string.format('%d/%d',math.min(math.max(1,a.lap+1),frame.sessionLaps),frame.sessionLaps))

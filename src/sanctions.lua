@@ -440,7 +440,7 @@ local function serve(e,i,a,c,cmd,now,servable)
   cmd.sanCalled=c.asked
   return
  end
- if not c.entry or inc.red or now<(inc.releaseAt[i] or -math.huge) then return end
+ if not c.entry or inc.red or now<(inc.releaseAt[i] or -math.huge) or inc.gate and inc.gate[i] then return end
  -- Relecture 1.42 (après correctifs) : ni pneus, ni réparations, ni carburant demandé pendant un passage de pénalité
  -- (un arrêt des règles ou de la stratégie dû le remet sinon dès l'entrée dans la voie).
  cmd.rulePit=true; cmd.pitCompound=-1; cmd.pitRepair=false; cmd.fuelTarget=-1; cmd.fuelLaps=0

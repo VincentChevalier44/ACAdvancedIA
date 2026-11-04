@@ -1577,6 +1577,89 @@ MUTATIONS = [
     ('1.47 rouge : refus jamais noté', 'src/incidents.lua', '  if not t.redRefused then\n', '  if false then\n', 'RED_FLAG_BLOCKED_ONLY_147'),
 ]
 
+# Beta 1.48 : mutations reportées sur le nouveau code (ordre figé au drapeau rouge, sortie conditionnée, pose de la
+# voiture de sécurité en piste, arrêts sous drapeau rouge, exemption de reprise de place) ; même intention, même test.
+_MOVED_148 = {
+    # (« en piste » n'arrive plus qu'après la pose : t.safetyLeft toujours vrai en « out » ; même intention sur la pose)
+    'voiture de sécurité rentrée sans être sortie des stands': ('  if sc.valid and not sc.pit and not sc.inPitBox and sc.splineValid and t.safetyTarget>=0', '  if sc.valid and sc.splineValid and t.safetyTarget>=0', 'RED_FLAG_RELAUNCH_SC'),
+    'voiture de sécurité attendue sans fin aux stands': ('now-t.safetyPlaceSince>=K.scPlaceMax or now-t.safetySince>=K.scExitMax then placeFailed', 'now-t.safetyPlaceSince>=K.scPlaceMax then placeFailed', 'RED_FLAG_RELAUNCH_SC'),
+    'arrêt hors fenêtre compté': ('    local counts=mandatory and (underRed and p.redFlagWork or not underRed and position>=opening) and not closed and not (dq and dq[i])\n', '    local counts=true\n'),
+    'arrêt sous drapeau rouge compté': ('(underRed and p.redFlagWork or not underRed and position>=opening)', '(position>=opening)'),
+    'limite cachée pendant la sortie de la SC': ("   local merging=t.safetyPhase=='call' or t.safetyPhase=='place' or t.safetyPhase=='out' and t.safety>0 and frame.cars[t.safety].pit\n", "   local merging=t.safetyPhase=='call'\n"),
+    'reprise de place punie (joueur)': ('   local owed=(t.ai.waiting[j] and t.ai.waiting[j][i] or 0)>now or retake or restore\n', '   local owed=retake or restore\n'),
+    'reprise de place punie (IA)': ('     local owed=(s.waiting[j] and s.waiting[j][i] or 0)>now or j==frame.player and (t.waiting[i] or 0)>now or retake or restore\n', '     local owed=retake or restore\n'),
+    'IA lâchées toutes ensemble': ('  t.releaseAt[i]=now+K.redReleaseFirst+(rank-1)*K.redReleaseGap\n', '  t.releaseAt[i]=now+K.redReleaseFirst\n'),
+    'IA libérées sans attendre leur tour': ('   elseif e.incidents.gate[i] then cmd.pitHold=a.inPitBox==true end\n', '   end\n'),
+    'pneus sous drapeau rouge en GT': (' and (not underRed or p.redFlagWork) then cmd.pitCompound', ' then cmd.pitCompound'),
+    # (t.safetyLeft n'a plus d'effet : la pose le met à vrai, puis le bloc « en piste apres » ; délai de pose à la place)
+    'sortie des stands non remise à zéro': (" t.safetyPhase='place'; t.safetySince=now; t.safetyLeft=false; t.safetyPlaceSince=-math.huge;", " t.safetyPhase='place'; t.safetySince=now; t.safetyLeft=false;"),
+    'sortie des stands non remise à zéro à la relance': ("if t.safety>0 and t.safetyPhase=='place' then", "if false then"),
+    'reprise de place sanctionnée': ('or j==frame.player and (t.waiting[i] or 0)>now or retake or restore\n', 'or j==frame.player and (t.waiting[i] or 0)>now or restore\n'),
+    'réparations sous drapeau rouge interdit': ('not a.safetyCar and (not underRed or p.redFlagWork) and not (dq', 'not a.safetyCar and not (dq'),
+    '126 IA posée sans élan': ('  if car.teleport and car.kmh<kmh then Caps.call', '  if false then Caps.call'),
+    '135 place à rejoindre absente': (' elseif place and l.delta then local label,value=placeText(v,panel.slotText,panel.slotDistance,panel.slotPlaced,panel.slotPassed); placeBox(colors,l.delta,label,value)\n elseif', ' elseif false then\n elseif'),
+    'POSTFIX relais remis à zéro par un passage': ('  c.boxed=false; if not c.passBox then c.lastStop=now end; c.passBox=false\n', '  c.boxed=false; c.lastStop=now; c.passBox=false\n'),
+}
+# Troisième élément facultatif : test qui porte la même intention sur le nouveau code.
+MUTATIONS = [(m[0], m[1], *_MOVED_148[m[0]][:2], *(_MOVED_148[m[0]][2:] or m[4:])) if m[0] in _MOVED_148 else m for m in MUTATIONS]
+MUTATIONS += [
+    # C : voiture de sécurité posée en piste
+    ('1.48 SC jamais posée (aucune commande de position)', 'src/incidents.lua', " if t.safetyPhase=='place' and t.safetyTarget>=0 then cmd.place=t.safetyTarget;", " if false then cmd.place=t.safetyTarget;", 'SAFETY_CAR_CYCLE'),
+    ('1.48 SC posée sur une voiture', 'src/incidents.lua', '   if j~=t.safety and b.valid and not b.pit and b.splineValid and math.abs(U.spline(b.spline-s))*length<K.scPlaceFree then ok=false; break end\n', '', 'SAFETY_CAR_PIT_EXIT'),
+    ('1.48 SC pas devant le meneur', 'src/incidents.lua', "base=frame.cars[ref].spline+K.scPlaceLeader/length", "base=frame.cars[ref].spline", 'SAFETY_CAR_PIT_EXIT'),
+    ('1.48 SC posée vue jamais en piste', 'src/incidents.lua', "  if sc.valid and not sc.pit and not sc.inPitBox and sc.splineValid and t.safetyTarget>=0", "  if false and t.safetyTarget>=0", 'SAFETY_CAR_CYCLE'),
+    ('1.48 SC jamais en échec de pose', 'src/incidents.lua', 'now-t.safetyPlaceSince>=K.scPlaceMax or now-t.safetySince>=K.scExitMax then placeFailed', 'false then placeFailed', 'SAFETY_CAR_PIT_EXIT'),
+    ('1.48 échec de pose : SC encore en neutralisation', 'src/incidents.lua', "  t.safetyFailed=true; t.neutralMode=mode\n", "  t.safetyFailed=true\n", 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 jonction inconnue : pas devant la première sortie', 'src/incidents.lua', "base=b.spline+K.scPlaceFirstOut/length", "base=b.spline", 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 première sortie posée trop tôt', 'src/incidents.lua', 'if U.spline(b.spline-t.firstOutSpline)*length>=K.scPlaceOnTrack then', 'if true then', 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 jonction connue : IA non retenues', 'src/incidents.lua', "from='jonction'; hold=true", "from='jonction'", 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 jonction ignorée', 'src/incidents.lua', "base=t.junction+K.scPlaceJunction/length", "base=t.junction", 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 SC jamais lente devant un peloton loin', 'src/incidents.lua', '   t.safetySlow=near>K.scLeadGap\n', '   t.safetySlow=false\n', 'SAFETY_CAR_PIT_EXIT'),
+    ('1.48 SC toujours lente', 'src/incidents.lua', '   t.safetySlow=near>K.scLeadGap\n', '   t.safetySlow=true\n', 'SAFETY_CAR_PIT_EXIT'),
+    ('1.48 ligne franchie sans rentrer : pas de vert', 'src/incidents.lua', "(car.pit or crossed or now-t.safetySince>=K.scInMax)", "(car.pit or now-t.safetySince>=K.scInMax)", 'SAFETY_CAR_PIT_EXIT'),
+    ('1.48 SC non rappelée à son stand après le vert', 'src/incidents.lua', "t.safetyPhase=car.pit and 'parking' or 'parked'", "t.safetyPhase='parking'", 'SAFETY_CAR_PIT_EXIT'),
+    ('1.48 SC garée hors de son emplacement', 'src/applier.lua', "cmd.parkReason~='dq' and (car.inPitBox or not a.caps.teleport.available)", "cmd.parkReason~='dq'", 'SAFETY_CAR_WRITES'),
+    ('1.48 SC posée sans son élan', 'src/applier.lua', 's.launchKmh=cmd.placeKmh\n', '\n', 'INT:Beta 1.48 : voiture de sécurité posée en piste par CSP (setCarPosition), jamais conduite hors de son emplacement'),
+    # (« SC encore garée pendant la pose » retirée : mutant équivalent, la pose est vue à l'image suivante et la SC rendue aussitôt.)
+    ('1.48 appel : SC encore conduite hors de son stand', 'src/incidents.lua', "then toPlace(t,now); note(t,'INFO','voiture de securite: liberee, posee devant le meneur',t.safety) end", "then t.safetyPhase='out'; t.safetySince=now; t.safetyLeft=false end", 'SAFETY_CAR_CYCLE'),
+    # A et B : ordre figé, sortie conditionnée
+    ('1.48 ordre non figé au drapeau rouge', 'src/incidents.lua', '  freeze(t,frame)\n', '', 'RED_FLAG_PROCEDURE'),
+    ('1.48 SC acceptée là où elle se trouve', 'src/incidents.lua', ' and t.safetyTarget>=0 and math.abs(U.spline(sc.spline-t.safetyTarget))*length<=K.scPlaceReach then\n', ' then\n', 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 SC en piste au début de la pose : pas ramenée', 'src/incidents.lua', " cmd.scPark=t.safetyPhase=='parked' or t.safetyPhase=='call' or t.safetyPhase=='place' and not U.finite(t.safetyPlaceSince)\n", " cmd.scPark=t.safetyPhase=='parked' or t.safetyPhase=='call'\n", 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 SC ramenée au stand pendant la pose', 'src/incidents.lua', " or t.safetyPhase=='place' and not U.finite(t.safetyPlaceSince)\n", " or t.safetyPhase=='place'\n", 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 portes d une sortie annulée gardées', 'src/incidents.lua', '  t.releaseN=0; for i=1,K.maxCars do t.gate[i]=false end\n', '  t.releaseN=0\n', 'RED_FLAG_CANCEL_GATES_148'),
+    ('1.48 joueur dans l ordre de sortie hors course', 'src/incidents.lua', 'or a.player and race) then n=n+1; order[n]=i end', 'or a.player) then n=n+1; order[n]=i end', 'RED_FLAG_QUALIFYING'),
+    ('1.48 joueur hors de l ordre figé', 'src/incidents.lua', "  if a.valid and not a.finished and not a.safetyCar and (a.control or a.player) and not (t.dq and t.dq[i]) then n=n+1; order[n]=i end\n end\n for k=#order,n+1,-1 do order[k]=nil end\n Grid.sortByPosition", "  if a.valid and not a.finished and not a.safetyCar and a.control and not a.player and not (t.dq and t.dq[i]) then n=n+1; order[n]=i end\n end\n for k=#order,n+1,-1 do order[k]=nil end\n Grid.sortByPosition", 'RED_FLAG_PROCEDURE'),
+    ('1.48 sortie au classement vivant', 'src/incidents.lua', ' local r=t.redRank[i]\n if r then return r end\n', ' local r=nil\n', 'RED_FLAG_PROCEDURE'),
+    ('1.48 reprise avant que toutes soient à leur emplacement', 'src/incidents.lua', 'if a.inPitBox then inPits=inPits+1 end', 'if a.pit then inPits=inPits+1 end', 'RED_FLAG_PROCEDURE'),
+    ('1.48 sortie sans attendre la précédente', 'src/incidents.lua', '    if j==0 or ahead(frame,j,i) then open=true\n', '    if true then open=true\n', 'RED_FLAG_PROCEDURE'),
+    ('1.48 attente sans limite', 'src/incidents.lua', "     if now-from>=(frame.cars[j].player and K.redExitWaitPlayer or K.redExitWait) then open=true;", "     if false then open=true;", 'RED_FLAG_PROCEDURE'),
+    ('1.48 derrière le joueur : attente courte', 'src/incidents.lua', '(frame.cars[j].player and K.redExitWaitPlayer or K.redExitWait)', '(K.redExitWait)', 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 précédente encore à son emplacement : partie', 'src/incidents.lua', ' if b.inPitBox or not b.splineValid or frame.length<=0 then return false end\n', ' if not b.splineValid or frame.length<=0 then return false end\n', 'RED_FLAG_PROCEDURE'),
+    ('1.48 précédente encore en amont : partie', 'src/incidents.lua', ' return U.spline(b.spline-frame.cars[i].spline)*frame.length>K.redExitClear\n', ' return true\n', 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 grille au classement vivant', 'src/grid.lua', ' if (t.redOrderN or 0)>0 then M.sortByRank(order,n,frame.cars,t.redRank) else M.sortByPosition(order,n,frame.cars) end\n', ' M.sortByPosition(order,n,frame.cars)\n', 'RED_FLAG_STANDING_ORDER_148'),
+    ('1.48 ordre jamais levé', 'src/incidents.lua', "then clearOrder(t); note(t,'INFO','reprise: ordre du drapeau rouge leve',-1) end", "then end", 'RED_FLAG_ORDER_EXEMPTION'),
+    # E : exemption
+    ('1.48 reprise de place punie (joueur, ordre figé)', 'src/penalties.lua', '(reprise) : dépassement permis.\n   local restore=Incidents.restoring(inc,i,j)\n', '(reprise) : dépassement permis.\n   local restore=false\n', 'RED_FLAG_ORDER_EXEMPTION'),
+    ('1.48 exemption dans les deux sens', 'src/incidents.lua', ' return ri~=nil and rj~=nil and ri<rj\n', ' return ri~=nil and rj~=nil\n', 'RED_FLAG_ORDER_EXEMPTION'),
+    ('1.48 voiture hors ordre (SC) exemptée', 'src/incidents.lua', ' return ri~=nil and rj~=nil and ri<rj\n', ' return (ri or 0)<(rj or 99)\n', 'RED_FLAG_ORDER_EXEMPTION'),
+    ('1.48 reprise de place jamais notée', 'src/incidents.lua', ' if t.restored[key] then return end\n', ' do return end\n', 'RED_FLAG_ORDER_EXEMPTION'),
+    # D : overlay
+    ('1.48 consigne de reprise absente aux stands', 'src/panel.lua', " if st=='pit' and kind=='red' and panel.redPit then short=", " if false then short=", 'RED_FLAG_PROCEDURE'),
+    ('1.48 attente non annoncée', 'src/panel.lua', " elseif st=='wait' then short=", " elseif false then short=", 'RED_FLAG_PROCEDURE'),
+    ('1.48 pastille de reprise absente', 'src/panel.lua', " elseif st=='ok' then panel.restartPill=", " elseif false then panel.restartPill=", 'RED_FLAG_RELAUNCH_SC'),
+    ('1.48 case REPRISE absente', 'src/panel.lua', " if st=='pit' and panel.redPit or st=='wait' or st=='go' then panel.restartBox='P'..r end\n", "\n", 'RED_FLAG_PROCEDURE'),
+    ('1.48 ligne de session au classement vivant', 'src/hudinfo.lua', ' if rank>0 then item(h,L.hudPosition,', ' if false then item(h,L.hudPosition,', 'RED_FLAG_PROCEDURE'),
+    ('1.48 explication du rouge sans ordre', 'src/panel.lua', " if kind=='red' then panel.explain=", " if false then panel.explain=", 'RED_FLAG_PROCEDURE'),
+    ('1.48 indicateur de reprise hors course', 'src/incidents.lua', " local r=profile=='C' and t.redOrderN>0 and pl>0 and t.redRank[pl] or nil\n", " local r=t.redOrderN>0 and pl>0 and t.redRank[pl] or nil\n", 'RED_FLAG_QUALIFYING'),
+    # F : arrêts sous drapeau rouge
+    ('1.48 passage sous rouge oublié', 'src/pits.lua', '  if a.pit and red then c.redVisit=true elseif not a.pit then c.redVisit=false end\n', '  c.redVisit=false\n', 'RED_FLAG_STOPS_148'),
+    ('1.48 F1 : arrêt sous rouge avant la fenêtre non compté', 'src/pits.lua', '(underRed and p.redFlagWork or not underRed and position>=opening)', '(position>=opening and (not underRed or p.redFlagWork))', 'RED_FLAG_STOPS_148'),
+    ('1.48 joueur : composé inchangé compté', 'src/pits.lua', '   local changed=a.compoundIndex~=nil and a.compoundIndex~=c.pendingCompound\n', '   local changed=true\n', 'RED_FLAG_STOPS_148'),
+    ('1.48 joueur : arrêt compté à l arrivée', 'src/pits.lua', '    if counts and a.player and p.pitCompoundChange and a.compoundIndex~=nil then c.pendingCompound=a.compoundIndex\n', '    if false then c.pendingCompound=a.compoundIndex\n', 'RED_FLAG_STOPS_148'),
+]
+
+
 def run(root, name):
     if name.startswith('INT:'):
         import os, subprocess

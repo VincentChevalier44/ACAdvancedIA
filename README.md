@@ -638,11 +638,12 @@ Safety Car escalation (**Safety Car if the incident escalates**, on by default i
 - **Livery.** A livery applied by the app is given back when the car stops being the Safety Car, and when the app unloads.
 
 **A Safety Car period.**
-1. **Called.** The field goes under the FCY delta (never faster than the Safety Car minus 30 km/h) while the car stays parked 10 s. The FCY continues while it drives down the pit lane.
-2. **On track.** It runs at **Safety Car speed (km/h)** (120 km/h). The AI catch it up at its speed plus 40 km/h, then run in single file without overtaking.
-3. **In this lap.** Once the incident is cleared and it has been out for at least 60 s, the overlay announces *Safety Car in this lap*.
-4. **Green.** The green flag comes when it enters the pit lane. There is **no overtaking until the line**, then it is parked again.
-5. **Fallbacks.** If it stops on the track during its intervention, it is returned to its pit box and the neutralisation continues as an FCY. After a VSC, your delta restarts at +1 s when the Safety Car takes over.
+1. **Called.** The field goes under the FCY delta (never faster than the Safety Car minus 30 km/h) while the car stays parked 10 s.
+2. **Placed on track** (Beta 1.48). AC's AI never drove the Safety Car out of its pit box, so the app places it on the track through CSP (the same method as spreading the AI on a track day), 200 m ahead of the leader, on a point with no car within 80 m. The FCY continues until it is on track. If it cannot be placed within 15 s, the neutralisation continues as an FCY (logged).
+3. **On track.** It runs at 80 km/h while the first car behind it is more than 120 m back, then at **Safety Car speed (km/h)** (120 km/h). The AI catch it up at its speed plus 40 km/h, then run in single file without overtaking.
+4. **In this lap.** Once the incident is cleared and it has been out for at least 60 s, the overlay announces *Safety Car in this lap*.
+5. **Green.** The green flag comes when it enters the pit lane. There is **no overtaking until the line**, then it is parked again. If it misses the pit entry and crosses the line, the green comes there and it is sent back to its box.
+6. **Fallbacks.** If it stops on the track during its intervention, it is returned to its pit box and the neutralisation continues as an FCY. After a VSC, your delta restarts at +1 s when the Safety Car takes over.
 
 **Status:** the Safety Car's exit from its pit box was reworked in Beta 1.25 and has not yet been confirmed in game (log line `voiture de securite: sortie de son stand apres … s`). Treat it as experimental.
 
@@ -656,10 +657,13 @@ Safety Car escalation (**Safety Car if the incident escalates**, on by default i
 - **You.** Enter the pit lane too, within the delta. The overlay shows **RED FLAG**, flashing, with the *PIT: RETURN TO THE PIT LANE* pill.
   - The restart waits for you, at most until the maximum delay. Refusing to come in holds the AI until that delay.
   - Restarting outside the pits is penalised.
-- **The restart** comes once all AI are in, the track is clear and the minimum suspension (60 s, **Red flag: minimum suspension (s)**) has passed. At the latest, it comes after one and a quarter laps at the return speed plus the pit lane (about 8 minutes at Spa).
+- **The restart** comes once every AI is at its pit box (Beta 1.48: not just in the pit lane), the track is clear and the minimum suspension (60 s, **Red flag: minimum suspension (s)**) has passed. At the latest, it comes after one and a quarter laps at the return speed plus the pit lane (about 8 minutes at Spa).
 - **A real restart** (F1, WEC, GT):
-  - The AI leave their boxes in classification order, one every 2 s.
-  - A restart lap follows behind the Safety Car. Without one, it runs under VSC with the F1 rules, or under FCY otherwise.
+  - **The order is frozen at the red flag** (Beta 1.48), you included: the classification at that moment, not the order in which cars reach the pits. It sets the pit exit, the grid of a standing restart, the overlay and the overtaking rule below.
+  - The cars leave their boxes in that order, one every 2 s, each only once the car before it has left its box and passed its own (at most 20 s of waiting, 45 s behind you). The log notes `sortie des stands: X attend Y`.
+  - **The Safety Car is placed on the track** for the restart lap: 200 m after the pit exit when the app knows where the pit lane rejoins (the AI wait in their boxes until it is placed), otherwise 250 m ahead of the first car out. If it cannot be placed within 15 s, the restart lap runs under VSC (F1 rules) or FCY. Without a Safety Car, it runs under VSC with the F1 rules, or under FCY otherwise.
+  - **The overlay shows your restart position**: in the pits a **RESTART P7** box with *Stay in the pits · restart P7 behind …*, then *Wait: … leaves before you* and *Go: P7 behind …*; on track a green *P7 · BEHIND D. FERRO* pill, or an amber *RETAKE P7: PASS … (ALLOWED)* pill. The session line shows the frozen position.
+  - **Retaking your place is not an overtake under the flag**: passing a car classed behind you in the frozen order is allowed (for the AI too) during the pit exit, the restart lap and until the line. Passing a car classed ahead of you, or the Safety Car, is still penalised.
   - There is no overtaking during the restart lap, nor until the line after the green (after a standing start, overtaking is allowed from the lights out, since Beta 1.36).
   - Since Beta 1.34, **Restart after a red flag** chooses how the race restarts (the overlay announces it during the restart lap):
     - **Rolling start (RS) behind the Safety Car** (base, GT and Endurance rules): the green comes when the Safety Car pits, as above.
@@ -667,7 +671,7 @@ Safety Car escalation (**Safety Car if the incident escalates**, on by default i
     - The grid slots are the track's `AC_START` nodes when CSP gives them and they make sense (before the line, within 400 m, in order, on the track), otherwise computed: 6 m before the line, 8 m apart, alternating columns. Nobody is ever teleported, so laps stay exact. Without the CSP functions it needs (stop counter, speed cap, lateral offset) or a measured lateral direction, the restart stays rolling and the log says why.
     - A new incident during the grid or the lights cancels the standing start: the holds are released and the usual yellow flags take over.
   - **Overtaking allowed after the restart** (Safety Car view): **at the control line** (default, the usual rule) or **as soon as the Safety Car pits**, for a red-flag restart lap and for an ordinary Safety Car deployment.
-- **Work in the pits.** With the F1 rules, tyres are changed under the red flag and the stop counts (**Red flag: tyres changed in the pits (stop counts)**). With the GT and Endurance rules, no work is done.
+- **Work in the pits.** With the F1 rules, tyres are changed under the red flag and the stop counts (**Red flag: tyres changed in the pits (stop counts)**), even before the pit window opens (Beta 1.48). With the GT and Endurance rules, no work is done, also for a car that entered the pit lane under the red flag and reaches its box after the restart. With a compulsory compound change, your own stop counts only if you changed compound.
 - **DRS** is disabled until one lap after the restart.
 - **Limitation:** AC cannot suspend a race, so its race clock keeps running during the suspension.
 

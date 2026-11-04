@@ -438,7 +438,9 @@ end
 local function place(a,s,car,cmd,now)
  if s.launchPending and car.valid and (car.teleport or now>=s.launchAt) then
   s.launchPending=false
-  if car.teleport and car.kmh<K.spreadSpeed then Caps.call(a.caps,'velocity',car.index,vec3(car.lx,0,car.lz)*(K.spreadSpeed/3.6)) end
+  -- Beta 1.48 : voiture de sécurité posée en piste : son élan propre (cmd.placeKmh).
+  local kmh=s.launchKmh or K.spreadSpeed
+  if car.teleport and car.kmh<kmh then Caps.call(a.caps,'velocity',car.index,vec3(car.lx,0,car.lz)*(kmh/3.6)) end
  end
  if (cmd.place or -1)<0 or not car.valid or not car.control or car.player then return end
  if s.placeFor==cmd.placeFor and now<s.placeAt then return end
@@ -446,7 +448,7 @@ local function place(a,s,car,cmd,now)
  local ok,pos=pcall(ac.trackProgressToWorldCoordinate,cmd.place)
  if not ok or not pos then if not a.placeWarned then a.placeWarned=true; note(a,'WARN','repartition: position sur le circuit indisponible',car.index+1) end return end
  Caps.call(a.caps,'startDelay',car.index,0)
- if Caps.call(a.caps,'position',car.index,pos,nil) then s.launchPending=true; s.launchAt=now+K.spreadLaunchWait
+ if Caps.call(a.caps,'position',car.index,pos,nil) then s.launchPending=true; s.launchAt=now+K.spreadLaunchWait; s.launchKmh=cmd.placeKmh
  elseif not a.placeWarned then a.placeWarned=true; note(a,'WARN','repartition: placement des IA indisponible (CSP)',car.index+1) end
 end
 -- IA accidentée retenue par impulsions courtes du compteur d'arrêt natif : un rechargement ou une coupure
@@ -724,7 +726,10 @@ local function safety(a,s,car,cmd,now)
   -- piste), au plus toutes les K.parkReturnPeriod s.
   if not car.inPitBox and now>=s.teleportAt and a.caps.teleport.available and Caps.call(a.caps,'teleport',car.index,'PIT') then s.teleported=true; s.teleportAt=now+K.parkReturnPeriod; note(a,'INFO',cmd.parkReason=='dq' and 'IA disqualifiee: ramenee a son stand' or cmd.parkReason=='spare' and 'voiture de securite en reserve: ramenee a son stand' or 'voiture de securite: ramenee a son stand',car.index+1) end
   -- Relecture : une IA disqualifiée n'est garée qu'aux stands (ramenée par le moteur si le déplacement échoue).
-  if now>=s.parkAt and a.caps.park.available and (cmd.parkReason~='dq' or car.pit or car.inPitBox) and Caps.call(a.caps,'park',car.index,true) then
+  -- Beta 1.48 : voiture de sécurité (ou de réserve) garée seulement à son emplacement (jamais en travers de la piste
+  -- après un retour au stand manqué), sauf retour au stand impossible (CSP) ; IA disqualifiée : aux stands.
+  local where=cmd.parkReason=='dq' and (car.pit or car.inPitBox) or cmd.parkReason~='dq' and (car.inPitBox or not a.caps.teleport.available)
+  if now>=s.parkAt and a.caps.park.available and where and Caps.call(a.caps,'park',car.index,true) then
    if not s.parked then a.recoveryDirty=true; note(a,'INFO',cmd.parkReason=='dq' and 'IA disqualifiee: garee jusqu a la fin de la session' or cmd.parkReason=='spare' and 'voiture de securite en reserve: garee sans pilote' or 'voiture de securite: garee sans pilote',car.index+1) end; s.parked=true; s.parkAt=now+K.parkPeriod
   end
  else

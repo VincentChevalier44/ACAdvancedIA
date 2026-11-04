@@ -3,7 +3,7 @@ local U=require('src/util')
 local K=require('src/config').K
 local M={}
 local function clear(c)
- c.stops=0; c.windowStops=0; c.boxed=false; c.boxSince=0; c.visit=0; c.wanted=false
+ c.stops=0; c.windowStops=0; c.boxed=false; c.boxSince=0; c.visit=0; c.wanted=false; c.redVisit=false; c.pendingCompound=nil
  c.fuelLap=-1; c.fuelAt=-1; c.lapAt=0; c.pitLap=false; c.perLap=0; c.lapTime=0; c.repairVisit=-1; c.repairTime=0; c.towedAt=nil
  -- Relecture 1.42 (après correctifs) : passage de pénalité en cours à l'emplacement, arrêt des règles retenu par la limite
  -- d'appels (lu par sanctions.lua : la pénalité attend cet arrêt).
@@ -93,6 +93,10 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
   -- Passage de pénalité d'une IA (drive-through, stop-and-go ; cmd.penaltyPass mis par sanctions.lua, Beta 1.42) : ni
   -- visite (la stratégie et les réparations la prendraient pour leur arrêt), ni arrêt compté, ni arrêt obligatoire.
   local pass=cmd.penaltyPass==true
+  -- Beta 1.48 : passage aux stands commencé sous drapeau rouge (mémorisé jusqu'à la sortie de la voie des stands) :
+  -- une voiture arrivée à son emplacement après la reprise reste sous la règle du drapeau rouge.
+  if a.pit and red then c.redVisit=true elseif not a.pit then c.redVisit=false end
+  local underRed=red or c.redVisit==true
   if a.inPitBox and not c.boxed and pass then
    c.boxed=true; c.boxSince=now; c.passBox=true
    if t.note and not a.player then t.note('INFO',string.format('passage de penalite a l emplacement: %s, non compte comme arret',a.name),i) end
@@ -102,13 +106,26 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
    -- drapeau rouge, toutes les voitures rentrent aux stands : compté comme avant.
    if not a.safetyCar and (not towed or red) then
     c.stops=c.stops+1
-    -- Arrêt sous drapeau rouge : compté seulement si les règles y permettent un changement de pneus (F1).
-    if mandatory and position>=opening and (not red or p.redFlagWork) and not closed and not (dq and dq[i]) then c.windowStops=c.windowStops+1; t.dirty=true end
-    if t.note and active and not a.player then t.note('INFO',string.format('arret aux stands: %d (dont %d dans la fenetre), %s',c.stops,c.windowStops,a.name),i) end
+    -- Arrêt sous drapeau rouge : compté seulement si les règles y permettent un changement de pneus (F1), même avant
+    -- l'ouverture de la fenêtre (Beta 1.48 : la F1 n'en a pas) ; jamais sinon. Joueur et changement de composé
+    -- obligatoire : compté à la sortie de l'emplacement, seulement si le composé a changé.
+    local counts=mandatory and (underRed and p.redFlagWork or not underRed and position>=opening) and not closed and not (dq and dq[i])
+    c.pendingCompound=nil
+    if counts and a.player and p.pitCompoundChange and a.compoundIndex~=nil then c.pendingCompound=a.compoundIndex
+    elseif counts then c.windowStops=c.windowStops+1; t.dirty=true end
+    if t.note and active then t.note('INFO',string.format('arret aux stands%s: %d (dont %d dans la fenetre)%s, %s',a.player and ' du joueur' or '',c.stops,c.windowStops,c.pendingCompound and ', compte au changement de compose' or '',a.name),i) end
    end
   end
   -- Relecture 1.42 (après correctifs) : un passage de pénalité ne remet pas le relais à zéro (relais maximal).
- if not a.inPitBox and c.boxed then c.boxed=false; if not c.passBox then c.lastStop=now end; c.passBox=false end
+ if not a.inPitBox and c.boxed then
+  c.boxed=false; if not c.passBox then c.lastStop=now end; c.passBox=false
+  if c.pendingCompound~=nil then
+   local changed=a.compoundIndex~=nil and a.compoundIndex~=c.pendingCompound
+   if changed then c.windowStops=c.windowStops+1; t.dirty=true end
+   if t.note and active then t.note('INFO',changed and string.format('arret aux stands du joueur compte: compose change (%d dans la fenetre)',c.windowStops) or 'arret aux stands du joueur non compte: compose inchange',i) end
+   c.pendingCompound=nil
+  end
+ end
   cmd.rulePit=false; cmd.pitHold=false; cmd.pitCompound=-1; cmd.pitVisit=c.visit; cmd.pitRepair=false
   -- IA disqualifiée (garée à son stand), arrivée ou hors course : ni comptée ni appelée, aucune place d'appel retenue.
   if active and a.valid and a.control and not a.player and not a.finished and not a.safetyCar and not (dq and dq[i]) then
@@ -135,12 +152,12 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
    c.wanted=want
    cmd.rulePit=want
    cmd.pitHold=a.inPitBox and p.minPitTime>0 and now-c.boxSince<p.minPitTime
-   if a.inPitBox and p.pitTyres and (not red or p.redFlagWork) then cmd.pitCompound=M.compound(a,cmd,p) end
+   if a.inPitBox and p.pitTyres and (not underRed or p.redFlagWork) then cmd.pitCompound=M.compound(a,cmd,p) end
   else c.wanted=false; c.deferred=false end
   -- Réparations (Beta 1.20) : en course, à chaque passage d'une IA endommagée à son emplacement (arrêt des règles ou
   -- arrêt natif) ; elle y reste le temps de la réparation. Sous drapeau rouge, seulement si les règles y permettent le
   -- travail (F1), comme les pneus.
-  if profile=='C' and p.pitRepair and not pass and a.inPitBox and a.valid and a.control and not a.player and not a.safetyCar and (not red or p.redFlagWork) and not (dq and dq[i]) then
+  if profile=='C' and p.pitRepair and not pass and a.inPitBox and a.valid and a.control and not a.player and not a.safetyCar and (not underRed or p.redFlagWork) and not (dq and dq[i]) then
    if c.repairVisit~=c.visit then c.repairVisit=c.visit; c.repairTime=M.repairTime(a) end
    if c.repairTime>0 then cmd.pitRepair=true; if now-c.boxSince<c.repairTime then cmd.pitHold=true end end
   end

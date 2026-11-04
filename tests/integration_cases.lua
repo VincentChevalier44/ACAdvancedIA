@@ -2697,5 +2697,57 @@ return function(source)
   HOST.transparent={}; script.HUMANAI__HUD(); assert(e.panel.kind=='black','overlay shows the AC black flag')
   HUMANAI.release()
  end)
+ -- Beta 1.48 : banc honnête : la voiture de sécurité, garée à son emplacement, ne bouge que sur une commande de position.
+ check('Beta 1.48 : voiture de sécurité posée en piste par CSP (setCarPosition), jamais conduite hors de son emplacement',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
+  ac.getCarID=function(index) return index==3 and 'sc_model' or 'model_'..index end
+  assert(loadstring(source))(); local e=HUMANAI.engine
+  C.preset('Course','C',e.profiles.C); e.profiles.C.neutralization='sc'; e.g.safetyCarModel='sc_model'; e.g.safetyCarPicked=true; E.changed(e); H.tick(HOST,3)
+  assert(e.incidents.safety==4 and HOST.parked[3] and HOST.cars[3].isInPit,'parked in its box')
+  local teleports=HOST.teleports; local writes=HOST.positionWrites or 0
+  H.tick(HOST,5); assert((HOST.positionWrites or 0)==writes and HOST.cars[3].isInPit,'parked: never moved')
+  local t=e.incidents; t.neutral=true; t.neutralMode='sc'; t.neutralSince=e.time; t.neutralUntil=e.time+1e6; t.safetyPhase='call'; t.safetySince=e.time-C.K.scCallTime-1
+  H.tick(HOST,1)
+  assert(HOST.positions[3] and not HOST.cars[3].isInPit and t.safetyPhase=='out' and t.safetyLeft,'placed on track by a position command')
+  assert(HOST.parked[3]==false and HOST.teleports==teleports,'unparked, never sent back to its box')
+  local z=HOST.positions[3].pos.z
+  for i=0,2 do local d=math.abs(((HOST.cars[i].splinePosition-z/10000+0.5)%1)-0.5)*10000; assert(d>=C.K.scPlaceFree,'free point '..i) end
+  assert(HOST.velocities[3] and math.abs(HOST.velocities[3].z*3.6-C.K.scLeadKmh)<1e-6,'launched at the lead pace')
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+ end)
+ -- Beta 1.48 (test 11) : drapeau rouge de bout en bout sur le banc de CSP : ordre figé, voiture de sécurité posée par
+ -- setCarPosition, tour de relance et vert, sans repli FCY.
+ check('Beta 1.48 : drapeau rouge, ordre figé, voiture de sécurité posée par CSP, relance et vert sans repli',function()
+  HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
+  ac.getCarID=function(index) return index==3 and 'sc_model' or 'model_'..index end
+  assert(loadstring(source))()
+  local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.redFlagCars=2; e.profiles.C.redFlagHold=20; e.g.safetyCarModel='sc_model'; e.g.safetyCarPicked=true; E.changed(e)
+  H.tick(HOST,8)
+  assert(e.incidents.safety==4 and HOST.parked[3],'safety car parked in its box')
+  local sides=ac.getTrackAISplineSides; ac.getTrackAISplineSides=function() return {x=3,y=3} end
+  for k,i in ipairs({1,2}) do local c=HOST.cars[i]; c.speedKmh=0; c.velocity={x=0,z=0}; c.position={x=k==1 and -1.5 or 1.5,y=0,z=HOST.cars[1].position.z}; c.splinePosition=HOST.cars[1].splinePosition end
+  H.tick(HOST,C.K.redIncidentStill+1)
+  ac.getTrackAISplineSides=sides
+  local t=e.incidents
+  assert(t.red and t.redOrderN==3 and t.redRank[4]==nil,'red flag: order frozen, player included, safety car excluded')
+  H.tick(HOST,3)
+  for i=0,2 do local c=HOST.cars[i]; c.isInPit=true; c.isInPitlane=true; c.speedKmh=0; c.velocity={x=0,z=0} end
+  for _=1,120 do if not t.red then break end; H.tick(HOST,0.5) end
+  assert(not t.red and t.relaunch and t.neutralMode=='sc' and t.safetyPhase=='place','relaunch behind the safety car, to be placed')
+  -- Le joueur sort le premier (P1) ; la voiture de sécurité est posée devant lui par CSP.
+  local writes=HOST.positionWrites or 0
+  local c=HOST.cars[0]; c.isInPit=false; c.isInPitlane=false; c.splinePosition=0.5; c.position={x=0,y=0,z=5000}; c.speedKmh=60; c.velocity={x=0,y=0,z=60/3.6}; H.tick(HOST,0.2)
+  c.splinePosition=0.5+(C.K.scPlaceOnTrack+5)/10000; c.position={x=0,y=0,z=5000+C.K.scPlaceOnTrack+5}; H.tick(HOST,1)
+  assert((HOST.positionWrites or 0)>writes and HOST.positions[3] and not HOST.cars[3].isInPit and t.safetyPhase=='out','placed on track by setCarPosition')
+  assert(math.abs(HOST.positions[3].pos.z-(5000+C.K.scPlaceOnTrack+5+C.K.scPlaceFirstOut))<1,'ahead of the first car out')
+  H.tick(HOST,C.K.scMinOut+e.run.neutralizationHold+5)
+  assert(t.safetyPhase=='in' and t.neutral,'in this lap')
+  HOST.cars[3].isInPitlane=true; H.tick(HOST,0.5)
+  assert(not t.neutral and not t.relaunch,'green when it enters the pit lane')
+  local function logged(text) for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end return false end
+  assert(logged('voiture de securite: posee en piste') and logged('drapeau rouge: ordre fige (3 voitures)'),'logged')
+  assert(not logged('restee dans la voie des stands') and not logged('pose en piste impossible') and not logged('neutralisation: fcy'),'no FCY fallback')
+  HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+ end)
  return results
 end

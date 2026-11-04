@@ -528,7 +528,7 @@ end
 -- Voiture de sécurité : modèle choisi et sa présence sur la grille, étapes de sa sortie, saisie du dossier, filtre et
 -- liste de la base des voitures.
 -- Phases de la bande (maquette) : garée, appelée, en piste, rentre ce tour, aux stands ; lignes de la base montrées.
-local safetyStrip={parked=1,call=2,out=3,['in']=4,parking=5}
+local safetyStrip={parked=1,call=2,place=2,out=3,['in']=4,parking=5}
 local SAFETY_ROWS=8
 local function safetyBlock(v,e,x,y,w)
  local c=W.colors(); local g=e.g
@@ -2640,7 +2640,9 @@ local function flags(v,force)
  if p.strip then sessionStrip(v,colors,e,p,y,w,u); y=y+K.hudStripH*u end
  if not p.band then v.drawnHeight=height; return height end
  local bandTop=y
- local place=not idle and kind=='standing' and panel.slotText~=nil
+ -- Beta 1.48 : case « REPRISE » (place de l'ordre figé au drapeau rouge) aux stands.
+ local restartBox=not idle and not (kind=='standing' and panel.slotText~=nil) and panel.restartBox or nil
+ local place=not idle and (kind=='standing' and panel.slotText~=nil or restartBox~=nil)
  local blueSide=not idle and kind=='blue' and panel.blueGap or nil
  local boxed=delta~=nil or place or blueSide~=nil
  v.flagBoxes=v.flagBoxes or {}
@@ -2673,7 +2675,8 @@ local function flags(v,force)
   local sigle=kind=='lap' and panel.lapCode or kind=='yellow' and panel.double and '!!' or kind=='update' and updateCode(v,panel.updateVersion) or flagCodes[kind]
   if sigle and sigle~='' then font('display',true); write(sigle,(f[3]-f[1])*(#sigle>2 and 0.34 or #sigle>1 and 0.44 or 0.6),f,(kind=='red' or kind=='blue') and colors.text or colors.ink,CENTER); font('display',false) end
  end
- if place and l.delta then local label,value=placeText(v,panel.slotText,panel.slotDistance,panel.slotPlaced,panel.slotPassed); placeBox(colors,l.delta,label,value)
+ if place and l.delta and restartBox then placeBox(colors,l.delta,L.restart.box,restartBox)
+ elseif place and l.delta then local label,value=placeText(v,panel.slotText,panel.slotDistance,panel.slotPlaced,panel.slotPassed); placeBox(colors,l.delta,label,value)
  elseif delta and l.delta then deltaBox(v,colors,l.delta,delta,blink) elseif delta then deltaText(v,delta)
  elseif blueSide and l.delta then blueBox(colors,l.delta,W.upper(blueText(v,blueSide)),u) end
  local title=kind=='ai' and hud.aiTitle or idle and L.flagTitles.clear or panel.title
@@ -2717,6 +2720,11 @@ local function flags(v,force)
   if panel.noPass and not idle then
    if panel.passed then count=pill(v,count,panel.passBad,colors.ink,colors.over,nil,true)
    else count=pill(v,count,panel.passOk,colors.under,colors.underBack,nil,false) end
+  end
+  -- Beta 1.48 : place de la reprise tenue (verte) ou à reprendre (ambre, dépassement permis).
+  if panel.restartPill and not idle then
+   if panel.restartRetake then count=pill(v,count,panel.restartPill,colors.ink,colors.amber,nil,false)
+   else count=pill(v,count,panel.restartPill,colors.under,colors.underBack,nil,false) end
   end
   if panel.drsBlocked and not idle then count=pill(v,count,panel.drsText,colors.over,colors.overBack,nil,false) end
   pillRow(row,math.max(K.pillFontMin,K.hudPillH*u*0.58),v.pillItems,count,blink,back)

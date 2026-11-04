@@ -143,6 +143,38 @@ end
 function M.warn(panel) panel.warnPending=true end
 -- Pénalité du joueur : ligne rouge sous la consigne pendant quelques secondes.
 function M.notice(panel,reason,seconds,now) panel.notice=string.format(L.penaltyNotice[reason],seconds); panel.noticeUntil=now+K.noticeTime end
+-- Nom abrégé (« D. Ferro ») : première lettre (UTF-8 entier) du premier mot et derniers mots.
+local function initials(name)
+ if type(name)~='string' then return '' end
+ local first,rest=name:match('^%s*(%S+)%s+(.-)%s*$')
+ if not first or rest=='' then return name end
+ return (first:match('^[%z\1-\127\194-\244][\128-\191]*') or '')..'. '..rest
+end
+M.initials=initials
+-- Beta 1.48 : indicateur de reprise après un drapeau rouge (place de l'ordre figé, voiture à suivre) : case « REPRISE »
+-- aux stands, consigne de la bande (rester, attendre, sortir), pastille en piste (place tenue ou à reprendre). Textes
+-- refaits seulement quand l'état ou le drapeau change ; une consigne remplacée est rendue au drapeau d'abord.
+local function restartInfo(panel,t,frame,kind)
+ local r=t.restartRank or 0
+ local key=r>0 and (t.restartState..'|'..r..'|'..t.restartAhead..'|'..t.restartTarget..'|'..tostring(panel.key)) or ''
+ if key==panel.restartKey then return end
+ if panel.restartShort then panel.restartShort=false; panel.key=nil; panel.restartKey=nil; return end
+ panel.restartKey=key; panel.restartPill=nil; panel.restartRetake=false; panel.restartBox=nil
+ if r==0 then return end
+ local R=L.restart; local st=t.restartState
+ local ahead=t.restartAhead>0 and frame.cars[t.restartAhead] or nil
+ local name=ahead and ahead.name or ''
+ local first=t.safety>0 and R.behindSc or R.leading
+ if st=='pit' and panel.redPit or st=='wait' or st=='go' then panel.restartBox='P'..r end
+ local short
+ if st=='pit' and kind=='red' and panel.redPit then short=r>1 and string.format(R.pit,r,name) or string.format(R.pitFirst,first)
+ elseif st=='wait' then short=ahead and string.format(R.wait,name) or string.format(R.waitFirst,first)
+ elseif st=='go' then short=r>1 and string.format(R.go,r,name) or string.format(R.goFirst,first)
+ elseif st=='retake' then local b=frame.cars[t.restartTarget]; panel.restartRetake=true; panel.restartPill=string.format(R.retake,r,initials(b and b.name or ''))
+ elseif st=='ok' then panel.restartPill=r>1 and string.format(R.pill,r,initials(name)) or string.format(R.pillFirst,first) end
+ if short then panel.short=short; panel.restartShort=true end
+ if kind=='red' then panel.explain=string.format(t.safety>0 and R.explainSc or R.explain,r); panel.restartShort=true end
+end
 -- lights : état des panneaux lumineux (véhicule lent devant, dégâts du joueur), facultatif.
 function M.update(panel,t,frame,p,profile,now,lights)
  if not p.flagPanel then return M.native(panel,frame,now,p) end
@@ -169,7 +201,7 @@ function M.update(panel,t,frame,p,profile,now,lights)
   else kind=t.safetyPhase~='in' and 'rolling' or p.restartOvertake=='scIn' and 'rollingGreen' or 'rollingIn' end
  elseif t.neutral then
   if t.neutralMode=='sc' then
-   local merging=t.safetyPhase=='call' or t.safetyPhase=='out' and t.safety>0 and frame.cars[t.safety].pit
+   local merging=t.safetyPhase=='call' or t.safetyPhase=='place' or t.safetyPhase=='out' and t.safety>0 and frame.cars[t.safety].pit
    kind=t.safetyPhase=='in' and 'scIn' or merging and 'scCall' or 'sc'
   elseif t.neutralMode=='vsc' then kind=t.ending and 'vscEnd' or 'vsc'; value=p.vscDeltaPct
   else kind='fcy'; value=p.fcyDeltaPct end
@@ -217,6 +249,7 @@ function M.update(panel,t,frame,p,profile,now,lights)
   elseif now<panel.updateUntil then kind='update'; value=panel.updateVersion end
  end
  show(panel,kind,value,double,gap,now,profile,extra)
+ restartInfo(panel,t,frame,kind)
  -- Départ arrêté (Beta 1.35) : joueur à sa place (à l'arrêt) ou au-delà, lus par la case de l'overlay.
  panel.slotPlaced=kind=='standing' and t.gridPlaced==true; panel.slotPassed=kind=='standing' and t.gridPassed==true
  -- Drapeau et zone DRS en même temps : le drapeau reste affiché, avec une ligne « DRS interdit sous drapeau ».

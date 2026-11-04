@@ -1061,9 +1061,16 @@ tests.SAFETY_CAR_CYCLE=function()
  assert(e.incidents.neutral and e.incidents.neutralMode=='sc' and e.incidents.safetyPhase=='call','called on the major incident')
  assert(e.commands[5].scPark and e.incidents.messageKind=='sc','still parked while the field slows down')
  F.tick(e,f,6); assert(fallback(e.commands[2].yellowLimit,80) and e.states[2].yellow,'field under the FCY delta before the release')
- F.tick(e,f,5); assert(e.incidents.safetyPhase=='out' and not e.commands[5].scPark and e.commands[5].scSpeed==120,'released after the call time')
- F.tick(e,f,2); assert(fallback(e.commands[2].yellowLimit,80),'FCY kept while it drives down the pit lane')
- f.cars[5].pit=false; f.cars[5].inPitBox=false; F.place(f,5,1000,120); F.tick(e,f,1)
+ -- Beta 1.48 : libérée, elle est posée en piste devant le meneur (commande de position), jamais conduite hors de son
+ -- emplacement ; le peloton reste sous le delta FCY tant qu'elle n'est pas en piste.
+ F.tick(e,f,5); assert(e.incidents.safetyPhase=='place' and not e.commands[5].scPark and e.commands[5].scSpeed==C.K.unlimitedSpeed,'released after the call time, its point known: unparked, to be placed on track')
+ local at=e.commands[5].place; assert(at>=0 and e.commands[5].placeFor~=nil and e.commands[5].placeKmh==C.K.scLeadKmh,'position command')
+ for j=1,4 do local b=f.cars[j]; if not b.pit then assert(math.abs(((b.spline-at+0.5)%1)-0.5)*f.length>=C.K.scPlaceFree,'free point '..j) end end
+ F.tick(e,f,2); assert(fallback(e.commands[2].yellowLimit,80),'FCY kept until it is on track')
+ assert(e.incidents.safetyPhase=='place' and e.commands[5].place>=0,'nothing moved it: still to be placed')
+ f.cars[5].pit=false; f.cars[5].inPitBox=false; F.place(f,5,at*f.length,120); F.tick(e,f,1)
+ assert(e.incidents.safetyPhase=='out' and e.commands[5].place<0 and e.incidents.safetyLeft and not e.commands[5].scPark,'placed: on track, no more position command')
+ F.place(f,5,1000,120); F.tick(e,f,0.1)
  assert(math.abs(e.commands[2].yellowLimit-160)<1e-6,'then safety car pace plus catch-up')
  F.place(f,3,20,150); e.states[2].nextPerception=0; F.tick(e,f,4)
  assert(e.commands[2].yellowLimit>=150-1e-6 and e.commands[2].yellowLimit<=150+(20-4.4-C.K.queueKeep)*C.K.queueClose+1e-6,'queue: never faster than the car ahead, beyond a slight closing')
@@ -1085,13 +1092,16 @@ tests.SAFETY_CAR_WRITES=function()
  local host=require('tests/host').create(true); local e,f=F.scene('C'); local a=A.new(); assert(A.access(a))
  for _,cmd in ipairs(e.commands) do cmd.active=false end
  local cmd=e.commands[3]; cmd.scPark=true; cmd.scSpeed=C.K.unlimitedSpeed
- A.apply(a,f,e.commands,e.g,1); assert(host.teleports==1 and host.parked[2]==true,'brought back to its pit and parked')
- f.cars[3].pit=true; host.parked[2]=nil; A.apply(a,f,e.commands,e.g,1.5); assert(host.teleports==1 and host.parked[2]==nil,'teleported once, pulses spaced')
- A.apply(a,f,e.commands,e.g,3.1); assert(host.parked[2]==true,'parking renewed')
+ -- Beta 1.48 : jamais garée hors de son emplacement (retour au stand manqué : en travers de la piste).
+ A.apply(a,f,e.commands,e.g,1); assert(host.teleports==1 and host.parked[2]==nil,'brought back to its pit, not parked on track')
+ f.cars[3].pit=true; f.cars[3].inPitBox=true; A.apply(a,f,e.commands,e.g,1.2); assert(host.teleports==1 and host.parked[2]==true,'parked in its box')
+ host.parked[2]=nil; A.apply(a,f,e.commands,e.g,1.5); assert(host.teleports==1 and host.parked[2]==nil,'teleported once, pulses spaced')
+ A.apply(a,f,e.commands,e.g,3.3); assert(host.parked[2]==true,'parking renewed')
  cmd.scPark=false; cmd.scSpeed=120; f.cars[3].pit=true; A.apply(a,f,e.commands,e.g,3.5); assert(host.parked[2]==false and host.speedLimits[2]==nil and a.caps.speed.failures==0,'no command in the pit lane')
- f.cars[3].pit=false; host.cars[2].isInPit=false; host.cars[2].isInPitlane=false; A.apply(a,f,e.commands,e.g,4)
+ f.cars[3].pit=false; f.cars[3].inPitBox=false; host.cars[2].isInPit=false; host.cars[2].isInPitlane=false; A.apply(a,f,e.commands,e.g,4)
  assert(host.parked[2]==false and host.speedLimits[2]==120,'released at limited speed')
- cmd.scPark=true; cmd.scSpeed=C.K.unlimitedSpeed; A.apply(a,f,e.commands,e.g,5); assert(host.parked[2]==true,'parked again')
+ cmd.scPark=true; cmd.scSpeed=C.K.unlimitedSpeed; A.apply(a,f,e.commands,e.g,5); assert(host.parked[2]==false and host.teleports==2,'on track: sent back, not parked there')
+ f.cars[3].pit=true; f.cars[3].inPitBox=true; A.apply(a,f,e.commands,e.g,5.1); assert(host.parked[2]==true,'parked again in its box')
  A.checkpoint(a,f,true); local b=A.new(); assert(A.access(b)); A.recover(b,f); assert(b.cars[3].parked)
  host.releasing=true; A.restore(b,f,false,6,true); host.releasing=false
  assert(host.parked[2]==false and host.speedLimits[2]==C.K.unlimitedSpeed and not b.cars[3].owned,'handed back on unload')
@@ -1312,9 +1322,12 @@ tests.RED_FLAG_PROCEDURE=function()
  for i=2,6 do F.place(f,i,(i-1)*300,120) end
  -- Beta 1.47 : trois voitures arrêtées en travers de la piste (piste bloquée), immobilisées K.redIncidentStill s.
  F.block(f,{3,4,5},600)
+ -- Beta 1.48 : classement au drapeau rouge (figé) : la voiture 6 mène, la 2 est cinquième, le joueur sixième.
+ f.cars[6].position=1; f.cars[5].position=2; f.cars[4].position=3; f.cars[3].position=4; f.cars[2].position=5; f.cars[1].position=6
  F.tick(e,f,C.K.redIncidentStill+3)
  local t=e.incidents
  assert(t.red and t.onTrack==3,'red flag on three immobilised cars')
+ assert(t.redOrderN==6 and t.redRank[6]==1 and t.redRank[2]==5 and t.redRank[1]==6,'order frozen, player included')
  assert(e.commands[2].rulePit and e.commands[6].rulePit,'every AI called to the pits')
  assert(e.commands[6].yellowLimit<=e.run.redFlagSpeedKmh+20 and e.states[6].yellow,'slowed down outside any yellow zone, no overtaking')
  assert(e.panel.kind=='red' and e.panel.title==require('src/lang').flagTitles.red,'red flag panel')
@@ -1322,17 +1335,39 @@ tests.RED_FLAG_PROCEDURE=function()
  F.tick(e,f,15); assert(t.red and t.reds==1,'no restart while AI are still out on track, even after the hold')
  for _,i in ipairs({2,6}) do local a=f.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0 end
  F.tick(e,f,1); assert(t.red and e.commands[2].pitHold and not e.commands[2].rulePit,'held in the pit box while others are recovered')
- for i=3,5 do local a=f.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0 end
+ for i=3,5 do local a=f.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0; F.place(f,i,200+i*100,0); a.pit=true; a.inPitBox=true end
+ F.place(f,6,1500,0); f.cars[6].pit=true; f.cars[6].inPitBox=true; F.place(f,2,100,0); f.cars[2].pit=true; f.cars[2].inPitBox=true
  F.tick(e,f,5); assert(t.red,'restart waits for the player too')
- f.cars[1].pit=true
- -- Classement : la voiture 6 mène, la 2 est cinquième ; sortie des stands dans cet ordre.
- f.cars[6].position=1; f.cars[5].position=2; f.cars[4].position=3; f.cars[3].position=4; f.cars[2].position=5
+ f.cars[1].pit=true; f.cars[1].inPitBox=true
+ -- Beta 1.48 : une IA encore en route vers son emplacement : pas de reprise.
+ f.cars[4].inPitBox=false; F.tick(e,f,30); assert(t.red,'no restart while an AI still drives in the pit lane')
+ -- Beta 1.48 : indicateur de reprise : case « REPRISE », consigne avec la voiture à suivre, ligne de session.
+ local L=require('src/lang'); local LE=require('src/lang_en')
+ F.tick(e,f,0.6)
+ assert(e.panel.restartBox=='P6' and e.panel.short==string.format(L.restart.pit,6,'Driver_2') and t.restartState=='pit' and t.restartAhead==2,'red flag in the pits: restart P6 behind Driver_2 / '..tostring(e.panel.restartBox)..' / '..tostring(e.panel.short)..' / '..tostring(t.restartState)..' / '..tostring(t.restartAhead)..' / '..tostring(e.panel.kind))
+ assert(e.panel.explain==string.format(L.restart.explain,6),'explanation: restart in the red-flag order')
+ for k,v in pairs(L.restart) do assert(type(LE.restart[k])=='string' and select(2,v:gsub('%%[ds]',''))==select(2,LE.restart[k]:gsub('%%[ds]','')),'EN text '..k) end
+ f.cars[1].position=2; e.hud.stripAt=-math.huge; F.tick(e,f,1)
+ local shown=false; for k=1,e.hud.stripCount do if e.hud.strip[k].label==L.hudPosition and e.hud.strip[k].value:match('^6/') then shown=true end end
+ assert(shown,'session line: frozen rank')
+ f.cars[4].inPitBox=true
+ -- Classement d'AC mélangé après le drapeau rouge : sans effet, l'ordre figé reste.
+ f.cars[6].position=5; f.cars[5].position=4; f.cars[4].position=3; f.cars[3].position=2; f.cars[2].position=1
  for _=1,80 do if not t.red then break end; F.tick(e,f,0.5) end
  F.tick(e,f,0.3) -- panneau rafraîchi tous les quarts de seconde
+ assert(t.restartState=='wait' and e.panel.short==string.format(L.restart.wait,'Driver_2'),'Beta 1.48: wait for the car ahead in the order')
  -- Beta 1.34 : tour de relance annoncé comme un départ lancé (RS), sous FCY faute de voiture de sécurité.
  assert(not t.red and t.neutral and t.relaunch and t.neutralMode=='fcy' and e.panel.kind=='rolling','relaunch lap under FCY (no safety car) once everyone is in and the hold is over')
  assert(e.commands[2].pitHold and e.commands[6].pitHold,'held until their turn')
  F.tick(e,f,C.K.redReleaseFirst); assert(not e.commands[6].pitHold and e.commands[2].pitHold,'race leader released first')
+ -- Chacune attend que la précédente ait quitté son emplacement et dépassé le sien (au plus K.redExitWait s).
+ F.tick(e,f,C.K.redReleaseGap+0.1); assert(e.commands[5].pitHold,'second car 5 waits for the leader to leave its box')
+ f.cars[6].inPitBox=false; F.tick(e,f,0.1); assert(not e.commands[5].pitHold,'then leaves')
+ f.cars[5].inPitBox=false; F.tick(e,f,0.1); assert(e.commands[4].pitHold,'one every 2 s, even with the way clear')
+ F.tick(e,f,C.K.redReleaseGap); assert(not e.commands[4].pitHold,'car 4 at its turn')
+ F.tick(e,f,C.K.redReleaseGap); assert(e.commands[3].pitHold,'car 3 waits for car 4, still in its box')
+ F.tick(e,f,C.K.redExitWait); assert(not e.commands[3].pitHold,'maximum wait')
+ f.cars[4].inPitBox=false; f.cars[3].inPitBox=false; F.place(f,3,2000,60); f.cars[3].pit=true
  F.tick(e,f,4*C.K.redReleaseGap); assert(not e.commands[2].pitHold,'fifth released last')
  for i=2,6 do local a=f.cars[i]; a.pit=false; a.inPitBox=false; F.place(f,i,(i-1)*300,120) end; f.cars[1].pit=false
  for _=1,2000 do if not t.neutral then break end; F.tick(e,f,0.5) end
@@ -1490,7 +1525,10 @@ tests.SAFETY_CAR_STAYS_OUT=function()
  for i=2,4 do F.place(f,i,(i-2)*400,150) end
  F.place(f,5,7000,0); f.cars[5].pit=true; f.cars[5].inPitBox=true; F.tick(e,f,1)
  F.place(f,4,5000,0); F.tick(e,f,29)
- f.cars[5].pit=false; f.cars[5].inPitBox=false; F.place(f,5,1000,120); F.tick(e,f,1)
+ -- Beta 1.48 : posée à son point (commande de position), puis en piste.
+ assert(e.incidents.safetyPhase=='place' and e.commands[5].place>=0)
+ f.cars[5].pit=false; f.cars[5].inPitBox=false; F.place(f,5,e.commands[5].place*f.length,120); F.tick(e,f,0.1)
+ F.place(f,5,1000,120); F.tick(e,f,0.9)
  F.place(f,4,5000,150); F.tick(e,f,62); assert(e.incidents.safetyPhase=='in','in this lap')
  F.place(f,3,8000,0); F.tick(e,f,18)
  assert(e.incidents.safetyPhase=='out' and e.incidents.neutral and e.incidents.messageKind=='sc','new major incident: safety car stays out')
@@ -2799,9 +2837,9 @@ tests.SAFETY_CAR_STUCK=function()
  local e,f=F.scene('C',5); C.preset('Course','C',e.profiles.C); e.profiles.C.neutralization='sc'; E.changed(e)
  e.g.safetyCarModel='car_5'; F.place(f,5,0,0); f.cars[5].pit=true; f.cars[5].inPitBox=true
  F.place(f,4,6000,0); F.place(f,2,1000,120); F.place(f,1,2000,120)
- for _=1,600 do F.tick(e,f,0.1); if e.incidents.safetyPhase=='out' then break end end
- assert(e.incidents.neutral and e.incidents.neutralMode=='sc' and e.incidents.safetyPhase=='out','safety car out')
- f.cars[5].pit=false; f.cars[5].inPitBox=false; F.place(f,5,3000,0)
+ for _=1,600 do F.tick(e,f,0.1); if e.incidents.safetyPhase=='place' then break end end
+ assert(e.incidents.neutral and e.incidents.neutralMode=='sc' and e.incidents.safetyPhase=='place','safety car released, to be placed')
+ F.tick(e,f,0.1); f.cars[5].pit=false; f.cars[5].inPitBox=false; F.place(f,5,e.commands[5].place*f.length,0)
  F.tick(e,f,C.K.scStuckTime+1)
  assert(e.incidents.safetyPhase=='parked' and e.commands[5].scPark,'stuck safety car taken back to its pit')
  assert(e.incidents.neutral and e.incidents.neutralMode=='fcy','neutralisation continues as FCY')
@@ -2860,23 +2898,87 @@ end
 -- Beta 1.4 : reprise après drapeau rouge derrière la voiture de sécurité : elle sort la première, les IA suivent dans
 -- l'ordre du classement ; rentrée, vert et dépassement interdit jusqu'à la ligne.
 tests.RED_FLAG_RELAUNCH_SC=function()
- local e,f=F.scene('C',6); C.preset('Course','C',e.profiles.C); e.profiles.C.redFlagHold=20; e.g.safetyCarModel='car_6'; E.changed(e)
- F.place(f,6,0,0); f.cars[6].pit=true; f.cars[6].inPitBox=true
- F.block(f,{3,4,5},600); F.place(f,2,3000,120)
- F.tick(e,f,C.K.redIncidentStill+1); local t=e.incidents; assert(t.red and t.safety==6)
- for i=2,5 do local a=f.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0 end; f.cars[1].pit=true
- for _=1,200 do if not t.red then break end; F.tick(e,f,0.5) end
- assert(t.neutral and t.relaunch and t.neutralMode=='sc' and t.safetyPhase=='out' and not e.commands[6].scPark,'safety car out first')
+ -- Beta 1.48 : la voiture de sécurité est posée en piste (commande de position, jamais déplacée par le banc avant) :
+ -- jonction des stands inconnue, devant la première voiture sortie ; connue, après elle, IA retenues jusqu'à la pose.
+ local function scene(junction)
+  local e,f=F.scene('C',6); C.preset('Course','C',e.profiles.C); e.profiles.C.redFlagHold=20; e.g.safetyCarModel='car_6'; E.changed(e)
+  F.place(f,6,0,0); f.cars[6].pit=true; f.cars[6].inPitBox=true
+  F.block(f,{3,4,5},600); F.place(f,2,3000,120)
+  for i=1,5 do f.cars[i].position=i end
+  F.tick(e,f,C.K.redIncidentStill+1); local t=e.incidents; assert(t.red and t.safety==6)
+  for i=2,5 do local a=f.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0; F.place(f,i,100+i*20,0); a.pit=true; a.inPitBox=true end
+  f.cars[1].pit=true; F.place(f,1,100,0); f.cars[1].pit=true; f.cars[1].inPitBox=true
+  if junction then e.merge.spline=junction/f.length end
+  for _=1,200 do if not t.red then break end; F.tick(e,f,0.5) end
+  return e,f,t
+ end
+ local e,f,t=scene(nil)
+ assert(t.neutral and t.relaunch and t.neutralMode=='sc' and t.safetyPhase=='place' and e.commands[6].scPark,'safety car to be placed first, kept in its box until then')
  assert(e.commands[2].pitHold and e.commands[5].pitHold,'field held in the pit boxes')
- F.tick(e,f,C.K.redReleaseFirst+4*C.K.redReleaseGap+0.5)
- for i=2,5 do assert(not e.commands[i].pitHold,'released '..i) end
- -- Voiture de sécurité en piste puis rentrée.
- f.cars[6].pit=false; f.cars[6].inPitBox=false; F.place(f,6,2000,120)
- for i=2,5 do local a=f.cars[i]; a.pit=false; a.inPitBox=false; F.place(f,i,1000+i*20,120) end; f.cars[1].pit=false; F.place(f,1,900,120)
+ assert(e.commands[6].place==nil or e.commands[6].place<0,'junction unknown: no point before the first car is out')
+ -- Joueur P1 : il sort le premier ; la voiture de sécurité est posée devant lui, une fois à K.scPlaceOnTrack m en piste.
+ f.cars[1].pit=false; f.cars[1].inPitBox=false; F.place(f,1,500,60); F.tick(e,f,0.1)
+ assert(e.commands[6].place==nil or e.commands[6].place<0,'just out: not yet')
+ F.place(f,1,500+C.K.scPlaceOnTrack+1,60); F.tick(e,f,0.1)
+ local at=e.commands[6].place
+ assert(at and math.abs(at*f.length-(531+C.K.scPlaceFirstOut))<1e-6,'placed ahead of the first car out')
+ f.cars[6].pit=false; f.cars[6].inPitBox=false; F.place(f,6,at*f.length,80); F.tick(e,f,0.1)
+ assert(t.safetyPhase=='out' and t.neutral and t.relaunch,'on track for the relaunch lap')
+ local L=require('src/lang'); F.tick(e,f,0.3)
+ assert(t.restartState=='ok' and e.panel.restartPill==string.format(L.restart.pillFirst,L.restart.behindSc),'on track: P1 behind the safety car')
+ -- Sortie dans l'ordre : chacune une fois la précédente partie de son emplacement et passée devant le sien.
+ local released={}
+ for _=1,40 do F.tick(e,f,0.25); if not e.commands[2].pitHold then break end end
+ assert(not e.commands[2].pitHold and e.commands[3].pitHold,'car 2 first, car 3 after it')
+ f.cars[2].inPitBox=false; released[1]=2; F.tick(e,f,C.K.redReleaseGap+0.5)
+ assert(e.commands[3].pitHold,'car 2 out of its box but still upstream of the box of car 3: car 3 waits')
+ F.place(f,2,f.cars[2].z+60,60); f.cars[2].pit=true
+ for _=1,200 do
+  F.tick(e,f,0.25)
+  for i=2,5 do local a=f.cars[i]; if not e.commands[i].pitHold and a.inPitBox then a.inPitBox=false; released[#released+1]=i; F.place(f,i,a.z+60,60); a.pit=true end end
+  if #released==4 then break end
+ end
+ assert(table.concat(released,',')=='2,3,4,5','pit exit in the frozen order')
+ for i=2,5 do local a=f.cars[i]; a.pit=false; F.place(f,i,700+i*20,120) end
  for _=1,2000 do if t.safetyPhase=='in' then break end; F.tick(e,f,0.5) end
  assert(t.safetyPhase=='in','in this lap')
  f.cars[6].pit=true; F.tick(e,f,0.5)
  assert(not t.neutral and not t.relaunch and t.restart and t.messageKind=='restart','green behind the safety car, no overtaking until the line')
+ -- Jonction connue : IA retenues jusqu'à la pose, K.scPlaceJunction m après la jonction.
+ local e2,f2,t2=scene(400)
+ f2.cars[1].inPitBox=false; F.place(f2,1,450,60); f2.cars[1].pit=true
+ F.tick(e2,f2,C.K.redReleaseFirst+3*C.K.redReleaseGap)
+ for i=2,5 do assert(e2.commands[i].pitHold,'held until the safety car is placed '..i) end
+ assert(math.abs(e2.commands[6].place*f2.length-(400+C.K.scPlaceJunction))<1e-6,'after the pit exit junction')
+ f2.cars[6].pit=false; f2.cars[6].inPitBox=false; F.place(f2,6,600,80); F.tick(e2,f2,0.5)
+ assert(t2.safetyPhase=='out','placed')
+ F.tick(e2,f2,0.5); assert(not e2.commands[2].pitHold,'then the first AI leaves')
+ -- Joueur encore à son emplacement devant elle : l'IA suivante l'attend jusqu'à K.redExitWaitPlayer s.
+ local e4,f4=scene(nil)
+ F.tick(e4,f4,C.K.redReleaseFirst+C.K.redReleaseGap+C.K.redExitWait+1)
+ assert(e4.commands[2].pitHold,'behind the player still in its box: waits beyond K.redExitWait s')
+ F.tick(e4,f4,C.K.redExitWaitPlayer-C.K.redExitWait); assert(not e4.commands[2].pitHold,'at most K.redExitWaitPlayer s')
+ -- Personne ne sort de la voie des stands (jonction inconnue, aucun point) : VSC ou FCY au plus tard après K.scExitMax s.
+ local t4=e4.incidents; assert(t4.safetyPhase=='place','still to be placed')
+ F.tick(e4,f4,C.K.scExitMax-C.K.redExitWaitPlayer-C.K.redReleaseFirst); assert(t4.safetyPhase=='parked' and t4.safetyFailed and t4.relaunch,'never a point: relaunch under VSC or FCY')
+ -- Voiture de sécurité encore en piste au début de la relance : ramenée à son stand, jamais acceptée là où elle est.
+ -- Point pas encore connu (jonction inconnue) : garée, ramenée à son stand si elle est en piste.
+ local e6,f6,t6=scene(nil)
+ f6.cars[6].pit=false; f6.cars[6].inPitBox=false; F.place(f6,6,5000,100); F.tick(e6,f6,0.5)
+ assert(t6.safetyPhase=='place' and e6.commands[6].scPark,'on track, no point yet: not accepted, sent back to its box')
+ -- Point connu : jamais renvoyée à son stand pendant la pose ; acceptée seulement à son point.
+ local e5,f5,t5=scene(400)
+ assert(t5.safetyPhase=='place')
+ f5.cars[6].pit=false; f5.cars[6].inPitBox=false; F.place(f5,6,5000,100); F.tick(e5,f5,0.5)
+ assert(t5.safetyPhase=='place' and not e5.commands[6].scPark and e5.commands[6].place>=0,'on track far from its point: not accepted, the position command brings it there')
+ F.place(f5,6,600,80); f5.cars[6].pit=true; F.tick(e5,f5,0.1); assert(t5.safetyPhase=='place','in the pit lane beside its point: not on track')
+ f5.cars[6].pit=false; F.tick(e5,f5,0.1); assert(t5.safetyPhase=='out','accepted at its point')
+ -- Pose impossible : tour de relance sous VSC (F1) ou FCY dès K.scPlaceMax s.
+ local e3,f3,t3=scene(400)
+ f3.cars[1].inPitBox=false; F.place(f3,1,450,60); f3.cars[1].pit=true
+ F.tick(e3,f3,C.K.scPlaceMax+0.5)
+ assert(t3.relaunch and t3.neutral and t3.safetyPhase=='parked' and t3.safetyFailed and (t3.neutralMode=='fcy' or t3.neutralMode=='vsc'),'never placed: relaunch under VSC or FCY')
+ F.tick(e3,f3,0.5); assert(not e3.commands[2].pitHold,'and the field released')
 end
 -- Beta 1.4 : stands fermés sous FCY (GT) : aucune IA appelée, un arrêt fait stands fermés ne compte pas ; WEC : aussi
 -- pendant les premiers tours de voiture de sécurité.
@@ -3028,9 +3130,12 @@ tests.DRS_LATE_LOAD_AND_SC_QUEUE=function()
  local function queue(gap)
   local e2,f2=F.scene('C',5); e2.profiles.C.neutralization='sc'; e2.g.safetyCarModel='sc_car'; e2.profiles.C.yellowEnabled=false; E.changed(e2)
   f2.cars[5].id='sc_car'; F.place(f2,5,7000,0); f2.cars[5].pit=true; f2.cars[5].inPitBox=true
-  F.place(f2,4,5000,0); F.place(f2,1,0,80); F.place(f2,2,gap+4.4,80); f2.cars[3].pit=true; F.tick(e2,f2,35)
+  F.place(f2,4,5000,0); F.place(f2,1,0,80); F.place(f2,2,gap+4.4,80); f2.cars[3].pit=true
+  for _=1,600 do F.tick(e2,f2,0.1); if e2.incidents.safetyPhase=='place' then break end end
+  assert(e2.incidents.safetyPhase=='place')
+  F.tick(e2,f2,0.1); f2.cars[5].pit=false; f2.cars[5].inPitBox=false; F.place(f2,5,e2.commands[5].place*f2.length,100); F.tick(e2,f2,0.1)
   assert(e2.incidents.safetyPhase=='out')
-  f2.cars[5].pit=false; f2.cars[5].inPitBox=false; F.place(f2,5,3000,100)
+  F.place(f2,5,3000,100); F.tick(e2,f2,20)
   for _=1,60*20 do
    F.place(f2,1,f2.cars[1].z+250/3.6/60,250); F.place(f2,2,f2.cars[1].z+gap+4.4,250); e2.states[1].nextPerception=0
    F.tick(e2,f2,1/60); if e2.penalties.count>0 then break end
@@ -3086,45 +3191,54 @@ end
 -- pas, le vert tombait aussitôt en pleine piste (relevé en course à Spa). « Rentre ce tour » seulement une fois en piste,
 -- vert à son entrée dans la voie des stands ; toujours dedans au-delà du délai, la neutralisation finit en FCY.
 tests.SAFETY_CAR_PIT_EXIT=function()
+ -- Beta 1.48 : la voiture de sécurité ne sortait jamais seule de son emplacement : posée en piste (commande de position)
+ -- ; jamais posée : neutralisation en FCY après K.scPlaceMax s, notée au journal.
+
  local function deploy(e,f)
   F.place(f,4,6000,0)
-  for _=1,900 do F.tick(e,f,0.1); if e.incidents.safetyPhase=='out' then break end end
-  assert(e.incidents.neutral and e.incidents.safetyPhase=='out','safety car released')
-  F.place(f,4,6000,150); f.cars[5].inPitBox=false
+  for _=1,900 do F.tick(e,f,0.1); if e.incidents.safetyPhase=='place' then break end end
+  assert(e.incidents.neutral and e.incidents.safetyPhase=='place','safety car released, to be placed')
+  F.place(f,4,6000,150)
  end
  local function scene()
   local e,f=F.scene('C',5); C.preset('Course','C',e.profiles.C); e.profiles.C.neutralization='sc'; E.changed(e)
   e.g.safetyCarModel='car_5'; F.place(f,5,0,0); f.cars[5].pit=true; f.cars[5].inPitBox=true
-  F.place(f,2,1000,120); F.place(f,1,2000,120)
+  F.place(f,2,1000,120); F.place(f,1,2000,120); f.cars[2].position=1; f.cars[1].position=2
   deploy(e,f)
   return e,f
  end
  local e,f=scene(); local t=e.incidents
+ -- Devant le meneur (voiture 2, 1000 m), K.scPlaceLeader m plus loin.
+ assert(math.abs(e.commands[5].place*f.length-(1000+C.K.scPlaceLeader))<1e-6,'placed ahead of the leader')
+ F.tick(e,f,C.K.scPlaceMax-1)
+ assert(t.neutral and t.safetyPhase=='place' and not t.restart and e.commands[5].place>=0,'not on track yet: no in-lap, no green')
+ local function logged(x,text) for n=0,x.log.count-1 do local row=x.log[(x.log.head-n-1)%x.log.limit+1]; if row.message:find(text,1,true) then return true end end return false end
+ F.place(f,5,1000+C.K.scPlaceLeader,80); f.cars[5].pit=false; f.cars[5].inPitBox=false; F.tick(e,f,0.5)
+ assert(t.safetyPhase=='out' and t.safetyLeft and logged(e,'voiture de securite: posee en piste a 1200 m, 200 m devant Driver_2 (meneur)'),'on track, logged')
+ assert(e.commands[5].scSpeed==C.K.scLeadKmh,'Beta 1.48: slow while the field is far behind')
+ F.place(f,2,1150,120); F.tick(e,f,0.5); assert(e.commands[5].scSpeed==e.run.safetyCarSpeedKmh,'its pace once the field is close')
  F.tick(e,f,C.K.scMinOut+5)
- assert(t.neutral and t.safetyPhase=='out' and not t.restart,'still in the pit lane: no in-lap, no green')
- f.cars[5].pit=false; F.place(f,5,3000,120); F.tick(e,f,1)
  assert(t.safetyPhase=='in' and t.neutral,'on track: in this lap')
- f.cars[5].pit=true; F.tick(e,f,0.5)
- assert(not t.neutral and t.restart,'green at the pit entry, no overtaking until the line')
- f.cars[5].inPitBox=true; f.cars[5].kmh=0; F.tick(e,f,0.5); assert(t.safetyPhase=='parked')
- -- Seconde neutralisation : de nouveau jugée depuis la voie des stands.
- deploy(e,f)
- F.tick(e,f,C.K.scMinOut+5)
- assert(t.neutral and t.safetyPhase=='out','second deployment: still in the pit lane, no in-lap')
+ -- Ligne franchie sans rentrer : drapeau vert, rappel à son stand.
+ F.place(f,5,f.length-50,120); F.tick(e,f,0.1); F.place(f,5,f.length+20,120); F.tick(e,f,0.1)
+ assert(not t.neutral and t.restart and t.safetyPhase=='parked' and e.commands[5].scPark,'line crossed without pitting: green, sent back to its box')
+ -- Seconde intervention : délai de pose reparti de zéro.
+ F.place(f,5,0,0); f.cars[5].pit=true; f.cars[5].inPitBox=true; F.tick(e,f,1)
+ deploy(e,f); F.tick(e,f,1)
+ assert(t.safetyPhase=='place' and e.commands[5].place>=0,'second deployment: to be placed again')
+ -- Jamais posée : FCY.
  local e2,f2=scene(); local t2=e2.incidents
- F.tick(e2,f2,C.K.scExitMax+1)
- assert(t2.safetyPhase=='parked' and e2.commands[5].scPark,'never out of the pit lane: taken back to its pit')
- assert(not t2.neutral and not t2.restart,'neutralisation ends as an FCY: racing at once')
- -- Relance après drapeau rouge : sortie des stands de nouveau exigée, même après une neutralisation précédente.
- local e3,f3=F.scene('C',6); C.preset('Course','C',e3.profiles.C); e3.profiles.C.redFlagHold=20; e3.g.safetyCarModel='car_6'; E.changed(e3)
- F.place(f3,6,0,0); f3.cars[6].pit=true; f3.cars[6].inPitBox=true
- F.block(f3,{3,4,5},600); F.place(f3,2,3000,120)
- F.tick(e3,f3,C.K.redIncidentStill+1); local t3=e3.incidents; assert(t3.red and t3.safety==6); t3.safetyLeft=true
- for i=2,5 do local a=f3.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0 end; f3.cars[1].pit=true
- for _=1,200 do if not t3.red then break end; F.tick(e3,f3,0.5) end
- assert(t3.relaunch and t3.safetyPhase=='out','relaunch behind the safety car'); f3.cars[6].inPitBox=false
- F.tick(e3,f3,C.K.scMinOut+5)
- assert(t3.neutral and t3.relaunch and t3.safetyPhase=='out','relaunch: still in the pit lane, no in-lap')
+ F.tick(e2,f2,C.K.scPlaceMax+0.5)
+ assert(t2.safetyPhase=='parked' and e2.commands[5].scPark and t2.safetyFailed and t2.neutral and t2.neutralMode=='fcy','never placed: FCY, kept in its box')
+ assert(logged(e2,'pose en piste impossible'),'logged')
+ -- Point occupé : le suivant libre plus loin.
+ local e3,f3=F.scene('C',5); C.preset('Course','C',e3.profiles.C); e3.profiles.C.neutralization='sc'; E.changed(e3)
+ e3.g.safetyCarModel='car_5'; F.place(f3,5,0,0); f3.cars[5].pit=true; f3.cars[5].inPitBox=true
+ F.place(f3,2,1000,120); F.place(f3,1,1230,120); f3.cars[2].position=1; f3.cars[1].position=2
+ deploy(e3,f3)
+ local at=e3.commands[5].place*f3.length
+ assert(at>=1230+C.K.scPlaceFree and math.abs((at-1200)%C.K.scPlaceStep)<1e-6,'occupied point: next free one')
+ for j=1,4 do F.place(f3,j,at,100) end; F.tick(e3,f3,0.1); assert(e3.commands[5].place~=at/f3.length,'never placed on a car')
 end
 -- Beta 1.6 : IA accidentée : une glissade relevée pendant sa retenue appartient au même accident ; libérée, elle n'est
 -- pas retenue une seconde fois (journal réel : « repart apres 3.2 s » puis aussitôt « arretee 5.0 s »).
@@ -3695,7 +3809,14 @@ tests.RED_FLAG_QUALIFYING=function()
  assert(not t.red and not t.neutral and not t.relaunch,'session resumed without a relaunch lap')
  F.tick(e,f,0.3); assert(t.messageKind=='sessionResume' and e.panel.kind=='green' and e.panel.raw==L.flagDetails.greenSession,'session resumes')
  assert(e.commands[2].pitHold or e.commands[6].pitHold,'staggered pit exit')
- F.tick(e,f,C.K.redReleaseFirst+6*C.K.redReleaseGap); assert(not e.commands[2].pitHold and not e.commands[6].pitHold,'all released')
+ assert(t.restartRank==0 and e.panel.restartBox==nil and e.panel.restartPill==nil,'Beta 1.48: no restart position outside the race')
+ -- Beta 1.48 : joueur resté au garage : hors de l'ordre de sortie (personne ne l'attend).
+ f.cars[1].pit=true; f.cars[1].inPitBox=true
+ for _=1,4*(C.K.redReleaseFirst+6*C.K.redReleaseGap) do
+  F.tick(e,f,0.25)
+  for i=2,6 do local a=f.cars[i]; if not e.commands[i].pitHold and a.inPitBox then a.inPitBox=false; F.place(f,i,3000,60); a.pit=true end end
+ end
+ assert(not e.commands[2].pitHold and not e.commands[6].pitHold,'all released')
  local e2,f2=F.scene('J',6); for i=2,6 do F.place(f2,i,(i-1)*300,120) end; F.block(f2,{3,4,5},600)
  F.tick(e2,f2,C.K.redIncidentStill+2); assert(not e2.incidents.red,'never on a track day, even on a blocked track')
 end
@@ -4011,16 +4132,18 @@ tests.SAFETY_CAR_ESCALATION=function()
  assert(t.neutral and t.neutralMode=='vsc' and t.safetyPhase=='parked' and t.safety==6,'one car stopped on track: VSC first')
  F.place(f,5,3000,0); F.tick(e,f,17)
  assert(t.neutral and t.neutralMode=='sc' and t.escalated and t.safetyPhase=='call' and t.messageKind=='sc' and not t.ending,'second car stopped: safety car called')
- F.tick(e,f,11); assert(t.safetyPhase=='out' and not e.commands[6].scPark,'released after the call time')
+ F.tick(e,f,11); assert(t.safetyPhase=='place' and not e.commands[6].scPark and e.commands[6].place>=0,'released after the call time, placed on track')
  -- Piste dégagée : la voiture de sécurité reste en piste, rentre au tour suivant, drapeau vert à l'entrée des stands.
- f.cars[6].pit=false; f.cars[6].inPitBox=false; F.place(f,6,1000,120); F.place(f,4,5000,150); F.place(f,5,3000,150)
+ f.cars[6].pit=false; f.cars[6].inPitBox=false; F.place(f,6,e.commands[6].place*f.length,120); F.tick(e,f,0.1)
+ F.place(f,6,1000,120); F.place(f,4,5000,150); F.place(f,5,3000,150)
  F.tick(e,f,5); assert(t.neutral and t.neutralMode=='sc' and t.safetyPhase=='out','incident cleared: the safety car stays out')
  F.tick(e,f,60); assert(t.neutral and t.safetyPhase=='in' and t.messageKind=='scIn','in this lap')
  f.cars[6].pit=true; F.tick(e,f,0.5)
  assert(not t.neutral and t.messageKind=='restart' and t.restart and not t.escalated,'green at the pit entry, no overtaking until the line')
  -- Voiture de sécurité immobilisée en piste : la neutralisation continue en FCY jusqu'au bout de sa durée minimale.
  e,f,t=scene(true); F.place(f,5,3000,0); F.tick(e,f,28)
- f.cars[6].pit=false; f.cars[6].inPitBox=false; F.place(f,6,2000,0); F.tick(e,f,C.K.scStuckTime+1)
+ assert(t.safetyPhase=='place' and e.commands[6].place>=0)
+ f.cars[6].pit=false; f.cars[6].inPitBox=false; F.place(f,6,e.commands[6].place*f.length,0); F.tick(e,f,C.K.scStuckTime+1)
  assert(t.neutral and t.neutralMode=='fcy' and t.safetyFailed,'safety car unavailable: FCY carries on')
  f.cars[6].pit=true; F.place(f,4,5000,150); F.place(f,5,3000,150); F.tick(e,f,5)
  assert(t.neutral and t.neutralMode=='fcy','FCY kept for its minimum time once the track is clear')
@@ -5973,4 +6096,88 @@ for name,test in pairs(require('tests/notices143')) do assert(tests[name]==nil,n
 for name,test in pairs(require('tests/player144')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.44 (IA derrière le joueur qui ralentit)
 for name,test in pairs(require('tests/fix147')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.47 (départs, défense, boucles, usure)
 for name,test in pairs(require('tests/firstlap147')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.47 (premier tour attentif)
+-- Beta 1.48 : reprendre sa place de l'ordre figé au drapeau rouge n'est pas un dépassement sous drapeau ; doubler une
+-- voiture mieux classée l'est ; la voiture de sécurité jamais ; plus rien après la ligne.
+tests.RED_FLAG_ORDER_EXEMPTION=function()
+ local Incidents=require('src/incidents'); local Penalties=require('src/penalties')
+ local function scene(playerRank)
+  local e,f=F.scene('C',4); C.preset('Course','C',e.profiles.C); E.changed(e)
+  F.place(f,1,1000,150); F.place(f,2,1010,150); F.place(f,3,5000,150); F.place(f,4,7000,150)
+  F.tick(e,f,0.5)
+  local t=e.incidents
+  t.redOrderN=3; t.redOrder={1,2,3}
+  if playerRank==1 then t.redRank[1]=1; t.redRank[2]=2 else t.redRank[2]=1; t.redRank[1]=2 end
+  t.redRank[3]=3
+  t.restart=true; t.restartSince=e.time; for i=1,4 do t.cars[i].restart=true; t.cars[i].restartLast=f.cars[i].spline end
+  F.tick(e,f,0.2); e.penalties.regimeAt=e.time-20
+  return e,f,t
+ end
+ local e,f,t=scene(1)
+ assert(Incidents.restoring(t,1,2) and not Incidents.restoring(t,2,1) and not Incidents.restoring(t,1,4) and not Incidents.restoring(t,4,1),'better-classed car only, never an unranked car (safety car)')
+ assert(Penalties.mayPass(e.penalties,1,2,e.time,1)==false and Incidents.restoring(t,1,2),'driving: the director adds the exemption')
+ F.place(f,1,1020,150); F.tick(e,f,0.3)
+ assert(e.penalties.count==0,'player retakes its place: no penalty')
+ local logged=false; for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find('reprend sa place sur Driver_2',1,true) then logged=true end end
+ assert(logged,'logged')
+ local e2,f2=scene(2)
+ F.place(f2,1,1020,150); F.tick(e2,f2,0.3)
+ assert(e2.penalties.count==1 and e2.penalties.reason=='pass','passing a better-classed car: penalty')
+ -- Ligne franchie par tous : ordre levé, plus d'exemption.
+ local e3,f3,t3=scene(1)
+ for i=1,4 do F.place(f3,i,9900+i,150) end; F.tick(e3,f3,0.1)
+ for i=1,4 do F.place(f3,i,10000+50+i,150) end; F.tick(e3,f3,0.3)
+ assert(not t3.restart and t3.redOrderN==0 and not Incidents.restoring(t3,1,2),'after the line: no exemption')
+end
+-- Beta 1.48 : arrêts sous drapeau rouge : F1, changement de pneus compté même avant la fenêtre ; GT, ni pneus ni arrêt
+-- compté, même arrivée à son emplacement après la reprise ; joueur (changement de composé obligatoire) : compté
+-- seulement si le composé change.
+tests.RED_FLAG_STOPS_148=function()
+ local function red(category,after)
+  local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); C.applyRules(category,e.profiles)
+  if category=='GT' then e.profiles.C.pitWindowOpenPct=5 end
+  E.changed(e)
+  f.sessionLaps=10; f.leaderLaps=category=='GT' and 5 or 0
+  local a=f.cars[2]; a.tyresKnown=true; a.compoundIndex=0; a.dryCompounds={[0]=true,[1]=true}
+  F.tick(e,f,0.5); e.incidents.red=true; e.incidents.redSince=e.time; e.incidents.redMax=1e4
+  a.pit=true; F.tick(e,f,0.5)
+  if after then e.incidents.red=false end
+  a.inPitBox=true; a.kmh=0; F.tick(e,f,0.5)
+  return e
+ end
+ local f1=red('F1'); assert(f1.commands[2].pitCompound==1 and f1.pits.cars[2].windowStops==1,'F1: red-flag tyre change on lap 1 counts')
+ local gt=red('GT',true); assert(gt.commands[2].pitCompound==-1 and gt.pits.cars[2].windowStops==0,'GT: in the pits under red, at its box after it: no tyres, not counted')
+ local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); C.applyRules('F1',e.profiles); E.changed(e)
+ f.sessionLaps=10; f.leaderLaps=5; local a=f.cars[1]; a.compoundIndex=0; F.tick(e,f,0.5)
+ a.pit=true; a.inPitBox=true; a.kmh=0; F.tick(e,f,0.5); a.inPitBox=false; F.tick(e,f,0.5)
+ assert(e.pits.cars[1].windowStops==0,'player, same compound: not counted')
+ a.inPitBox=true; F.tick(e,f,0.5); a.compoundIndex=1; a.inPitBox=false; F.tick(e,f,0.5)
+ assert(e.pits.cars[1].windowStops==1,'player, compound changed: counted')
+end
+-- Beta 1.48 : départ arrêté après un drapeau rouge : grille dans l'ordre figé au drapeau rouge, pas au classement d'AC.
+tests.RED_FLAG_STANDING_ORDER_148=function()
+ local Grid=require('src/grid')
+ local e,f=F.scene('C',4)
+ for i=1,4 do F.place(f,i,1000+i*100,100); f.cars[i].position=i end
+ local t=e.incidents; t.redOrderN=4; t.redRank[1]=4; t.redRank[2]=3; t.redRank[3]=2; t.redRank[4]=1
+ Grid.start(e.grid,t,f,e.time,e.log)
+ assert(e.grid.order[1]==4 and e.grid.order[2]==3 and e.grid.order[4]==1,'grid in the frozen order')
+ t.redOrderN=0; Grid.start(e.grid,t,f,e.time,e.log)
+ assert(e.grid.order[1]==1 and e.grid.order[4]==4,'otherwise the AC classification')
+end
+-- Beta 1.48 (relecture) : nouveau drapeau rouge pendant la sortie des stands, puis levé (règles décochées) : aucune IA
+-- retenue à son emplacement par la sortie précédente.
+tests.RED_FLAG_CANCEL_GATES_148=function()
+ local e,f=F.scene('C',7); C.preset('Course','C',e.profiles.C); E.changed(e)
+ for i=5,7 do F.place(f,i,(i-1)*300,120) end
+ F.tick(e,f,0.5); local t=e.incidents
+ for i=2,4 do local a=f.cars[i]; a.pit=true; a.inPitBox=true; a.kmh=0; a.speed=0 end
+ t.releaseN=3; t.releaseList={2,3,4}; for i=2,4 do t.gate[i]=true; t.releaseAt[i]=e.time+100 end
+ F.tick(e,f,0.1); assert(e.commands[3].pitHold,'held by the pit exit')
+ F.block(f,{5,6,7},600)
+ F.tick(e,f,C.K.redIncidentStill+3)
+ assert(t.red,'new red flag')
+ e.profiles.C.redFlagEnabled=false; E.changed(e); F.tick(e,f,0.5)
+ assert(not t.red and t.redCancelled,'cancelled')
+ for i=2,4 do assert(not t.gate[i] and not e.commands[i].pitHold,'no AI left held '..i) end
+end
 return tests

@@ -559,6 +559,9 @@ function M.step(e,frame,dt)
  -- connue ; sinon la relance reste un départ lancé (raison au journal).
  e.incidents.gridReady=e.gridCaps==true and e.g.offsetSign~=0 and frame.length>0
  e.incidents.gridWhy=e.gridCaps~=true and 'capacites' or e.g.offsetSign==0 and 'sens lateral non mesure' or frame.length<=0 and 'circuit' or ''
+ -- Beta 1.48 : IA disqualifiées (exclues de l'ordre figé au drapeau rouge), jonction des stands (pose de la voiture de
+ -- sécurité en piste).
+ e.incidents.dq=e.penalties.ai.dq; e.incidents.junction=e.merge.spline
  Incidents.update(e.incidents,frame,e.run,e.profile,now,dt,ready,e.runtimeG.seed)
  -- Beta 1.47 : relance lancée (drapeau vert derrière la voiture de sécurité, fin du tour de relance) : premier tour
  -- attentif de nouveau.
@@ -850,7 +853,8 @@ function M.step(e,frame,dt)
    if red then cmd.rulePit=not a.inPitBox; cmd.pitHold=a.inPitBox==true
    -- Reprise : chaque IA attend son tour pour quitter son emplacement (ordre du classement).
    -- Sortie des stands échelonnée après un drapeau rouge (relance de course, reprise d'essais ou de qualifications).
-   elseif now<e.incidents.releaseAt[i] then cmd.pitHold=a.inPitBox==true end
+   -- Beta 1.48 : sortie conditionnée par la voiture précédente dans l'ordre figé (Incidents.gates).
+   elseif e.incidents.gate[i] then cmd.pitHold=a.inPitBox==true end
    local c=e.incidents.cars[i]; local still=c.still
    -- Beta 1.29 : incident hors piste, temps passé sans avancer (une voiture qui patine dans un bac à sable n'est jamais
    -- à l'arrêt assez longtemps) ; drapeau rouge, neutralisation et pleine piste gardent l'immobilisation.

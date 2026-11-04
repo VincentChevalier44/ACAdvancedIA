@@ -4,6 +4,7 @@ local C=require('src/config')
 local K=C.K
 local P=require('src/perception')
 local Delta=require('src/delta')
+local Incidents=require('src/incidents')
 local abs,max=math.abs,math.max
 local M={}
 function M.new()
@@ -97,7 +98,10 @@ function M.update(t,frame,p,profile,inc,now,_,d)
    -- Une IA qui purge une sanction (pied levé) peut être doublée, comme une voiture lente ; une IA qui doit rendre la
    -- place au joueur aussi (il la reprend), comme celle qui la lui a prise sous drapeau.
    local retake=entitled(t,i,j)
-   local owed=(t.ai.waiting[j] and t.ai.waiting[j][i] or 0)>now or retake
+   -- Beta 1.48 : le joueur reprend sa place de l'ordre figé au drapeau rouge (reprise) : dépassement permis.
+   local restore=Incidents.restoring(inc,i,j)
+   if restore then local r=P.relative(a,b,frame.length,t.rel); if r.same and r.long<-(a.length+b.length)*0.5 then Incidents.restored(inc,frame,i,j) end end
+   local owed=(t.ai.waiting[j] and t.ai.waiting[j][i] or 0)>now or retake or restore
    if retake then local r=P.relative(a,b,frame.length,t.rel); if r.same and r.long<-(a.length+b.length)*0.5 then t.retake[i][j]=nil end end
    if passable(b,inc.cars[j],p,now) or serving(t,j,now,i) or owed then t.ahead[j]=nil; t.waiting[j]=nil
    else
@@ -110,7 +114,7 @@ function M.update(t,frame,p,profile,inc,now,_,d)
      -- sous drapeau (hors du délai de transition, sans droit de reprise ni place rendue, joueur sans sanction en cours)
      -- lui laisse le droit de reprendre sa place, que les sanctions des IA soient actives ou non.
      elseif r.long>half then
-      if t.ahead[j]==false and regime and not t.waiting[j] and now-t.regimeAt>=K.passGiveBack and not entitled(t,j,i) and not serving(t,i,now,i) and not passable(a,inc.cars[i],p,now) then grant(t,i,j) end
+      if t.ahead[j]==false and regime and not t.waiting[j] and now-t.regimeAt>=K.passGiveBack and not entitled(t,j,i) and not Incidents.restoring(inc,j,i) and not serving(t,i,now,i) and not passable(a,inc.cars[i],p,now) then grant(t,i,j) end
       t.ahead[j]=true; t.waiting[j]=nil
      elseif r.long<-half then
       if t.ahead[j] and regime then
@@ -185,7 +189,10 @@ function M.ai(t,frame,p,profile,inc,states,rows,now)
      local r=row.neighbors[k]; local j=r.index; local b=frame.cars[j]
      -- Voiture qui doit rendre la place à celle-ci (IA ou joueur) : la reprendre n'est pas un dépassement.
      local retake=entitled(t,i,j)
-     local owed=(s.waiting[j] and s.waiting[j][i] or 0)>now or j==frame.player and (t.waiting[i] or 0)>now or retake
+     -- Beta 1.48 : reprise de sa place de l'ordre figé au drapeau rouge : dépassement permis.
+     local restore=Incidents.restoring(inc,i,j)
+     if restore and r.same and r.long<-(a.length+b.length)*0.5 then Incidents.restored(inc,frame,i,j) end
+     local owed=(s.waiting[j] and s.waiting[j][i] or 0)>now or j==frame.player and (t.waiting[i] or 0)>now or retake or restore
      if retake then local fresh=P.relative(a,b,frame.length,t.rel); if fresh.same and fresh.long<-(a.length+b.length)*0.5 then t.retake[i][j]=nil end end
      if passable(b,inc.cars[j],p,now) or owed or not r.same or abs(r.long)>K.passWatch then ahead[j]=nil
      else

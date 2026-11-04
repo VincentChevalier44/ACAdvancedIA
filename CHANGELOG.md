@@ -1,5 +1,49 @@
 # Changelog
 
+## Beta 1.48 — 4 November 2026
+
+Red-flag restart and Safety Car, from the 4 November Monza log (18:11): the Safety Car never left its pit box, the
+restart order was not the red-flag order, and the overlay showed no restart position.
+
+### The Safety Car really leads
+- AC's AI never drove the Safety Car out of its box, in any deployment (`restee dans la voie des stands`, then an FCY
+  fallback). It is now **placed on the track** through CSP, the method already used to spread the AI on a track day:
+  - red-flag restart, pit exit known: 200 m after it, the AI waiting in their boxes until it is placed;
+  - pit exit unknown: 250 m ahead of the first car out, once that car is 30 m onto the track;
+  - ordinary deployment: 200 m ahead of the leader, after the 10 s call;
+  - always on a point with no car within 80 m, retried every 2 s; not placed within 15 s: VSC (F1 restart) or FCY, logged.
+- It drives at 80 km/h while the first car behind is more than 120 m back, then at its set speed.
+- In its last lap, if it misses the pit entry and crosses the line, the green comes there and it is sent back to its box.
+- It is only ever parked in its pit box (never across the track after a failed return).
+- Log: `voiture de securite: posee en piste a X m, Y m devant <name> (jonction|premiere sortie|meneur)`.
+
+### Restart order frozen at the red flag
+- The classification at the red flag, the player included, sets the pit exit, the standing-restart grid, the overlay
+  and the overtaking exemption (`drapeau rouge: ordre fige (N voitures), joueur P7 derriere <name>`).
+- The restart waits until every AI is at its box, not just in the pit lane.
+- Each car leaves its box once the one before it in the order has left and passed its box: at most 20 s of waiting,
+  45 s behind the player (`sortie des stands: X attend Y`, `attente maximale`).
+
+### Restart indicator on the overlay
+- In the pits: a **RESTART P7** box and *Stay in the pits · restart P7 behind …*, *Wait: … leaves before you*,
+  *Go: P7 behind …* (P1: *behind the Safety Car*). On track: a green *P7 · BEHIND D. FERRO* pill, or an amber
+  *RETAKE P7: PASS … (ALLOWED)* pill. The session line shows the frozen position. French and English.
+
+### Retaking your place is not an overtake
+- During the pit exit, the restart lap and until the line, passing a car classed behind you in the frozen order is
+  allowed, for the player and the AI (`reprise: X reprend sa place sur Y`). Passing a better-classed car or the
+  Safety Car is still penalised; nothing changes after the line.
+
+### Stops under the red flag
+- F1: the tyre change under the red flag counts even before the pit window opens (lap 1).
+- GT and Endurance: no work and no stop counted, also for a car that reaches its box after the restart.
+- With a compulsory compound change, the player's stop counts only if the compound changed; the player's stops are logged.
+
+### Companion bridge
+- Layout v1 unchanged; the new placing phase is reported as `call`.
+
+**Verification**: 625 checks; 129 integration cases; 1,570 mutations, all detected; clean lint, parameter audit; the reference scenes are identical to Beta 1.47; the end-to-end race scene too; 8-hour soak with 0 errors (memory between 9.6 and 10.6 MB, peak frame 1.03 ms); engine bench, median of five alternating runs, 9 / 30 / 60 AI: 0.055 / 0.253 / 0.662 ms (Beta 1.47: 0.053 / 0.249 / 0.637 ms); long track (60.6 km, 46 AI): 0.283 ms, P99 0.595 ms (Beta 1.47: 0.294 ms, P99 0.597 ms); companion bridge with SpotterEnginer installed: 0.007 / 0.011 / 0.016 ms per frame (9 / 30 / 60 AI), none without it.
+
 ## Beta 1.47 — 4 November 2026
 
 AI behaviour fixes from the 4 November logs, and CSP display options kept ticked.
