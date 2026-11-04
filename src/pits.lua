@@ -5,6 +5,9 @@ local M={}
 local function clear(c)
  c.stops=0; c.windowStops=0; c.boxed=false; c.boxSince=0; c.visit=0; c.wanted=false
  c.fuelLap=-1; c.fuelAt=-1; c.lapAt=0; c.pitLap=false; c.perLap=0; c.lapTime=0; c.repairVisit=-1; c.repairTime=0; c.towedAt=nil
+ -- Relecture 1.42 (après correctifs) : passage de pénalité en cours à l'emplacement, arrêt des règles retenu par la limite
+ -- d'appels (lu par sanctions.lua : la pénalité attend cet arrêt).
+ c.passBox=false; c.deferred=false
 end
 function M.new()
  local t={cars={},opened=false,openedAt=-math.huge,justClosed=false,progress=-1,position=-1,open=-1,close=-1,csp=false,state='off',done=0,total=0,restored={},models={},restoredSession=-1,dirty=false,wetRace=false,waived=false}
@@ -28,6 +31,8 @@ end
 -- Pneus posés à l'arrêt : la météo prime si elle exige un autre pneu (pluie, retour au sec) ; sinon un autre
 -- composé sec (F1), sinon un train neuf du même composé.
 function M.compound(a,cmd,p)
+ -- Relecture 1.42 (après correctifs) : météo non gérée par l'app et piste mouillée : aucun pneu imposé (choix d'AC).
+ if not cmd.weatherManaged and cmd.weatherRain then return -1 end
  if cmd.weatherManaged and cmd.weatherCompound>=0 and (cmd.weatherRain or cmd.weatherCompound~=a.compoundIndex) then return cmd.weatherCompound end
  if not a.tyresKnown or a.compoundIndex==nil then return -1 end
  if p.pitCompoundChange and a.dryCompounds then
@@ -72,7 +77,7 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
  -- Appels simultanés limités : les IA déjà appelées gardent leur place, les nouvelles attendent.
  local requested=0
  -- Relecture 1.42 : la stratégie (image précédente, cmd.stratCalled) partage la même limite d'appels.
- for i=1,frame.count do local a=frame.cars[i]; if (t.cars[i].wanted and t.cars[i].identity==(a.identity or a.id) or commands[i].stratCalled) and not a.pit then requested=requested+1 end end
+ for i=1,frame.count do local a=frame.cars[i]; if (t.cars[i].wanted and t.cars[i].identity==(a.identity or a.id) or commands[i].stratCalled or commands[i].sanCalled) and not a.pit then requested=requested+1 end end
  for i=1,frame.count do
   local a=frame.cars[i]; local c=t.cars[i]; local cmd=commands[i]
   local identity=a.identity or a.id
@@ -89,7 +94,7 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
   -- visite (la stratégie et les réparations la prendraient pour leur arrêt), ni arrêt compté, ni arrêt obligatoire.
   local pass=cmd.penaltyPass==true
   if a.inPitBox and not c.boxed and pass then
-   c.boxed=true; c.boxSince=now
+   c.boxed=true; c.boxSince=now; c.passBox=true
    if t.note and not a.player then t.note('INFO',string.format('passage de penalite a l emplacement: %s, non compte comme arret',a.name),i) end
   elseif a.inPitBox and not c.boxed then
    c.boxed=true; c.boxSince=now; c.visit=c.visit+1
@@ -102,7 +107,8 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
     if t.note and active and not a.player then t.note('INFO',string.format('arret aux stands: %d (dont %d dans la fenetre), %s',c.stops,c.windowStops,a.name),i) end
    end
   end
-  if not a.inPitBox and c.boxed then c.boxed=false; c.lastStop=now end
+  -- Relecture 1.42 (après correctifs) : un passage de pénalité ne remet pas le relais à zéro (relais maximal).
+ if not a.inPitBox and c.boxed then c.boxed=false; if not c.passBox then c.lastStop=now end; c.passBox=false end
   cmd.rulePit=false; cmd.pitHold=false; cmd.pitCompound=-1; cmd.pitVisit=c.visit; cmd.pitRepair=false
   -- IA disqualifiée (garée à son stand), arrivée ou hors course : ni comptée ni appelée, aucune place d'appel retenue.
   if active and a.valid and a.control and not a.player and not a.finished and not a.safetyCar and not (dq and dq[i]) then
@@ -123,13 +129,14 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
    if p.maxStintMin>0 and not c.boxed and now-c.lastStop>=p.maxStintMin*60 and (progress<0 or progress<K.pitLastStint) then want=true end
    if closed and not a.pit then want=false end
    -- Au plus quelques IA appelées en même temps hors de la voie des stands : pas de bouchon à l'entrée.
-   if want and not a.pit and not c.wanted then if requested<K.pitConcurrent then requested=requested+1 else want=false end end
+   c.deferred=false
+   if want and not a.pit and not c.wanted then if requested<K.pitConcurrent then requested=requested+1 else want=false; c.deferred=true end end
    if want and not c.wanted and t.note then t.note('INFO',string.format('arret demande: %s, %s',mandatory and c.windowStops<p.mandatoryStops and 'obligatoire' or 'fin de relais',a.name),i) end
    c.wanted=want
    cmd.rulePit=want
    cmd.pitHold=a.inPitBox and p.minPitTime>0 and now-c.boxSince<p.minPitTime
    if a.inPitBox and p.pitTyres and (not red or p.redFlagWork) then cmd.pitCompound=M.compound(a,cmd,p) end
-  else c.wanted=false end
+  else c.wanted=false; c.deferred=false end
   -- Réparations (Beta 1.20) : en course, à chaque passage d'une IA endommagée à son emplacement (arrêt des règles ou
   -- arrêt natif) ; elle y reste le temps de la réparation. Sous drapeau rouge, seulement si les règles y permettent le
   -- travail (F1), comme les pneus.
@@ -166,6 +173,7 @@ local function lapsLeft(frame,a,lapTime)
  if frame.sessionMinutes>0 and lapTime>0 then return math.ceil(frame.left/lapTime)+1 end
  return -1
 end
+M.lapsLeft=lapsLeft
 -- Ravitaillement : tours jusqu'au prochain arrêt prévu (milieu de la tranche suivante d'arrêts obligatoires, relais
 -- maximal), sinon jusqu'à l'arrivée.
 local function stintLaps(t,frame,c,p,lapTime,left)

@@ -470,7 +470,7 @@ local k142strategy={
  failureKindLog={leak='fuite',battery='batterie',overheat='surchauffe',puncture='crevaison lente'},
  wheelNames={'avant gauche','avant droit','arriere gauche','arriere droit'},
  -- Blocages et usure : comptée au-delà de 30 % d'usure, moitié du gain sans asymétrie ; au plus 15 km ajoutés par relais.
- lockWearStart=0.3,lockWearBase=0.5,lockWearMaxKm=15,lockWearCause=1.2,lockWearReset=0.2,
+ lockWearStart=0.3,lockWearBase=0.5,lockWearMaxKm=15,lockWearCause=1.2,lockWearReset=0.2,lockWearNew=0.05,
  -- Relecture 1.42 : échelle de l'usure vérifiée (pneu vu sous 10 %, puis +1 point sur un tour suivant ; ligne après 5
  -- tours sinon), carburant critique (moins de 1,5 tour), réserve des 2 derniers tours (0,1 tour), contrôle 3 s après la
  -- sortie des stands (pneus changés si l'usure a baissé de lockWearReset, arrêt pneus contrôlé au-delà de 25 % ;

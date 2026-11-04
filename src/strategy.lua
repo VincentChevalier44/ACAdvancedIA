@@ -22,7 +22,10 @@ local function car()
   -- Relecture 1.42 : appel tenu (place d'appel gardée), arrêt servi, contrôle après l'arrêt (pneus posés, carburant
   -- ajouté), causes abandonnées pour le reste de la session, batterie vue (hybride), carburant critique, usure de sonde.
   called=false,serving=false,servedVisit=-1,stopWear=-1,stopFuel=-1,stopCause='',stopLimit='',checkAfter=false,checkAt=0,
-  noTyreStop=false,noFuelStop=false,kersSeen=false,critical=false,hardTyres=false,deferLogged=false,wearLow=-1,wearLowLap=-1,blockOut=false}
+  noTyreStop=false,noFuelStop=false,kersSeen=false,critical=false,hardTyres=false,deferLogged=false,wearLow=-1,wearLowLap=-1,blockOut=false,
+  -- Relecture 1.42 (après correctifs) : premier tour vu par la sonde de l'usure, dernier passage à l'emplacement vu,
+  -- carburant demandé avant l'emplacement, arrêt servi sous drapeau rouge.
+  probeFrom=-1,lastVisit=-1,stopTarget=-1,stopRed=false}
 end
 local function clear(list) for k=#list,1,-1 do list[k]=nil end end
 function M.new()
@@ -91,26 +94,31 @@ local function probe(t,e,a,c,i,now)
  if t.wearTrust=='trusted' then return end
  local w=wearOf(a); if w<0 then return end
  local lap=a.lap or 0
+ -- Relecture 1.42 (après correctifs) : tours observés depuis le début de la sonde (rechargement de l'app en pleine course).
+ if c.probeFrom<0 then c.probeFrom=lap end
  if w<=K.wearTrustLow and (c.wearLow<0 or w<c.wearLow) then c.wearLow=w; c.wearLowLap=lap end
  if c.wearLow>=0 and w>=c.wearLow+K.wearTrustRise and lap>c.wearLowLap then
   t.wearTrust='trusted'
   U.log(e.log,now,'INFO',string.format('usure des pneus: echelle verifiee sur %s (%.1f %% a %.1f %% en %d tour(s))',name(a),c.wearLow*100,w*100,lap-c.wearLowLap),i)
- elseif t.wearTrust=='unknown' and lap>=K.wearProbeLaps then
+ elseif t.wearTrust=='unknown' and lap-c.probeFrom>=K.wearProbeLaps then
   t.wearTrust='unreliable'
   U.log(e.log,now,'INFO',string.format('usure des pneus non fiable ici (%s : %.1f %% apres %d tours) : ni arret pour les pneus, ni blocages lies a l usure',name(a),w*100,lap),i)
  end
 end
 -- Tours restants de la voiture : course aux tours, sinon estimation du leader (e.race), plus le tour qui suit la fin du
 -- temps (comme pits.lua) ; -1 inconnus. Aussi pour l'urgence des derniers tours (director.lua), voiture par voiture.
-local function lapsLeft(e,frame,a)
+local function lapsLeft(e,frame,a,i)
  if frame.sessionLaps>0 and not frame.timedRace then return max(0,frame.sessionLaps-(a.lap or 0)) end
+ -- Relecture 1.42 (après correctifs) : course chronométrée au rythme propre de la voiture, comme pits.lua.
+ local pc=i and e.pits.cars[i]
+ if pc and (pc.lapTime or 0)>0 and frame.sessionMinutes>0 then return Pits.lapsLeft(frame,a,pc.lapTime) end
  return e.race.known and e.race.lapsLeft+1 or -1
 end
 M.lapsLeft=lapsLeft
 -- Plan du relais : tours encore possibles avant le seuil d'usure (ajusté par la prise de risque) et avant la réserve de
 -- carburant (marge réglée, plus courte pour un stratège audacieux) ; nombre d'arrêts jusqu'à l'arrivée.
 local function plan(t,c,e,frame,a,p,i,risk)
- local left=lapsLeft(e,frame,a)
+ local left=lapsLeft(e,frame,a,i)
  local wear=c.noTyreStop and -1 or wearUse(t,a)
  local threshold=U.clamp(p.strategyTyreWearPct/100*(1+(risk-0.5)*K.strategyRiskWear),K.strategyWearMin,K.strategyWearMax)
  local tyreLaps,fullTyre,tyreHard=math.huge,math.huge,math.huge
@@ -162,7 +170,7 @@ end
 local function want(t,e,c,a,i,cause,now)
  if c.wanted then return end
  c.wanted=true; c.cause=cause; c.wantSince=now; c.visit=e.pits.cars[i].visit
- c.stopWear=wearOf(a); c.stopFuel=a.fuel or -1; c.stopLimit=c.limit
+ c.stopWear=wearOf(a); c.stopFuel=a.fuel or -1; c.stopLimit=c.limit; c.stopTarget=-1; c.stopRed=false
  U.log(e.log,now,'INFO',string.format('strategie: %s arret demande (%s)',name(a),cause=='tyres' and string.format('pneus %.0f %%',max(0,wearOf(a))*100) or K.strategyCauseLog[cause] or cause),i)
  event(t,'stop',name(a),cause)
 end
@@ -298,7 +306,7 @@ function M.update(t,e,frame,now,_dt)
  -- Appels simultanés : une seule limite pour les règles (pits.lua, image en cours) et la stratégie ; les IA déjà appelées
  -- gardent leur place (un appel retiré bloque l'entrée des stands un instant), les nouvelles attendent.
  local requested=0
- for i=1,frame.count do local a=frame.cars[i]; local c=t.cars[i]; if not a.pit and (e.commands[i].rulePit or c.called and c.wanted) then requested=requested+1 end end
+ for i=1,frame.count do local a=frame.cars[i]; local c=t.cars[i]; if not a.pit and (e.commands[i].rulePit or c.called and c.wanted or e.commands[i].sanCalled) then requested=requested+1 end end
  for i=1,frame.count do
   local a=frame.cars[i]; local c=t.cars[i]; local cmd=e.commands[i]; local s=e.states[i]
   local identity=a.identity or a.id or ''
@@ -310,6 +318,10 @@ function M.update(t,e,frame,now,_dt)
   end
   if eligible(a,s,e,i) then
    if (a.kers or 0)>K.kersSeenMin then c.kersSeen=true end
+   -- Relecture 1.42 (après correctifs) : overcut et réaction oubliés à chaque passage à l'emplacement (arrêt des règles,
+   -- arrêt natif), pas seulement à l'arrêt demandé par la stratégie.
+   local visitNow=e.pits.cars[i].visit
+   if visitNow~=c.lastVisit then if c.lastVisit>=0 then c.shift=0; c.reaction=false end; c.lastVisit=visitNow end
    probe(t,e,a,c,i,now)
    -- Blocage qui use un pneu (mistakes.lua) : une ligne de journal par blocage.
    if (cmd.wearId or 0)~=c.wearSeen then
@@ -360,10 +372,10 @@ function M.update(t,e,frame,now,_dt)
      -- d'où deux arrêts rapprochés).
      local pc=e.pits.cars[i]
      local hold=p.mandatoryStops>0 and e.pits.state=='pending' and pc.windowStops<p.mandatoryStops and not c.critical and not c.hardTyres
-     if c.critical then want(t,e,c,a,i,'fuel',now)
      -- Arrêt en cours de service ou contrôle d'après l'arrêt pas encore fait (pneus posés ? carburant ajouté ?) : pas de
-     -- nouvelle demande.
-     elseif c.serving or c.checkAfter then
+     -- nouvelle demande, carburant critique compris (relecture 1.42 après correctifs : jugé après le contrôle).
+     if c.serving or c.checkAfter then
+     elseif c.critical then want(t,e,c,a,i,'fuel',now)
      elseif c.stops>0 and stintLeft<=0 then
       if not hold then want(t,e,c,a,i,c.limit,now)
       elseif not c.deferLogged then c.deferLogged=true; U.log(e.log,now,'INFO',string.format('strategie: %s arret retenu jusqu a l ouverture de la fenetre obligatoire',name(a)),i) end
@@ -373,10 +385,19 @@ function M.update(t,e,frame,now,_dt)
    -- Demande tenue jusqu'au passage à l'emplacement ; oubliée hors course ou stratégie coupée (sauf une panne).
    if c.wanted then
     local pc=e.pits.cars[i]
+    -- Carburant demandé dans la voie avant l'emplacement (image précédente) : contrôle d'après l'arrêt.
+    if a.pit and (cmd.fuelTarget or -1)>c.stopTarget then c.stopTarget=cmd.fuelTarget end
+    -- Relecture 1.42 (après correctifs) : demande pas encore appelée devenue inutile (plan à zéro arrêt, neutralisation
+    -- finie, cause abandonnée) : retirée tant que la voiture n'est pas dans la voie (jamais un appel déjà donné).
+    local stale=not a.pit and not c.called and c.cause~='failure' and not c.critical
+     and (c.cause=='neutral' and not inc.neutral or c.cause=='fuel' and c.noFuelStop or c.cause=='tyres' and c.noTyreStop or c.planned and c.stops==0)
     if pc.visit~=c.visit then
      c.wanted=false; c.called=false; c.shift=0; c.reaction=false; c.lap=-1; c.lapWear=-1; c.replan=true
      c.serving=true; c.servedVisit=pc.visit; c.stopCause=c.cause; c.deferLogged=false
     elseif not (active or c.failState==1 and racing) or inc.red then c.wanted=false; c.called=false
+    elseif stale then
+     c.wanted=false
+     U.log(e.log,now,'INFO',string.format('strategie: %s arret retire (plus necessaire)',name(a)),i)
     elseif not a.pit and inc.pitsClosed and not c.critical then
      -- Stands fermés : la demande attend leur réouverture (sauf carburant critique).
     elseif a.pit or c.called or requested<K.pitConcurrent or c.cause=='failure' or c.critical then
@@ -389,24 +410,27 @@ function M.update(t,e,frame,now,_dt)
    -- après l'arrêt, contrôle que les pneus ont bien été changés et le carburant ajouté, sinon la cause est abandonnée
    -- (jamais un arrêt à chaque tour).
    if c.serving then
+    if a.inPitBox and inc.red then c.stopRed=true end
     if a.inPitBox and p.pitTyres and (not inc.red or p.redFlagWork) and (cmd.pitCompound or -1)<0 and e.pits.cars[i].visit==c.servedVisit then cmd.pitCompound=Pits.compound(a,cmd,p) end
     if not a.pit then c.serving=false; c.checkAfter=true; c.checkAt=now+K.strategyCheckDelay end
    end
    if c.checkAfter and now>=c.checkAt and not a.pit then
     c.checkAfter=false
     local w=wearOf(a)
-    if c.stopCause~='fuel' and not c.noTyreStop and t.wearTrust=='trusted' and c.stopWear>=K.strategyTyreCheckMin and w>=0 and w>c.stopWear-K.lockWearReset then
+    if c.stopCause~='fuel' and not c.stopRed and not c.noTyreStop and t.wearTrust=='trusted' and c.stopWear>=K.strategyTyreCheckMin and w>=0 and w>c.stopWear-K.lockWearReset then
      c.noTyreStop=true; c.replan=true
      U.log(e.log,now,'INFO',string.format('strategie: %s pneus non changes a l arret (usure %.0f %%) : plus d arret pour les pneus',name(a),w*100),i)
     end
-    if (c.stopCause=='fuel' or c.stopLimit=='fuel') and not c.noFuelStop and c.stopFuel>=0 and (a.fuel or -1)>=0 and a.fuel<c.stopFuel+K.strategyFuelGainMin then
+    -- Relecture 1.42 (après correctifs) : carburant jugé seulement pour un arrêt carburant, ou si l'app en a demandé plus
+    -- qu'il n'y en avait (pas après une panne ou un arrêt pour les pneus sans ravitaillement voulu).
+    if (c.stopCause=='fuel' or c.stopTarget>c.stopFuel+K.strategyFuelGainMin) and not c.noFuelStop and c.stopFuel>=0 and (a.fuel or -1)>=0 and a.fuel<c.stopFuel+K.strategyFuelGainMin then
      c.noFuelStop=true; c.replan=true
      U.log(e.log,now,'INFO',string.format('strategie: %s pas de carburant ajoute a l arret : plus d arret pour le carburant',name(a)),i)
     end
    end
    -- Pour pits.lua : tours du relais à ravitailler et avancement de l'arrêt prévu (arrêt obligatoire aligné).
    if active and c.planned and c.stops>0 and c.nextLap>=0 then
-    local left=lapsLeft(e,frame,a)
+    local left=lapsLeft(e,frame,a,i)
     local total=(a.lap or 0)+max(0,left)
     if total>0 then cmd.stratPlanAt=c.nextLap/total end
     cmd.stratLaps=max(1,floor(min(left,c.stops>1 and math.ceil(max(1,left)/(c.stops)) or left)))

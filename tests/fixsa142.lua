@@ -218,10 +218,16 @@ tests.FIXSA_LOCK_KM_PER_STINT_142=function()
  local a=f.cars[2]; worn(a,0.9); a.tyreWear[2]=0.6; a.brake=1; a.gas=0; a.kmh=180; a.speed=50
  for _=1,9000 do F.tick(e,f,0.1); if e.mistakes.cars[2].lockKm>=K.lockWearMaxKm then break end end
  assert(e.mistakes.cars[2].lockKm>=K.lockWearMaxKm-1e-9,'cap reached in the stint')
+ -- Relecture des correctifs : un passage à l'emplacement sans pneus neufs garde les méplats du relais (plafond tenu).
  e.pits.cars[2].visit=e.pits.cars[2].visit+1
  local last=e.commands[2].wearId; local more=false
+ for _=1,3000 do F.tick(e,f,0.1); if e.commands[2].wearId~=last then more=true; break end end
+ assert(not more,'a visit without new tyres keeps the stint flat spots')
+ -- Pneus neufs (usure retombée) : nouveau relais, méplats comptés de nouveau.
+ e.pits.cars[2].visit=e.pits.cars[2].visit+1
+ worn(a,0.78); a.tyreWear[2]=0.5; a.brake=1; a.gas=0; a.kmh=180; a.speed=50
  for _=1,9000 do F.tick(e,f,0.1); if e.commands[2].wearId~=last then more=true; break end end
- assert(more,'new stint: flat spots counted again')
+ assert(more,'new tyres: flat spots counted again')
 end
 -- A-B1 : cassure loin du suiveur et de son côté de dépassement ; jamais face à un suiveur rapide, déjà en dépassement ou
 -- au joueur.

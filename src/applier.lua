@@ -1053,7 +1053,9 @@ function M.apply(a,frame,commands,g,now)
    -- Relecture : rendu exactement à 1 dès qu'il revient au-dessus de 1 - K.throttleEpsilon (jamais laissé à 0,99).
    if throttle>1-K.throttleEpsilon then throttle=1 end
    if a.caps.throttle.available and (throttle<1 or (s.throttle or 1)<1) and (throttle==1 or math.abs(throttle-(s.throttle or 1))>=K.throttleEpsilon) then
-    if Caps.call(a.caps,'throttle',car.index,throttle) then s.throttle=throttle<1 and throttle or nil; a.recoveryDirty=true end
+    -- Relecture 1.42 (après correctifs) : pas de sauvegarde du point de reprise à chaque écriture (la reprise rend
+    -- l'accélérateur à 1 pour chaque voiture reprise ; la prise en main marque déjà le point de reprise).
+    if Caps.call(a.caps,'throttle',car.index,throttle) then s.throttle=throttle<1 and throttle or nil end
    end
    -- L'instantané précède les écritures : seul un niveau écrit lors d'une image précédente est relu,
    -- et seulement s'il dépasse nettement 1 ; un écrêtage se distingue alors de la tolérance de lecture.
@@ -1067,7 +1069,7 @@ function M.apply(a,frame,commands,g,now)
   -- Beta 1.42 : accélérateur rendu dès que la voiture n'est plus commandée (stands, hors piste, fin de sanction).
   if s.throttle and not driven and car.valid and car.control and not car.player then
    if not (a.caps.throttle and a.caps.throttle.available) then s.throttle=nil
-   elseif Caps.restoreCall(a.caps,'throttle',car.index,1) then s.throttle=nil; a.recoveryDirty=true end
+   elseif Caps.restoreCall(a.caps,'throttle',car.index,1) then s.throttle=nil end
   end
  end
 end

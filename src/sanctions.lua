@@ -406,13 +406,20 @@ local function serve(e,i,a,c,cmd,now,servable)
   if c.entry then return end
   if servable and c.asked then c.could=true end
   if c.asked then c.askedLap=true end
+  -- Relecture 1.42 (après correctifs) : la pénalité attend aussi un arrêt de la stratégie voulu (pas encore appelé) ou
+  -- un arrêt des règles retenu par la limite d'appels ; une nouvelle demande prend une place d'appel (limite partagée).
+  local st=e.strategy and e.strategy.cars[i]; local pc=e.pits.cars[i]; local t=e.sanctions
   if not servable then c.asked=false
-  elseif cmd.rulePit or cmd.weatherManaged and cmd.weatherPit then c.asked=false
-  else cmd.rulePit=true; c.asked=true end
+  elseif cmd.rulePit or cmd.weatherManaged and cmd.weatherPit or st and st.wanted or pc and pc.deferred then c.asked=false
+  elseif not c.asked and t.calls>=K.pitConcurrent then
+  else if not c.asked then t.calls=t.calls+1 end; cmd.rulePit=true; c.asked=true end
+  cmd.sanCalled=c.asked
   return
  end
  if not c.entry or inc.red or now<(inc.releaseAt[i] or -math.huge) then return end
- cmd.rulePit=true; cmd.pitCompound=-1; cmd.pitRepair=false
+ -- Relecture 1.42 (après correctifs) : ni pneus, ni réparations, ni carburant demandé pendant un passage de pénalité
+ -- (un arrêt des règles ou de la stratégie dû le remet sinon dès l'entrée dans la voie).
+ cmd.rulePit=true; cmd.pitCompound=-1; cmd.pitRepair=false; cmd.fuelTarget=-1; cmd.fuelLaps=0
  if a.inPitBox then
   if c.boxAt<0 and a.kmh<=K.tyreStopSpeed then
    c.boxAt=now
@@ -535,7 +542,7 @@ function M.update(t,e,frame,now,dt)
     local c=t.cars[i]; local cmd=e.commands[i]
     c.pending=''; c.asked=false; c.entry=false; c.cutLeft=0; c.cutLimit=1; c.owedTo=0; c.owedFrom=-1; c.watchUntil=-math.huge
     for j in pairs(c.watch) do c.watch[j]=nil end
-    if cmd then cmd.penaltyPass=false; if c.noOutSet then cmd.noOutLap=false; c.noOutSet=false end end
+    if cmd then cmd.penaltyPass=false; cmd.sanCalled=false; if c.noOutSet then cmd.noOutLap=false; c.noOutSet=false end end
    end
    t.dirty=true
   end
@@ -560,10 +567,16 @@ function M.update(t,e,frame,now,dt)
    if jumps[i]==true then jumps[i]='taken'; if race and p.sanJumpStart and i<=frame.count and not frame.cars[i].player then issue(t,e,frame,i,p.sanProcedureKind,'jumpStart',now) end end
   end
  end
+ -- Relecture 1.42 (après correctifs) : appels aux stands déjà donnés (règles, stratégie, pénalités tenues) : même limite
+ -- K.pitConcurrent pour une nouvelle demande de passage de pénalité.
+ local calls=0
+ for i=1,frame.count do local cmd=e.commands[i]; local ci=t.cars[i]; if not frame.cars[i].pit and (cmd.rulePit or ci.asked and ci.pending~='') then calls=calls+1 end end
+ t.calls=calls
  for i=1,frame.count do
   local a=frame.cars[i]; local c=t.cars[i]
   local identity=a.identity or a.id or ''
   if c.identity~=identity then clearCar(c,identity) end
+  e.commands[i].sanCalled=false
   if a.teleport then c.outFor=0; c.outCounted=false; c.wrongFor=0; c.lastSpline=-1; c.watchUntil=-math.huge end
   e.commands[i].penaltyPass=false
   if a.valid and a.pit and not a.player and not a.teleport and frame.started then t.pitSeen=true end

@@ -5926,4 +5926,5 @@ for name,test in pairs(require('tests/merge142')) do assert(tests[name]==nil,nam
 -- Beta 1.42, relecture adverse des sanctions des IA.
 for name,test in pairs(require('tests/review142x')) do assert(tests[name]==nil,name); tests[name]=test end
 for name,test in pairs(require('tests/fixsa142')) do assert(tests[name]==nil,name); tests[name]=test end -- FIXSA 1.42 (relecture STRATÉGIE et AERO)
+for name,test in pairs(require('tests/postfix142')) do assert(tests[name]==nil,name); tests[name]=test end -- POSTFIX 1.42 (relecture des correctifs)
 return tests

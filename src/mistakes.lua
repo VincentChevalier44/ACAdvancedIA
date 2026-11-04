@@ -75,8 +75,12 @@ function M.update(t,e,frame,p,profile,now)
      if p.lockWearEnabled and e.strategy and e.strategy.wearTrust=='trusted' then
       local f,w,asym=lockFactor(a,p)
       -- Pneus changés (usure retombée) ou nouveau passage à l'emplacement : méplats du relais oubliés.
+      -- Relecture 1.42 (après correctifs) : méplats oubliés seulement si les pneus ont été changés (usure retombée), en
+      -- piste comme au passage à l'emplacement ; un passage sans pneus (pénalité, pneus non posés) les garde.
       local visit=e.pits.cars[i].visit
-      if w<c.lastFront-K.lockWearReset or visit~=c.visit then c.lockKm=0; c.visit=visit end
+      if visit~=c.visit then c.visit=visit; c.visitWear=c.lastFront; c.visitCheck=true end
+      if w<c.lastFront-K.lockWearReset then c.lockKm=0; c.visitCheck=false
+      elseif c.visitCheck and not a.pit then c.visitCheck=false; if w<(c.visitWear or w)-K.lockWearNew then c.lockKm=0 end end
       c.lastFront=w; c.lockWear=w; c.lockAsym=asym
       r=r*f; if f>=K.lockWearCause then cause='pneus uses' end
      end
