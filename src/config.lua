@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.41',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights'}}
+local M={version=3,release='Beta 1.42',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights','strategy','sanctions'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -8,10 +8,10 @@ M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPe
 -- Les options physiques globales restent désactivées.
 local presetSections={
  Nordschleife={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,traffic=true,lights=true},
- Qualifications={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,lights=true},
+ Qualifications={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,lights=true,sanctions=true},
  -- Essais : mêmes onglets que les qualifications, sessions d'essais seules ou de week-end.
- Essais={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,lights=true},
- Course={general=true,blue=true,flash=true,overtake=true,lateral=true,human=true,start=true,accidents=true,rules=true,endurance=true,weather=true,lights=true}}
+ Essais={general=true,yield=true,flash=true,overtake=true,lateral=true,human=true,accidents=true,rules=true,endurance=true,weather=true,lights=true,sanctions=true},
+ Course={general=true,blue=true,flash=true,overtake=true,lateral=true,human=true,start=true,accidents=true,rules=true,endurance=true,weather=true,lights=true,strategy=true,sanctions=true}}
 -- Valeurs propres à un préréglage, au-delà des valeurs par défaut du profil. Multi-classes partout : sans écart
 -- d'allure d'au moins classGapPct, une grille d'une seule classe reste une seule classe.
 local presetValues={
@@ -48,7 +48,7 @@ M.rulePresets={
 -- Préréglage intégré appliqué une fois à un profil jamais réglé, lorsque la détection l'active.
 M.recommended={J='Nordschleife',P='Essais',Q='Qualifications',C='Course'}
 -- Réglages qui comptent quelque chose (réactions, voitures, arrêts) : valeurs entières.
-M.integerKeys={flashMaxReactors=true,redFlagCars=true,mandatoryStops=true,penaltySeconds=true,penaltyDisqualify=true,rulesDrsLaps=true}
+M.integerKeys={flashMaxReactors=true,redFlagCars=true,mandatoryStops=true,penaltySeconds=true,penaltyDisqualify=true,rulesDrsLaps=true,sanTrackWarnings=true,sanServeLaps=true,finalLaps=true}
 -- Réglages des pénalités (jamais en journée circuit) et de la surcouche Endurance (journée circuit et course).
 M.penaltyKeys={playerPenalties=true,deltaTolerance=true,penaltySeconds=true,penaltyDisqualify=true,aiPenalties=true}
 M.overlayKeys={enduranceOverlay=true,stintLevelSwing=true,stintDegradationPct=true}
@@ -58,7 +58,19 @@ M.overlayKeys={enduranceOverlay=true,stintLevelSwing=true,stintDegradationPct=tr
 function M.solo(profile) return profile=='J' or profile=='H' end
 -- Répartition des IA (Beta 1.26) : ni en course ni en hotlap ; portée d'AI flood de CSP en journée circuit seulement.
 M.spawnKeys={spawnMode=true,spawnMinCars=true,spawnPitPct=true,spawnGapVariation=true,floodRangeKm=true}
-function M.hidden(profile,key) return M.solo(profile) and M.penaltyKeys[key] or (profile=='P' or profile=='Q' or profile=='H') and M.overlayKeys[key] or (profile=='C' or profile=='H') and M.spawnKeys[key] or key=='floodRangeKm' and profile~='J' or false end
+-- Beta 1.42 (demande du pilote) : stratégie et pannes des IA, aspiration cassée et urgence des derniers tours en course
+-- seulement ; sanctions des IA en essais, qualifications et course (hors course : tours invalidés et contresens seuls).
+M.raceKeys={strategyEnabled=true,strategyTyreWearPct=true,strategyFuelMarginLaps=true,strategyUndercut=true,strategyRiskPct=true,strategySpreadPct=true,
+ failuresEnabled=true,failureRate=true,failureLossPct=true,towBreakEnabled=true,towBreakRange=true,towBreakStraight=true,
+ finalLapsEnabled=true,finalLaps=true,finalAggressionPct=true,finalDefensePct=true}
+M.sanctionKeys={sanTrackLimits=true,sanTrackWarnings=true,sanCutPenalty=true,sanCutSeconds=true,sanJumpStart=true,sanPitSpeed=true,sanPitExit=true,
+ sanProcedureKind=true,sanWrongWay=true,sanWrongWaySeconds=true,sanServeLaps=true,sanStopGoSeconds=true,sanTimeSeconds=true,sanUnservedTime=true,
+ sanGiveBack=true,sanGiveBackSeconds=true,sanMessages=true}
+M.sanctionRaceKeys={sanTrackWarnings=true,sanCutPenalty=true,sanCutSeconds=true,sanJumpStart=true,sanPitSpeed=true,sanPitExit=true,sanProcedureKind=true,
+ sanServeLaps=true,sanStopGoSeconds=true,sanTimeSeconds=true,sanUnservedTime=true,sanGiveBack=true,sanGiveBackSeconds=true}
+-- Interrupteurs des sanctions : tous coupés quand la section est décochée.
+M.sanctionSwitches={'sanTrackLimits','sanCutPenalty','sanJumpStart','sanPitSpeed','sanPitExit','sanWrongWay','sanUnservedTime','sanGiveBack','sanMessages'}
+function M.hidden(profile,key) return M.solo(profile) and (M.penaltyKeys[key] or M.sanctionKeys[key]) or profile~='C' and (M.raceKeys[key] or M.sanctionRaceKeys[key]) or (profile=='P' or profile=='Q' or profile=='H') and M.overlayKeys[key] or (profile=='C' or profile=='H') and M.spawnKeys[key] or key=='floodRangeKm' and profile~='J' or false end
 -- Préférences du pilote (panneau, messages, drapeau du HUD, DRS) : conservées au chargement d'un préréglage intégré.
 M.preferenceKeys={'flagPanel','yellowHud','yellowMessage','pitMessage','drsAssist','drsBeepVolume','deltaBeeps'}
 -- Clés ajoutées depuis la 1.3.0 (préréglages personnels antérieurs et préréglages intégrés 1.2.0).
@@ -138,6 +150,20 @@ b('overtake','defenseEnabled','Défense',true,true,true)
 n('overtake','defenseMaxOffset','Décalage maximal de défense',0.1,0.5,0.35,0.35,0.35)
 n('overtake','defenseCooldown','Repos entre défenses (s)',2,30,8,8,8)
 n('overtake','defenseTriggerGap','Distance de défense (m)',5,25,12,12,12)
+-- Beta 1.42 (demande du pilote) : aspiration cassée en ligne droite, air sale derrière une voiture, urgence des derniers
+-- tours. Course seulement pour l'aspiration et la fin de course (M.raceKeys).
+newKeys.open=true
+b('overtake','towBreakEnabled','Casser l’aspiration en ligne droite',false,false,true)
+n('overtake','towBreakRange','Aspiration à casser : distance (m)',10,60,30,30,30)
+n('overtake','towBreakStraight','Ligne droite minimale (m)',200,1500,400,400,400)
+b('overtake','dirtyAirEnabled','Air sale derrière une voiture',false,true,true)
+n('overtake','dirtyAirGap','Air sale : distance (m)',5,40,20,20,20)
+n('overtake','dirtyAirLiftPct','Air sale : gaz relâchés en virage (%)',0,10,3,3,3)
+b('overtake','finalLapsEnabled','Urgence des derniers tours',false,false,true)
+n('overtake','finalLaps','Derniers tours concernés',1,10,3,3,3)
+n('overtake','finalAggressionPct','Agressivité en plus (%)',0,50,15,15,15)
+n('overtake','finalDefensePct','Défense renforcée (%)',0,100,40,40,40)
+newKeys.open=nil
 n('lateral','rampSpeed','Vitesse de déplacement latéral',0.1,1,0.3,0.3,0.45)
 n('lateral','rampAccel','Accélération latérale',0.5,4,1.5,1.5,2)
 n('lateral','lowPassTau','Lissage latéral (s)',0.05,1,0.25,0.25,0.2)
@@ -253,6 +279,14 @@ newKeys.open=true
 b('weather','weatherMessage','Message à l’écran au changement de météo',true,true,true)
 newKeys.open=nil
 n('weather','rainGripBoostPct','Compensation pluie sans pneu pluie (%)',0,30,15,15,15)
+-- Beta 1.42 (demande du pilote) : tour de sortie à pneus froids, blocages liés à l'usure des pneus en fin de relais.
+newKeys.open=true
+b('weather','outLapEnabled','Tour de sortie : chauffe des pneus',false,true,true)
+n('weather','outLapLevelPct','Tour de sortie : niveau réduit de (%)',0,15,7,7,7)
+b('weather','lockWearEnabled','Blocages liés à l’usure des pneus',false,true,true)
+n('weather','lockWearGain','Blocages : gain en fin de relais',0,3,1.5,1.5,1.5)
+n('weather','lockFlatSpotKm','Méplat : usure ajoutée par blocage (km)',0,5,1,1,1)
+newKeys.open=nil
 -- Panneaux lumineux du circuit (Beta 1.37, section propre, demande du pilote) : couleurs envoyées aux panneaux (le jaune
 -- toujours), durée du vert, tenue avant une couleur moins importante. Les défauts redonnent la Beta 1.36 à l'identique.
 newKeys.open=true
@@ -264,6 +298,36 @@ b('lights','lightsOrange','Orange · piste glissante',true,true,true)
 b('lights','lightsGreen','Vert · fin de zone, de neutralisation et relance',true,true,true)
 n('lights','lightsGreenTime','Durée du vert (s)',0,15,5,5,5)
 n('lights','lightsHold','Délai avant une couleur moins importante (s)',0.5,5,1.5,1.5,1.5)
+newKeys.open=nil
+-- Beta 1.42 (demande du pilote) : stratégie individuelle des IA (course seulement) et sanctions des IA (essais,
+-- qualifications et course), sections propres.
+newKeys.open=true
+b('strategy','strategyEnabled','Stratégie individuelle des arrêts aux stands',false,false,true)
+n('strategy','strategyTyreWearPct','Usure des pneus avant l’arrêt (%)',30,95,75,75,75)
+n('strategy','strategyFuelMarginLaps','Marge de carburant (tours)',0,3,1,1,1)
+b('strategy','strategyUndercut','Undercut et overcut (réaction aux arrêts des rivaux)',false,false,true)
+n('strategy','strategyRiskPct','Prise de risque moyenne (%)',0,100,50,50,50)
+n('strategy','strategySpreadPct','Écart entre stratèges (%)',0,100,60,60,60)
+b('strategy','failuresEnabled','Pannes mécaniques progressives',false,false,true)
+n('strategy','failureRate','Pannes : fréquence (par heure et par IA)',0,2,0.05,0.05,0.05)
+n('strategy','failureLossPct','Panne : perte de rythme maximale (%)',3,30,12,12,12)
+b('sanctions','sanTrackLimits','Limites de piste (au moins trois roues dehors)',false,true,true)
+n('sanctions','sanTrackWarnings','Avertissements avant pénalité (course)',0,5,3,3,3)
+b('sanctions','sanCutPenalty','Virage coupé avec gain de temps : coupure des gaz',false,false,true)
+n('sanctions','sanCutSeconds','Coupure des gaz (s)',2,15,5,5,5)
+b('sanctions','sanJumpStart','Faux départ',false,false,true)
+b('sanctions','sanPitSpeed','Excès de vitesse dans les stands',false,false,true)
+b('sanctions','sanPitExit','Ligne de sortie des stands franchie',false,false,true)
+e('sanctions','sanProcedureKind','Pénalité des infractions de procédure','drive','drive','drive',{'drive','stopgo','time'})
+b('sanctions','sanWrongWay','Contresens : drapeau noir',false,true,true)
+n('sanctions','sanWrongWaySeconds','Contresens toléré (s)',2,15,5,5,5)
+n('sanctions','sanServeLaps','Tours pour purger une pénalité (drapeau noir ensuite)',1,5,3,3,3)
+n('sanctions','sanStopGoSeconds','Stop-and-go : arrêt (s)',5,30,10,10,10)
+n('sanctions','sanTimeSeconds','Pénalité de temps (s)',1,30,5,5,5)
+b('sanctions','sanUnservedTime','Pénalité non purgée ajoutée au résultat',false,false,true)
+b('sanctions','sanGiveBack','Place à rendre après un dépassement hors piste',false,false,true)
+n('sanctions','sanGiveBackSeconds','Délai pour rendre la place (s)',5,30,15,15,15)
+b('sanctions','sanMessages','Annonces des sanctions des IA à l’écran',false,true,true)
 newKeys.open=nil
 n('traffic','trafficGapSeconds','Intervalle de base (s)',0.5,5,2.5,2.5,2.5)
 n('traffic','trafficDensityGain','Distance ajoutée par IA (m)',0.5,5,2.8,2.8,2.8)
@@ -380,6 +444,81 @@ local traffic141={
  lightsTotalBytes=8388608,
 }
 for key,value in pairs(traffic141) do assert(M.K[key]==nil,key); M.K[key]=value end
+-- Beta 1.42 : constantes de l'étape de schéma (facteur de niveau, limite d'accélérateur), puis un bloc réservé par fourche.
+local k142schema={levelScaleMin=0.7,throttleMin=0.3,throttleEpsilon=0.01}
+-- Beta 1.42 : aspiration cassée, air sale, urgence des derniers tours (fourche AERO).
+local k142aero={towCorner=0.9,towSpeed=150,towLat=1.2,towSaMin=-5,towMapSpeed=60,towMapAlpha=0.1,towMapSeen=3,towStraightShare=0.8,towMapPeriod=5,
+ towMinAheadTime=6,towReturnTime=3,towHoldMax=8,towOffset=0.45,towCooldown=20,towPairCooldown=60,towChance=0.5,towAssert=0.4,towSalt=7,
+ dirtyAirLat=1.5,dirtyAirSpeed=80,dirtyAirFull=5,dirtyJitterAmp=0.02,dirtyJitterGain=0.5,dirtyJitterRate=3,dirtyLogPeriod=30,finalRange=80,
+ -- Relecture 1.42 : suiveur trop rapide pour une cassure (km/h), sortie des stands sans cassure (m avant et après la jonction).
+ towSaMax=12,towMergeBefore=100,towMergeAfter=500,towLatSide=0.5}
+-- Beta 1.42 : stratégie des IA, tour de sortie, usure et blocages, pannes (fourche STRATEGY).
+local k142strategy={
+ -- Stratégie : lignes du Diagnostic, seuil d'usure selon la prise de risque (±15 %), marge de carburant (×0,5 à ×1,5),
+ -- rival « proche » (même tour, moins de 2,5 s), réactions (overcut, couverture, undercut), arrêt sous neutralisation.
+ strategyRows=6,strategyRiskWear=0.3,strategyWearMin=0.2,strategyWearMax=0.98,strategyRiskFuel=1,strategyRivalLap=0.5,strategyRivalGap=2.5,
+ strategyOvercutWear=0.85,strategyOvercutLaps=2,strategyCoverLaps=4,strategyBoldRisk=0.6,strategyUndercutLaps=3,strategyNeutralLaps=5,strategyLastLaps=2,
+ strategyWearRateMax=0.25,strategyWearAlpha=0.4,strategyPlanLogGap=120,strategyWindowMargin=0.1,strategyRetry=5,
+ strategyCauseLog={fuel='carburant',undercut='undercut',overcut='overcut',cover='couverture d un undercut',neutral='sous neutralisation',failure='panne',weather='meteo'},
+ -- Tour de sortie : une ligne pour les départs des stands de la première minute, pneus « chauds » à 5 °C de leur optimum.
+ -- Relecture 1.42 : résumé sur toute la sortie étalée (jusqu'à 3 min).
+ outLapSummaryTime=200,outLapTempMargin=5,outLapMax=150,outLapRelease=8,
+ -- Pannes : tirage toutes les 10 s, jamais dans les 10 derniers % de la course ; perte montée en 60 à 180 s, au moins la
+ -- moitié de la perte réglée ; accélérateur jamais sous 0,8 ; arrêt demandé 10 s après le début ; réparation 8 à 20 s.
+ failureCheck=10,failureLateRace=0.9,failureMinKmh=60,failureSalt=91000,failureSessionSalt=7919,failureRampMin=60,failureRampMax=180,failureLossMin=0.5,
+ failureRepairMin=8,failureRepairMax=20,failureThrottleMin=0.8,failureThrottleShare=0.5,failurePitDelay=10,
+ failureKindLog={leak='fuite',battery='batterie',overheat='surchauffe',puncture='crevaison lente'},
+ wheelNames={'avant gauche','avant droit','arriere gauche','arriere droit'},
+ -- Blocages et usure : comptée au-delà de 30 % d'usure, moitié du gain sans asymétrie ; au plus 15 km ajoutés par relais.
+ lockWearStart=0.3,lockWearBase=0.5,lockWearMaxKm=15,lockWearCause=1.2,lockWearReset=0.2,
+ -- Relecture 1.42 : échelle de l'usure vérifiée (pneu vu sous 10 %, puis +1 point sur un tour suivant ; ligne après 5
+ -- tours sinon), carburant critique (moins de 1,5 tour), réserve des 2 derniers tours (0,1 tour), contrôle 3 s après la
+ -- sortie des stands (pneus changés si l'usure a baissé de lockWearReset, arrêt pneus contrôlé au-delà de 25 % ;
+ -- carburant ajouté d'au moins 1 L), batterie vue au-dessus de 1 % (voiture hybride).
+ wearTrustLow=0.1,wearTrustRise=0.01,wearProbeLaps=5,strategyCriticalFuel=1.5,strategyEndReserve=0.1,strategyCheckDelay=3,
+ strategyTyreCheckMin=0.25,strategyFuelGainMin=1,kersSeenMin=0.01}
+-- Beta 1.42 : sanctions des IA (fourche SANCTIONS).
+local k142sanctions={
+ -- Sortie des limites (au moins trois roues dehors) : durée minimale, vitesse minimale (jamais un tête-à-queue au pas),
+ -- délai entre deux sorties comptées ; endroit ignoré dès K.sanLineCars IA différentes y sortent (cases de
+ -- K.sanLineMeters m, K.sanLineBinsMax au plus).
+ sanOutDwell=0.3,sanOutKmh=40,sanStrikeGap=4,sanLineCars=3,sanLineMeters=25,sanLineBinsMax=4000,
+ -- Virage coupé : gain minimal (s) sur une portion de K.sanCutMinDist à K.sanCutMaxDist m ; coupure des gaz progressive
+ -- vers K.sanCutThrottle (rampe par seconde), en ligne droite (courbure K.sanStraightCurve 1/m au plus), sans freinage,
+ -- au-dessus de K.sanCutMinKmh km/h, personne à moins de K.sanCutBehind m derrière ; sinon pénalité de temps après
+ -- K.sanCutDeferMax s.
+ sanCutGain=0.3,sanCutMinDist=10,sanCutMaxDist=600,sanCutBinsMax=400,sanCutThrottle=0.35,sanCutRampDown=1.3,sanCutRampUp=2,
+ sanCutMinKmh=80,sanCutBehind=30,sanCutDeferMax=90,sanStraightCurve=0.002,sanCutBrake=0.1,
+ -- Course : rien de jugé les K.sanGraceStart premières secondes ; aucun arrêt de pénalité avant K.sanServeAfterStart s.
+ sanGraceStart=30,sanServeAfterStart=30,
+ -- Voie des stands : excès de vitesse après K.sanPitSpeedGrace s dans la voie, au-delà de K.sanPitSpeedMargin km/h,
+ -- K.sanPitSpeedDwell s de suite (limite d'AC, K.sanPitLimitDefault sans lecture) ; sortie plus de K.sanPitExitMargin m
+ -- avant la jonction apprise (K.sanPitExitSamples sorties au moins, K.sanPitExitLane s dans la voie).
+ sanPitSpeedGrace=4,sanPitSpeedMargin=6,sanPitSpeedDwell=1.5,sanPitLimitDefault=80,sanPitExitMargin=40,sanPitExitSamples=3,sanPitExitLane=5,
+ -- Contresens au-dessus de K.sanWrongWayKmh km/h ; drive-through non purgé : K.sanDriveTime s au résultat (stop-and-go :
+ -- son arrêt en plus) ; place à rendre : dépassement jusqu'à K.sanGiveBackWindow s après le retour en piste.
+ sanWrongWayKmh=20,sanDriveTime=20,sanGiveBackWindow=3,
+ -- Diagnostic et annonces : K.sanRowsMax événements, K.sanClassRows lignes de classement, K.sanClassLog places au
+ -- journal ; une annonce toutes les K.sanNoticeGap s au plus ; app arrêtée plus de K.sanIdleGap s : états passagers oubliés.
+ sanRowsMax=8,sanClassRows=4,sanClassLog=20,sanNoticeGap=6,sanIdleGap=1,
+ -- Passage de pénalité : pas de tour de sortie (stratégie, cmd.noOutLap) jusqu'à K.sanNoOutLap s après la sortie de la voie.
+ sanNoOutLap=2}
+-- Fusion 1.42 : fin de relais étirée (tours au-delà du seuil d'usure, multipliés par 0,5 + prise de risque) ; pas de
+-- couverture avec des pneus usés à moins de strategyCoverWear fois le seuil ; rythme relatif borné (départ arrêté).
+local k142merge={strategyStretchLaps=2,strategyCoverWear=0.35,paceRatioLow=0.6,paceRatioHigh=1.4,
+ -- Relecture SANCTIONS : faux départ d'une IA (mouvement tenu aiJumpDwell s, plus de aiJumpMinMove m) ; coupure des gaz
+ -- (voiture derrière à moins de max(sanCutBehind, sanCutBehindTime s d'approche) ou collision dans moins de sanCutTtc s,
+ -- reprise au-delà de sanCutResume m ; ligne droite : accélération latérale d'au plus sanStraightLat m/s² ; jamais dans
+ -- les sanCutAfterRejoin s après un retour en piste ni les sanCutAfterStart s après le départ) ; place à rendre (plancher
+ -- de vitesse : allure de la voiture doublée moins sanGiveBackFloorDrop km/h, au moins sanGiveBackPaceFloor fois l'allure
+ -- apprise ; annulée si la voiture doublée roule sous sanGiveBackSlowPace fois la sienne) ; pénalité jamais purgeable
+ -- (aucune IA entrée aux stands après sanNoPitLaps tours d'appel) ; sortie due à une manœuvre de l'app (décalage au-delà
+ -- de sanAppOffset) ; vitesse limite des stands lue sous sanPitLimitMin km/h ignorée ; sortie de la voie confirmée après
+ -- sanLaneDebounce s ; zone ignorée : sanLineCars IA en sanLineWindow s, oubliée après sanLineDecay s sans sortie.
+ aiJumpDwell=0.5,aiJumpMinMove=1,sanCutBehindTime=4,sanCutTtc=5,sanCutResume=50,sanStraightLat=2,sanCutAfterRejoin=3,sanCutAfterStart=10,
+ sanGiveBackFloorDrop=25,sanGiveBackPaceFloor=0.7,sanGiveBackSlowPace=0.6,sanNoPitLaps=2,sanAppOffset=0.3,sanPitLimitMin=40,sanLaneDebounce=1,
+ sanLineWindow=300,sanLineDecay=1800}
+for _,block in ipairs({k142schema,k142aero,k142strategy,k142sanctions,k142merge}) do for key,value in pairs(block) do assert(M.K[key]==nil,key); M.K[key]=value end end
 for _,key in ipairs({'passIgnoreUntil','yieldIgnoreUntil'}) do M.timerFields[#M.timerFields+1]=key end
 -- Beta 1.41 (sessions du 3 novembre, Beta 1.40) : bandeaux qu'AC dessine lui-même malgré l'option de CSP « Hide system
 -- messages » (coupe de piste, pénalités ; textes relevés dans acs.exe et dans les journaux) ; motifs Lua sur le titre
@@ -521,6 +660,11 @@ function M.effective(profile,p,out)
  out.drsBeepVolume=p.drsBeepVolume
  if not M.on(p,'endurance') then out.enduranceOverlay=false; out.multiClass=false; out.stintLevelSwing=0; out.stintDegradationPct=0 end
  if not M.on(p,'weather') then out.weatherAdaptation=false; out.weatherTyresEnabled=false; out.rainGripBoostPct=0; out.weatherMessage=false end
+ -- Beta 1.42 : fonctions des sections décochées coupées (aspiration, air sale, fin de course, pneus, stratégie, sanctions).
+ if not M.on(p,'overtake') then out.towBreakEnabled=false; out.dirtyAirEnabled=false; out.finalLapsEnabled=false end
+ if not M.on(p,'weather') then out.outLapEnabled=false; out.lockWearEnabled=false end
+ if not M.on(p,'strategy') then out.strategyEnabled=false; out.failuresEnabled=false end
+ if not M.on(p,'sanctions') then for _,key in ipairs(M.sanctionSwitches) do out[key]=false end end
  return out
 end
 function M.effectiveGlobals(g,p,out)
@@ -584,7 +728,7 @@ function M.upgradeObstacles(p) if p.section_start==true and not p.section_accide
 -- profils qui portaient exactement les anciennes règles GT changent. Renvoie la liste des changements faits.
 -- Clés de règles apparues après les révisions qui jugent un jeu de règles : ignorées par ces révisions.
 local keys18={safetyCarEscalation=true}
-M.dataRevision=18
+M.dataRevision=19
 function M.migrateProfile(profile,p,from,preset,out)
  out=out or {}
  if from<5 then
@@ -638,6 +782,12 @@ function M.migrateProfile(profile,p,from,preset,out)
   local moved=false
   for key,old in pairs(startOld) do if equal(p[key],old) then p[key]=M.defaults('C')[key]; moved=true end end
   if moved then out[#out+1]='C:depart' end
+ end
+ -- Révision 19 (Beta 1.42, demande du pilote) : stratégie et sanctions des IA ; un profil de week-end dont les règles de
+ -- course sont cochées les reçoit cochées (Course : stratégie et sanctions ; Essais, Qualifications : sanctions).
+ if from<19 and p.section_rules==true then
+  if profile=='C' and not (p.section_strategy==true and p.section_sanctions==true) then p.section_strategy=true; p.section_sanctions=true; out[#out+1]='C:strategie et sanctions'
+  elseif (profile=='P' or profile=='Q') and p.section_sanctions~=true then p.section_sanctions=true; out[#out+1]=profile..':sanctions' end
  end
  return out
 end

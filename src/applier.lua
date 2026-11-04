@@ -8,7 +8,7 @@ local Presets=require('src/presets')
 local K=C.K
 local M={}
 local setters={level='setAILevel',aggression='setAIAggression',caution='setAICaution',offset='setAISplineOffset',grip='setExtraAIGrip',speed='setAITopSpeed',rain='setAIRainTyres',tyres='setAITyres',pit='setAIPitStopRequest',
- stop='setAIStopCounter',flag='overrideRacingFlag',park='setAINoInput',teleport='teleportCarTo',penalty='setCarPenalty',drs='allowCarDRS',drsActive='setCarDRS',brakeMistake='setAIBrakeMistake',tractionMistake='setAITractionMistake',fuel='overrideAIRequestedFuel',startDelay='setAITimeToStart',awake='awakeCar',position='setCarPosition',velocity='setCarVelocity',repairBody='setCarBodyDamage',repairSuspension='setSuspensionDamage',repairEngine='setCarEngineLife',fuelSet='setCarFuel'}
+ stop='setAIStopCounter',flag='overrideRacingFlag',park='setAINoInput',teleport='teleportCarTo',penalty='setCarPenalty',drs='allowCarDRS',drsActive='setCarDRS',brakeMistake='setAIBrakeMistake',tractionMistake='setAITractionMistake',fuel='overrideAIRequestedFuel',startDelay='setAITimeToStart',awake='awakeCar',position='setCarPosition',velocity='setCarVelocity',repairBody='setCarBodyDamage',repairSuspension='setSuspensionDamage',repairEngine='setCarEngineLife',fuelSet='setCarFuel',throttle='setAIThrottleLimit',tyreKm='setTyresVirtualKM'}
 local windowIDs={'main'}
 -- Événements de l'applicateur vers le journal du moteur (relié par le fichier d'entrée).
 local function note(a,level,text,index) if a.note then a.note(level,text,index) end end
@@ -79,6 +79,7 @@ local function write(name,index,value,extra)
  if name=='position' then return pcall(f,index,value,extra) end -- position, puis direction
  if name=='tractionMistake' then return pcall(f,index,value,extra) end -- durée, puis sévérité (multiplicateur des gaz)
  if name=='fuel' then return pcall(f,index,value,extra) end -- litres demandés, puis tours avant un arrêt natif
+ if name=='tyreKm' then return pcall(f,index,value,extra) end -- Beta 1.42 : roue (0 à 3), puis distance virtuelle (km)
  -- Réparations (Beta 1.20) : carrosserie à value sur ses quatre côtés ; suspensions des quatre roues (défaut du SDK).
  if name=='repairBody' then return pcall(function() return f(index,vec4(value,value,value,value)) end) end
  if name=='repairSuspension' then return pcall(f,index,nil,value) end
@@ -298,6 +299,7 @@ function M.restore(a,frame,pendingOnly,now,final,keepParked)
     if s.grip~=nil then if Caps.restoreCall(a.caps,'grip',car.index,K.gripBase) then s.grip=nil else good=false end end
     if s.brake~=0 then good=false end
     if s.speed~=nil then if Caps.restoreCall(a.caps,'speed',car.index,K.unlimitedSpeed) then s.speed=nil else good=false end end
+    if s.throttle~=nil then if Caps.restoreCall(a.caps,'throttle',car.index,1) then s.throttle=nil else good=false end end
     if s.rainHint~=nil or s.pitRequest or s.stop or s.parked or s.fuelRequested>=0 then good=false end
     if good then s.owned=false; s.reset=false; s.offset=0; s.level=nil; s.aggression=nil; s.caution=nil; s.grip=nil; s.brake=0; s.speed=nil; s.recovered=false; s.restoredAt=now; s.justRestored=true; a.recoveryDirty=true end
    end
@@ -686,7 +688,8 @@ local function safety(a,s,car,cmd,now)
   -- elle en ressort (Beta 1.22 : garée sans pilote, une IA peut quitter son emplacement, Content Manager la placer en
   -- piste), au plus toutes les K.parkReturnPeriod s.
   if not car.inPitBox and now>=s.teleportAt and a.caps.teleport.available and Caps.call(a.caps,'teleport',car.index,'PIT') then s.teleported=true; s.teleportAt=now+K.parkReturnPeriod; note(a,'INFO',cmd.parkReason=='dq' and 'IA disqualifiee: ramenee a son stand' or cmd.parkReason=='spare' and 'voiture de securite en reserve: ramenee a son stand' or 'voiture de securite: ramenee a son stand',car.index+1) end
-  if now>=s.parkAt and a.caps.park.available and Caps.call(a.caps,'park',car.index,true) then
+  -- Relecture : une IA disqualifiée n'est garée qu'aux stands (ramenée par le moteur si le déplacement échoue).
+  if now>=s.parkAt and a.caps.park.available and (cmd.parkReason~='dq' or car.pit or car.inPitBox) and Caps.call(a.caps,'park',car.index,true) then
    if not s.parked then a.recoveryDirty=true; note(a,'INFO',cmd.parkReason=='dq' and 'IA disqualifiee: garee jusqu a la fin de la session' or cmd.parkReason=='spare' and 'voiture de securite en reserve: garee sans pilote' or 'voiture de securite: garee sans pilote',car.index+1) end; s.parked=true; s.parkAt=now+K.parkPeriod
   end
  else
@@ -994,6 +997,12 @@ function M.apply(a,frame,commands,g,now)
    if cmd.mistakeKind=='brake' then Caps.call(a.caps,'brakeMistake',car.index,cmd.mistakeTime)
    else Caps.call(a.caps,'tractionMistake',car.index,cmd.mistakeTime,cmd.mistakeSeverity) end
   end
+  -- Beta 1.42 : usure ajoutée à un pneu (méplat après un blocage), servie une seule fois à une IA en piste.
+  local wear=(cmd.wearId or 0)~=(s.wearServed or 0); s.wearServed=cmd.wearId or 0
+  if wear and car.valid and car.control and not car.player and not car.pit and (cmd.wearKm or 0)>0 and car.tyreKm then
+   local wheel=math.floor(U.number(cmd.wearWheel,0,3,0))
+   Caps.call(a.caps,'tyreKm',car.index,wheel,(car.tyreKm[wheel+1] or 0)+cmd.wearKm)
+  end
   weather(a,s,car,cmd,now)
   pitRequest(a,s,car,cmd,now)
   safety(a,s,car,cmd,now)
@@ -1005,9 +1014,10 @@ function M.apply(a,frame,commands,g,now)
   if cmd.gridWake and car.valid and car.control and not car.player then Caps.call(a.caps,'awake',car.index); if car.pit then Caps.call(a.caps,'startDelay',car.index,0) end end
   flash(a,s,car,cmd,now)
   local limit=math.min(cmd.speedLimit or K.unlimitedSpeed,cmd.yellowLimit or K.unlimitedSpeed)
-  local wanted=cmd.weatherManaged or cmd.rulePit or cmd.stopHold or cmd.pitHold or cmd.scPark or cmd.scSpeed<K.unlimitedSpeed or s.stop or s.parked or cmd.active and (cmd.levelOwned~=false or cmd.aggressionOwned~=false or cmd.cautionOwned~=false or math.abs(cmd.offset)>=K.offsetEpsilon or (g.useBrakeAssist and (cmd.brake or 0)>0) or limit<K.unlimitedSpeed)
+  local wanted=(cmd.throttleLimit or 1)<1 or cmd.weatherManaged or cmd.rulePit or cmd.stopHold or cmd.pitHold or cmd.scPark or cmd.scSpeed<K.unlimitedSpeed or s.stop or s.parked or cmd.active and (cmd.levelOwned~=false or cmd.aggressionOwned~=false or cmd.cautionOwned~=false or math.abs(cmd.offset)>=K.offsetEpsilon or (g.useBrakeAssist and (cmd.brake or 0)>0) or limit<K.unlimitedSpeed)
   if not wanted and s.owned and i~=a.caps.probeIndex and i~=a.calibrationIndex then s.reset=true end
-  if car.valid and car.control and not car.player and not car.pit and not car.offtrack and cmd.active and wanted and i~=a.caps.probeIndex and not s.reset then
+  local driven=car.valid and car.control and not car.player and not car.pit and not car.offtrack and cmd.active and wanted and i~=a.caps.probeIndex and not s.reset
+  if driven then
    claim(a,s,car,now)
    if U.finite(cmd.offset) and g.offsetSign~=0 then
     local offset=U.clamp(cmd.offset,-1,1)*g.offsetSign
@@ -1017,7 +1027,9 @@ function M.apply(a,frame,commands,g,now)
    elseif not U.finite(cmd.offset) then a.rejected=a.rejected+1 end
    if now-s.lastWrite>=K.writePeriod then
     if not U.finite(cmd.level) or not U.finite(cmd.aggression) or not U.finite(cmd.caution) then a.rejected=math.min(K.counterMax,a.rejected+1) end
-    local level=U.number(cmd.level,0,a.caps.levelMode=='native' and 1.1 or 1,s.level or car.aiLevel)
+    -- Beta 1.42 : facteur de niveau des modules (tour de sortie, panne) ; 1 = niveau du directeur inchangé.
+    local scale=cmd.levelScale or 1
+    local level=U.number(scale~=1 and U.finite(cmd.level) and cmd.level*math.max(K.levelScaleMin,scale) or cmd.level,0,a.caps.levelMode=='native' and 1.1 or 1,s.level or car.aiLevel)
     local previous=s.level
     field(a,s,'level',car.index,cmd.levelOwned,level,K.levelEpsilon,s.originalLevel)
     if s.level~=previous then s.levelAt=now end
@@ -1036,6 +1048,13 @@ function M.apply(a,frame,commands,g,now)
    local speed=U.number(limit,0,K.unlimitedSpeed,K.unlimitedSpeed)
    if speed<K.unlimitedSpeed then send(a,s,'speed',car.index,speed,K.levelEpsilon)
    elseif s.speed~=nil and Caps.restoreCall(a.caps,'speed',car.index,K.unlimitedSpeed) then s.speed=nil; a.recoveryDirty=true end
+   -- Beta 1.42 : limite d'accélérateur (coupure des gaz d'une sanction, air sale, panne) ; 1 = aucune, rendue une fois.
+   local throttle=U.number(cmd.throttleLimit,K.throttleMin,1,1)
+   -- Relecture : rendu exactement à 1 dès qu'il revient au-dessus de 1 - K.throttleEpsilon (jamais laissé à 0,99).
+   if throttle>1-K.throttleEpsilon then throttle=1 end
+   if a.caps.throttle.available and (throttle<1 or (s.throttle or 1)<1) and (throttle==1 or math.abs(throttle-(s.throttle or 1))>=K.throttleEpsilon) then
+    if Caps.call(a.caps,'throttle',car.index,throttle) then s.throttle=throttle<1 and throttle or nil; a.recoveryDirty=true end
+   end
    -- L'instantané précède les écritures : seul un niveau écrit lors d'une image précédente est relu,
    -- et seulement s'il dépasse nettement 1 ; un écrêtage se distingue alors de la tolérance de lecture.
    if now>=s.readAt and s.levelAt~=now then s.readAt=now+K.readbackPeriod
@@ -1044,6 +1063,11 @@ function M.apply(a,frame,commands,g,now)
   elseif s.brake>0 and a.caps.brake.available and car.valid and car.control and not car.player then
    -- Frein additionnel relâché dès que la voiture n'est plus commandée (stands, hors piste, fin de manœuvre).
    if Caps.restoreCall(a.caps,'brake',car.index,0) then s.brake=0 end
+  end
+  -- Beta 1.42 : accélérateur rendu dès que la voiture n'est plus commandée (stands, hors piste, fin de sanction).
+  if s.throttle and not driven and car.valid and car.control and not car.player then
+   if not (a.caps.throttle and a.caps.throttle.available) then s.throttle=nil
+   elseif Caps.restoreCall(a.caps,'throttle',car.index,1) then s.throttle=nil; a.recoveryDirty=true end
   end
  end
 end
@@ -1109,6 +1133,8 @@ function M.recover(a,frame)
    s.level=lc=='1' and l or nil; s.aggression=ag=='1' and aggressionValue or nil; s.caution=ca=='1' and 1 or nil; s.grip=gr=='1' and K.gripBase or nil; s.brake=br=='1' and K.brakeMax or 0
    s.speed=sp=='1' and K.unlimitedSpeed or nil
    s.offsetReset=o==0
+   -- Relecture : accélérateur peut-être laissé limité par l'instance d'avant (coupure des gaz) : rendu.
+   s.throttle=K.throttleMin
    if rh=='1' then s.rainHint=rv=='1' end; s.originalRain=ro=='1'; s.pitRequest=pr=='1'; s.stop=st=='1'; s.parked=pk=='1'
   end
  end

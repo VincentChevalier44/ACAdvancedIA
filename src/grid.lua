@@ -20,13 +20,14 @@ local K=require('src/config').K
 local M={}
 function M.new()
  return {phase='none',slots={},slotOf={},held={},pit={},order={},source='',since=0,lightsAt=0,outAt=0,goUntil=-math.huge,
-  ref=0,refSet=false,jump=false,count=0,heldCount=0,nodes=nil,timedOut=false,woke=false}
+  ref=0,refSet=false,jump=false,count=0,heldCount=0,nodes=nil,timedOut=false,woke=false,aiRef={},aiJump={},aiJumpAt={}}
 end
-local function clearCars(g) for i=1,K.maxCars do g.slotOf[i]=0; g.held[i]=false; g.pit[i]=false end end
+local function clearCars(g) for i=1,K.maxCars do g.slotOf[i]=0; g.held[i]=false; g.pit[i]=false; g.aiRef[i]=nil; g.aiJumpAt[i]=nil end end
 local function clearPlayer(t) t.gridPlaced=false; t.gridPassed=false end
 function M.reset(g)
  g.phase='none'; g.source=''; g.since=0; g.lightsAt=0; g.outAt=0; g.goUntil=-math.huge; g.ref=0; g.refSet=false; g.jump=false
  g.count=0; g.heldCount=0; g.timedOut=false; clearCars(g)
+ for i=1,K.maxCars do g.aiJump[i]=nil; g.aiJumpAt[i]=nil end
 end
 function M.rebase(g,amount)
  g.since=g.since-amount; g.lightsAt=g.lightsAt-amount; g.outAt=g.outAt-amount
@@ -209,7 +210,22 @@ function M.step(g,t,frame,now,commands,offsetSign,seed,log,states,dq)
   end
   for i=1,frame.count do
    local a=frame.cars[i]
-   if g.slotOf[i]>0 and not a.player and a.valid and not a.pit then approach(g,frame,i,commands[i],offsetSign,true)
+   if g.slotOf[i]>0 and not a.player and a.valid and not a.pit then
+    approach(g,frame,i,commands[i],offsetSign,true)
+    -- Beta 1.42 : faux départ d'une IA (retenue à sa place, puis avancée de plus de K.jumpDistance m ou roulant au-dessus
+    -- de K.jumpSpeed km/h avant l'extinction) : relevé pour les sanctions des IA, une fois par départ.
+    if g.held[i] and a.splineValid and not g.aiJump[i] then
+     local ref=g.aiRef[i]
+     if not ref then if a.kmh<K.gridStillKmh then g.aiRef[i]=a.spline end
+     else
+      local moved=U.spline(a.spline-ref)*frame.length
+      -- Relecture : mouvement tenu K.aiJumpDwell s (plus de K.aiJumpMinMove m) ; relevé une fois par départ (true, puis
+      -- 'taken' une fois pris par les sanctions : jamais réarmé).
+      local moving=moved>math.max(K.jumpDistance,K.aiJumpMinMove) or a.kmh>K.jumpSpeed and moved>K.aiJumpMinMove
+      if not moving then g.aiJumpAt[i]=nil elseif not g.aiJumpAt[i] then g.aiJumpAt[i]=now end
+      if moving and now-g.aiJumpAt[i]>=K.aiJumpDwell then g.aiJump[i]=true; U.log(log,now,'WARN',string.format('faux depart IA: %s, %.1f m, %.0f km/h, %.1f s avant l extinction',a.name,moved,a.kmh,g.outAt-now),i) end
+     end
+    end
    elseif g.pit[i] then pitStarter(a,commands[i]) end
   end
   t.gridLit=math.min(K.gridLights,1+math.floor((now-g.lightsAt)/K.lightStep))

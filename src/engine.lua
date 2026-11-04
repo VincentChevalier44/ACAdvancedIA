@@ -10,6 +10,9 @@ local Incidents=require('src/incidents')
 local Pits=require('src/pits')
 local Panel=require('src/panel')
 local Penalties=require('src/penalties')
+-- Beta 1.42 : stratégie et sanctions des IA (modules remplis par les fourches de comportement).
+local Strategy=require('src/strategy')
+local Sanctions=require('src/sanctions')
 local Delta=require('src/delta')
 local Mistakes=require('src/mistakes')
 local HudInfo=require('src/hudinfo')
@@ -117,9 +120,11 @@ function M.new(g,profiles)
  e.incidents.note=e.note; e.pits.note=e.note
  -- Beta 1.41 : sortie des stands (jonction, retenue au bout de la voie).
  e.merge=Merge.new()
+ -- Beta 1.42 : stratégie et sanctions des IA ; avancement de la course (tours restants, -1 inconnu).
+ e.strategy=Strategy.new(); e.sanctions=Sanctions.new(); e.race={progress=-1,lapsLeft=-1,known=false}
  for i=1,K.maxCars do
   local s=Director.newState(); s.slot=i; e.states[i]=s
-  e.commands[i]={active=false,offset=0,level=1,aggression=0.5,caution=1,brake=0,speedLimit=K.unlimitedSpeed,yellowLimit=K.unlimitedSpeed,stopHold=false,recover=false,flashEvent=0,rulePit=false,pitHold=false,pitCompound=-1,pitVisit=0,scPark=false,scSpeed=K.unlimitedSpeed,mistakeId=0,mistakeKind='',mistakeCause='',mistakeTime=0,mistakeSeverity=1,fuelTarget=-1,fuelLaps=0,fuelSet=-1,pitRepair=false,startDelay=-1,startDelayFor=''}
+  e.commands[i]={active=false,offset=0,level=1,aggression=0.5,caution=1,brake=0,speedLimit=K.unlimitedSpeed,yellowLimit=K.unlimitedSpeed,stopHold=false,recover=false,penaltyPass=false,flashEvent=0,rulePit=false,pitHold=false,pitCompound=-1,pitVisit=0,scPark=false,scSpeed=K.unlimitedSpeed,mistakeId=0,mistakeKind='',mistakeCause='',mistakeTime=0,mistakeSeverity=1,fuelTarget=-1,fuelLaps=0,fuelSet=-1,pitRepair=false,startDelay=-1,startDelayFor='',levelScale=1,throttleLimit=1,wearId=0,wearWheel=0,wearKm=0}
  end
  return e
 end
@@ -141,7 +146,7 @@ function M.rebase(e,amount)
  e.classes.nextAt=e.classes.nextAt-amount; e.classes.bopAt=e.classes.bopAt-amount
  e.traffic.nextAt=e.traffic.nextAt-amount
  e.weather.pendingAt=e.weather.pendingAt-amount
- Incidents.rebase(e.incidents,amount); Pits.rebase(e.pits,amount)
+ Incidents.rebase(e.incidents,amount); Pits.rebase(e.pits,amount); Strategy.rebase(e.strategy,amount); Sanctions.rebase(e.sanctions,amount)
  for i=1,K.maxCars do
   local s=e.states[i]
   for _,key in ipairs(C.timerFields) do if U.finite(s[key]) then s[key]=s[key]-amount end end
@@ -354,6 +359,17 @@ local function slowCars(e,frame,now,dt)
   a.watchDamage=(s.abnormalFor or 0)>0 or (s.slowFor or 0)>=K.slowLogTime*0.5
  end
 end
+-- Beta 1.42 : avancement de la course (0 à 1) et tours restants du leader, en course commencée ; -1 inconnu.
+local function raceInfo(e,frame)
+ local r=e.race; local racing=e.profile=='C' and frame.started==true
+ r.progress=racing and Pits.progress(frame) or -1
+ local left=-1
+ if racing then
+  if frame.sessionLaps>0 and not frame.timedRace then left=math.max(0,frame.sessionLaps-frame.leaderLaps)
+  elseif r.progress>0 and frame.leaderLaps>0 then left=math.max(0,math.ceil(frame.leaderLaps*(1-r.progress)/r.progress)) end
+ end
+ r.lapsLeft=left; r.known=left>=0
+end
 function M.step(e,frame,dt)
  e.frame=frame
  e.rebaseDelta=0
@@ -376,7 +392,7 @@ function M.step(e,frame,dt)
   M.reset(e,now,true); e.wasStarted=frame.started; e.startedAt=frame.started and now-frame.time or now; e.launchAt=nil; e.jumpDue=false
   e.classes.nextAt=0; e.flash=Flash.new()
   e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); Lights.reset(e.lights); Grid.reset(e.grid); e.slowLogged=0; e.panel.warnPending=false; e.panel.warnUntil=-math.huge; e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
-  e.configuredRevision=-1; Merge.reset(e.merge)
+  e.configuredRevision=-1; Merge.reset(e.merge); Strategy.reset(e.strategy,now); Sanctions.reset(e.sanctions,now)
   for i=1,K.maxCars do
    local s=e.states[i]; s.stint=0; s.stintStart=now; s.class=2; s.classified=false; s.classCandidate=0; s.classCycles=0
    s.paceCount=0; s.paceMean=0; s.paceRatio=0; s.paceRatioCount=0; s.freePace=0; s.longRatio=1; s.longRatioTime=0; s.lastContact=now
@@ -451,7 +467,7 @@ function M.step(e,frame,dt)
  e.guard=reason
  if reason~='ready' then
   Merge.idle(e.merge,e.commands)
-  for i=1,K.maxCars do local cmd=e.commands[i]; cmd.active=false; cmd.stopHold=false; cmd.rulePit=false; cmd.pitHold=false; cmd.pitCompound=-1; cmd.fuelTarget=-1; cmd.fuelSet=-1; cmd.scPark=false; cmd.scSpeed=K.unlimitedSpeed; cmd.recover=false; cmd.drsBlock=false; cmd.startDelay=-1 end
+  for i=1,K.maxCars do local cmd=e.commands[i]; cmd.active=false; cmd.stopHold=false; cmd.rulePit=false; cmd.pitHold=false; cmd.penaltyPass=false; cmd.pitCompound=-1; cmd.fuelTarget=-1; cmd.fuelSet=-1; cmd.scPark=false; cmd.scSpeed=K.unlimitedSpeed; cmd.recover=false; cmd.drsBlock=false; cmd.startDelay=-1 end
   -- App à l'arrêt : le panneau reprend encore les drapeaux d'AC (leur affichage d'origine est masqué dans CSP).
   e.incidents.playerFlag=false; e.incidents.playerYellow=false
   -- Pause : valeur des panneaux gardée (l'applicateur n'écrit rien en pause) ; sinon rendue à AC et recalculée dès la
@@ -578,6 +594,9 @@ function M.step(e,frame,dt)
  end
  -- Une voiture par appel protégé, ou toutes en un seul (cache JIT agrandi : le compilateur trace alors Director.step) ;
  -- une erreur isole la voiture fautive et le pilotage reprend à la suivante, dans le même ordre.
+ -- Beta 1.42 : facteurs des modules (niveau, accélérateur) remis au neutre avant le pilotage ; avancement de la course.
+ for i=1,frame.count do local cmd=e.commands[i]; cmd.levelScale=1; cmd.throttleLimit=1 end
+ raceInfo(e,frame)
  local first=1
  while first<=frame.count do
   local last=e.batchCars and frame.count or first
@@ -781,6 +800,8 @@ function M.step(e,frame,dt)
  Pits.update(e.pits,frame,e.commands,e.run,e.profile,now,e.runtimeG.seed,e.announce,red,e.penalties.ai.dq,e.incidents.pitsClosed)
  -- Beta 1.41 : sortie des stands, IA retenue au bout de la voie tant qu'une voiture en piste arrive à la jonction.
  Merge.update(e.merge,frame,e.commands,now,dt,e.log,red,e.profile,e.stopCap~=false)
+ -- Beta 1.42 : stratégie individuelle des IA (arrêts, carburant, pneus, pannes, tour de sortie).
+ Strategy.update(e.strategy,e,frame,now,dt)
  -- Arrêts obligatoires du joueur : rappel sur le panneau à l'ouverture et vers la fin de la fenêtre ; arrêt manqué
  -- à la fermeture : pénalité, dès que possible (une fenêtre qui se ferme à 100 % de la course ne se ferme jamais).
  local due=0
@@ -896,6 +917,8 @@ function M.step(e,frame,dt)
    cmd.yellowLimit=math.min(cmd.yellowLimit,math.max(target,ai.giveFrom[i]-e.run.yellowDecel*3.6*(now-ai.giveAt[i])))
   else ai.giveFrom[i]=nil; ai.giveAt[i]=nil end
  end
+ -- Beta 1.42 : sanctions des IA (limites de piste, virage coupé, procédure, contresens, purge, place à rendre).
+ Sanctions.update(e.sanctions,e,frame,now,dt)
  return true
 end
 return M

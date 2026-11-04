@@ -30,6 +30,9 @@ function M.fill(out,seed,index,profile,p,stint)
  out.grade=math.min(4,math.floor(U.unit(seed,index,K.gradeSalt)*4)+1)
  out.gradeLevel=p.proAmEnabled and K.gradeLevel[out.grade] or 1
  out.gradeCaution=p.proAmEnabled and K.gradeCaution[out.grade] or 1
+ -- Beta 1.42 : caractère du stratège (stratégie individuelle des arrêts), de prudent (0) à audacieux (1), autour de la
+ -- prise de risque moyenne réglée, dispersé selon l'écart entre stratèges ; même tirage pour toute la session.
+ out.strategyRisk=U.clamp((p.strategyRiskPct or 50)/100+(r(22)*2-1)*(p.strategySpreadPct or 60)/200,0,1)
  if not p.section_human then
   out.reaction=K.neutralReaction; out.awareness=K.neutralAwareness; out.patience=1; out.courtesy=0.5; out.assertiveness=0.5
   out.brakeMargin=1; out.laneBias=0; out.holdAfter=(p.yieldHoldAfterMin+p.yieldHoldAfterMax)*0.5

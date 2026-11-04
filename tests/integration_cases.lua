@@ -200,7 +200,7 @@ return function(source)
      -- Beta 1.19 : arrêts aux stands et voiture de sécurité, réglages du profil Course seul (vérifiés avec lui).
     elseif C.hidden(profile,s.key) then
      HUMANAI.engine.p['section_'..s.group]=true; section(s.group,s.key); redraw()
-     local note=C.penaltyKeys[s.key] and L.penaltiesTrackDay or C.spawnKeys[s.key] and (C.hidden(profile,'spawnMode') and L.spawnNotAvailable or L.floodNotAvailable) or L.enduranceNotAvailable; local shown=false
+     local note=(C.penaltyKeys[s.key] or C.sanctionKeys[s.key] and C.solo(profile)) and L.penaltiesTrackDay or (C.raceKeys[s.key] or C.sanctionRaceKeys[s.key]) and L.raceOnlySetting or C.spawnKeys[s.key] and (C.hidden(profile,'spawnMode') and L.spawnNotAvailable or L.floodNotAvailable) or L.enduranceNotAvailable; local shown=false
      for _,t in ipairs(HOST.drawnTexts) do if #t>15 and note:find(t,1,true)==1 then shown=true end end
      assert(shown and not drawn('set_'..s.key),profile..': '..s.key..' hidden')
      assert(C.validate(profile,HUMANAI.engine.p)[s.key]==s.defaults[profile],profile..': '..s.key..' back to its default')
@@ -2393,12 +2393,14 @@ return function(source)
  end)
  check('Beta 1.39 : image lente de la fenêtre journalisée une fois par lieu',function()
   HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3
-  HOST.carFolders={'slow_car','slow_two'}; HOST.files['cars/slow_car/ui/ui_car.json']='{"name": "Slow"}'; HOST.files['cars/slow_two/ui/ui_car.json']='{"name": "Slow 2"}'
+  -- Six voitures lentes à lire : plusieurs images lentes au même lieu quel que soit le découpage de la lecture (Beta 1.42 :
+  -- avec deux seulement, la mutation « journalisée à chaque image » n'était pas toujours vue).
+  HOST.carFolders={}; for k=1,6 do local f='slow_car'..k; HOST.carFolders[k]=f; HOST.files['cars/'..f..'/ui/ui_car.json']='{"name": "Slow '..k..'"}' end
   assert(loadstring(source))(); local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.neutralization='sc'; E.changed(e); H.tick(HOST,0.5)
   HOST.space={x=1000,y=3000}; pause(true); go('home'); press('profile_C'); go('rules')
   local load=io.load
   io.load=function(path) if path:find('/ui/ui_car.json',1,true) then local t=os.clock(); while os.clock()-t<0.08 do end end; return load(path) end
-  local ok,err=pcall(function() press('rules_view_safety'); redraw(); redraw(); redraw() end)
+  local ok,err=pcall(function() press('rules_view_safety'); for _=1,8 do redraw() end end)
   io.load=load; assert(ok,err)
   local function count(text) local n=0; for k=1,e.log.limit do local r=e.log[k]; if r and r.message and r.message:find(text,1,true) then n=n+1 end end; return n end
   assert(count('interface lente: regles/safety')==1,'slow frame logged with its place')
@@ -2519,6 +2521,26 @@ return function(source)
   press('overlay_cspHideMessages'); press('overlay_cspHideMessages'); assert(g.cspHideMessages and not g.cspMessagesLost,'ticked again: retried')
   pause(false); HOST.space={x=1000,y=780}
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
+ end)
+ -- Beta 1.42 : sections Stratégie des IA et Sanctions des IA (réglages, notes par profil), barre latérale de 17 entrées
+ -- tenant dans la fenêtre, bloc « Course des IA » du Diagnostic montré seulement avec des lignes.
+ check('sections Stratégie et Sanctions des IA : réglages, notes de profil, barre latérale et bloc du diagnostic',function()
+  -- Fenêtre de 700 px de haut : la liste des 17 sections doit tenir (lignes resserrées).
+  HOST=H.create(true); HOST.space={x=1000,y=700}; assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
+  local e=HUMANAI.engine
+  go('home'); press('auto'); press('profile_C'); go('settings')
+  for _,group in ipairs({'sanctions','strategy','globals'}) do press('cat_'..group); redraw(); assert(lit('cat_'..group),'sidebar entry reachable: '..group) end
+  press('cat_strategy'); redraw(); assert(drawn('set_strategyEnabled') and drawn('set_failureRate'),'race: strategy settings shown')
+  press('cat_sanctions'); redraw(); assert(drawn('set_sanCutPenalty') and drawn('set_sanProcedureKind'),'race: sanction settings shown')
+  go('home'); press('profile_Q'); go('settings'); press('cat_sanctions'); redraw()
+  assert(drawn('set_sanTrackLimits') and not drawn('set_sanCutPenalty') and begins(L.sanctionsPractice),'qualifying: track limits only, note shown')
+  press('cat_strategy'); redraw(); assert(not drawn('set_strategyEnabled') and begins(L.strategyOnlyRace),'qualifying: strategy race only')
+  go('home'); press('profile_J'); go('settings'); press('cat_sanctions'); redraw(); assert(begins(L.sanctionsWeekend),'track day: weekend only')
+  HOST.space={x=1000,y=3000}; go('diagnostic'); redraw(); assert(not drawnText(L.aiRaceHeading),'no AI race block without rows')
+  e.strategy.rows[1]={text='Driver_2 : 1 arret(s), prochain vers le tour 12',kind='text'}; e.sanctions.rows[1]={text='Driver_3 : drive-through (faux depart)',kind='warn'}
+  redraw(); assert(drawnText(L.aiRaceHeading) and drawnText(e.sanctions.rows[1].text),'AI race block with its rows')
+  e.strategy.rows[1]=nil; e.sanctions.rows[1]=nil; HOST.space={x=1000,y=780}
+  pause(false); HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
  end)
  return results
 end

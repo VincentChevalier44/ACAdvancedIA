@@ -512,15 +512,16 @@ function W.row(id,x,y,w,h,pressed,tip)
  W.help(tip,x,y,w,h,4)
  return clicked,hover
 end
--- Ligne de la barre latérale (.nav, 28 px) : nom, nombre de réglages modifiés, interrupteur de la section.
-function W.nav(id,label,x,y,w,current,off,count,tip)
- local c=W.colors()
- local clicked,hover=W.hit(id,x,y,w-44,28)
+-- Ligne de la barre latérale (.nav, 28 px ; Beta 1.42 : h plus petit si la liste ne tient pas) : nom, nombre de réglages
+-- modifiés, interrupteur de la section.
+function W.nav(id,label,x,y,w,current,off,count,tip,h)
+ local c=W.colors(); h=h or 28
+ local clicked,hover=W.hit(id,x,y,w-44,h)
  f.active[id]=current==true
- if current then W.rect(x,y,w,28,c.select); W.rect(x,y,2,28,c.cyan) elseif hover then W.rect(x,y,w,28,c.block) end
- W.cell(label,x+10,y+7,w-90,12,current and c.cyanText or off and c.off or c.body,'sb')
- if count and count~='' then W.right(count,x+w-48,y+8,11,c.cyan,'mono') end
- W.help(tip,x,y,w-44,28,3)
+ if current then W.rect(x,y,w,h,c.select); W.rect(x,y,2,h,c.cyan) elseif hover then W.rect(x,y,w,h,c.block) end
+ W.cell(label,x+10,y+math.floor((h-14)/2),w-90,12,current and c.cyanText or off and c.off or c.body,'sb')
+ if count and count~='' then W.right(count,x+w-48,y+math.floor((h-12)/2),11,c.cyan,'mono') end
+ W.help(tip,x,y,w-44,h,3)
  return clicked
 end
 -- Curseur (.sl) : rail 4 px, partie remplie pleine, repère gris du défaut, poignée en parallélogramme ; glisser pour

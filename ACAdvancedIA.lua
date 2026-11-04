@@ -62,6 +62,8 @@ local Config=require('src/config')
 local Lang=require('src/lang')
 local Pits=require('src/pits')
 local Penalties=require('src/penalties')
+local Strategy=require('src/strategy')
+local Sanctions=require('src/sanctions')
 local Journal=require('src/journal')
 local Locale=require('src/locale')
 local Lights=require('src/lights')
@@ -202,6 +204,9 @@ local function saveRace(force)
  lastRaceSave=engine.time
  if engine.pits.dirty then engine.pits.dirty=false; Applier.storeText('humanai:pits',Pits.serialize(engine.pits,frame.session)) end
  if engine.penalties.dirty then engine.penalties.dirty=false; Applier.storeText('humanai:penalties',Penalties.serialize(engine.penalties,frame,frame.session)) end
+ -- Beta 1.42 : stratégie et sanctions des IA, gardées pour un rechargement de l'app en pleine course.
+ if engine.strategy.dirty then engine.strategy.dirty=false; Applier.storeText('humanai:strategy',Strategy.serialize(engine.strategy,frame.session)) end
+ if engine.sanctions.dirty then engine.sanctions.dirty=false; Applier.storeText('humanai:sanctions',Sanctions.serialize(engine.sanctions,frame.session)) end
 end
 local function release()
  if released then return end
@@ -271,7 +276,9 @@ messages=function(block,hide)
 end
 local function session()
  if released then return end
- Engine.reset(engine,engine.time,true); engine.session=-1; calibration.attempted=false; Pits.forget(engine.pits); engine.penalties.pending=nil
+ Engine.reset(engine,engine.time,true); engine.session=-1; calibration.attempted=false; Pits.forget(engine.pits); Strategy.forget(engine.strategy); engine.penalties.pending=nil
+ -- Beta 1.42 : point de reprise des sanctions oublié aussi (redémarrage au même indice) ; celui de la stratégie l'est par Strategy.forget.
+ if engine.sanctions then engine.sanctions.pending=nil end
  host.session=nil -- Un redémarrage garde le même indice : les écritures suivies sont resynchronisées.
 end
 -- Beta 1.32 : panneaux lumineux du circuit cherchés dans sa configuration (et drapeaux d'AC masqués relus), une fois
@@ -307,6 +314,8 @@ local function update(dt)
   initialized=true; host.session=frame.session; Applier.recover(host,frame)
   Pits.restore(engine.pits,Applier.loadText('humanai:pits'),frame.session)
   Penalties.restore(engine.penalties,Applier.loadText('humanai:penalties'),frame.session)
+  Strategy.restore(engine.strategy,Applier.loadText('humanai:strategy'),frame.session)
+  Sanctions.restore(engine.sanctions,Applier.loadText('humanai:sanctions'),frame.session)
   Applier.register(host,function() local ok=pcall(release); if not ok then host.errors=host.errors+1 end end,
    function() local ok=pcall(session); if not ok then host.errors=host.errors+1 end end)
  end
@@ -315,6 +324,7 @@ local function update(dt)
  engine.gridCaps=host.caps.stop.available and host.caps.speed.available and host.caps.offset.available
  -- Beta 1.41 : retenue à la sortie des stands seulement si l'arrêt natif répond.
  engine.stopCap=host.caps.stop.available==true
+ engine.pitCap=host.caps.pit.available==true
  local ready=Engine.step(engine,frame,dt)
  Applier.reportCaps(host)
  if engine.settingsChanged then engine.settingsChanged=false; dirty() end

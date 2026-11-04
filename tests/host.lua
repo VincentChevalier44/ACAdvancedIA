@@ -8,7 +8,7 @@ function M.create(native110,options)
   currentSessionTime=100000,timeToSessionStart=0,sessionTimeLeft=600000,isSessionStarted=true,isSessionFinished=false,
   isOnlineRace=false,isAltOnlineRace=false,isReplayActive=false,isReplayOnlyMode=false,isPaused=false,isInMainMenu=false,gameTime=1,rainWetness=0,leaderLapCount=0},
   cars={},values={},storage={},releases={},sessions={},controls={},clicked='',clip='',windows={},sameLines=0,extraGrip=0,grips={},tyreCatalog={},rainHints={},pitRequests={},nativeRainSupport=false,stops={},awakes={},positions={},velocities={},hudHidden={},transparent={},messageListeners={},blocked=0,messages={},flag=0,nativeFlag=0,flagOverrides=0,parked={},teleports=0,files={},
-  sliderLabels={},sliderEdits={},checkboxLabels={},checkboxValues={},buttons={},accented={},pitRequested={},startDelays={},startDelayWrites=0,bodyRepairs={},suspensionRepairs={},engineRepairs={},penalties={},penaltyKinds={},badgeTexts={},wrappedPanel={},sounds={},played=0,disposed=0,draws=0,fontDepth=0,panelTexts={},wrappedTexts={},panelColors={},styleDepth=0,styleMax=0,hoverAll=false,tooltips={},missingTips={},pendingWidget=nil,pendingTipped=true,inputEdits={},comboEdits={},comboValues={},windowOpen={},speedLimits={},fuelRequests={},fuelSets={},width=420,cursor=0,lastRight=0,categoryRows=1,overflow=false,tabHeightMax=0,fontScale=1,rendered=0,accessCalls=0}
+  throttleLimits={},throttleWrites=0,tyreKmWrites={},sliderLabels={},sliderEdits={},checkboxLabels={},checkboxValues={},buttons={},accented={},pitRequested={},startDelays={},startDelayWrites=0,bodyRepairs={},suspensionRepairs={},engineRepairs={},penalties={},penaltyKinds={},badgeTexts={},wrappedPanel={},sounds={},played=0,disposed=0,draws=0,fontDepth=0,panelTexts={},wrappedTexts={},panelColors={},styleDepth=0,styleMax=0,hoverAll=false,tooltips={},missingTips={},pendingWidget=nil,pendingTipped=true,inputEdits={},comboEdits={},comboValues={},windowOpen={},speedLimits={},fuelRequests={},fuelSets={},width=420,cursor=0,lastRight=0,categoryRows=1,overflow=false,tabHeightMax=0,fontScale=1,rendered=0,accessCalls=0}
  for i=0,3 do
   h.cars[i]={index=i,position={x=0,y=0,z=i==0 and -1000 or (i-1)*120},look={x=0,z=1},side={x=right and 1 or -1,z=0},velocity={x=0,z=30},speedKmh=108,
    isConnected=true,isActive=true,isAIControlled=i~=0,isUserControlled=i==0,isRemote=false,physicsAvailable=true,
@@ -131,6 +131,9 @@ function M.create(native110,options)
  physics.setCarDRS=function(index,active) assert(type(index)=='number' and type(active)=='boolean'); h.drsOpen[index]=active end
  physics.allowCarDRS=function(index,disable) assert(type(index)=='number' and type(disable)=='boolean'); h.drsBlocks[index]=disable end
  physics.setAITopSpeed=function(index,value) verify(index,value); h.speedLimits[index]=value end
+ -- Beta 1.42 : limite d'accélérateur et distance virtuelle d'un pneu.
+ physics.setAIThrottleLimit=function(index,value) verify(index,value); assert(value>=0 and value<=1); h.throttleLimits[index]=value; h.throttleWrites=h.throttleWrites+1 end
+ physics.setTyresVirtualKM=function(index,wheel,km) verify(index,km); assert(wheel>=0 and wheel<=3); h.tyreKmWrites[#h.tyreKmWrites+1]={index=index,wheel=wheel,km=km} end
  local function weatherVerify(index)
   assert(index~=0 and h.cars[index].isAIControlled and not h.cars[index].isUserControlled)
   assert(not h.sim.isOnlineRace and not h.sim.isAltOnlineRace and (h.releasing or not h.sim.isReplayActive and not h.sim.isPaused))

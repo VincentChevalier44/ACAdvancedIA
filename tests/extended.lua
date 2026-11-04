@@ -709,7 +709,7 @@ tests.CUSTOM_PRESET_BEFORE_1_3=function()
  store.revision=0; store.p_section_accidents=false; store.p_section_rules=false; store.p_section_start=true
  local entry=Presets.decode(store)
  assert(entry and entry.p.section_accidents and not entry.p.yellowEnabled and not entry.p.incidentStop and entry.p.obstacleEnabled)
- local saved=Presets.encode(entry); assert(saved.revision==13)
+ local saved=Presets.encode(entry); assert(saved.revision==14)
  saved.p_yellowEnabled=true; local again=Presets.decode(saved); assert(again.p.section_accidents and again.p.yellowEnabled)
 end
 tests.RULE_CATEGORIES=function()
@@ -2157,7 +2157,7 @@ tests.CONFIG_REVIEW_180=function()
  store.revision=3; entry=Pr.decode(store); assert(entry.p.playerPenalties==false,'current preset: stored choice kept')
  store.p_levelPct=9999; local bad,n=Pr.decode(store)
  assert(bad and n>0 and bad.p.levelPct==C.defaults('C').levelPct,'invalid value replaced, preset kept')
- assert(Pr.encode(entry).revision==13)
+ assert(Pr.encode(entry).revision==14)
 end
 -- 1.8.0 (relecture des écritures) : drapeau rendu à AC même capacité suspendue ; drapeau noir levé à la restitution ;
 -- journal limité pour de bon ; bip non joué libéré ; sanctions conservées à travers un rechargement.
@@ -4053,7 +4053,7 @@ tests.MIGRATION_SAFETY_CAR=function()
   local store=Presets.layout(); store.name='Ancien'; store.profile='C'; store.revision=revision
   for k,v in pairs(p) do store['p_'..k]=v end
   local entry=Presets.decode(store)
-  assert(entry.p.safetyCarEscalation and C.ruleCategory('C',entry.p)=='base' and Presets.encode(entry).revision==13,'revision '..revision..' custom preset updated')
+  assert(entry.p.safetyCarEscalation and C.ruleCategory('C',entry.p)=='base' and Presets.encode(entry).revision==14,'revision '..revision..' custom preset updated')
  end
  -- Modèle par défaut : Ferrari 458 Italia Stage 3 du jeu de base ; un choix existant est gardé.
  assert(C.validateGlobals({}).safetyCarModel=='ferrari_458_s3','first install: Ferrari 458 Italia Stage 3')
@@ -4170,7 +4170,7 @@ tests.TRAFFIC_MIGRATION=function()
  local store=Presets.layout(); store.name='Ancien'; store.profile='J'; store.revision=10
  for k,v in pairs(p) do store['p_'..k]=v end
  local entry=Presets.decode(store)
- assert(entry.p.trafficGapSeconds==2.5 and entry.p.trafficVariation==45 and Presets.encode(entry).revision==13,'Beta 1.19 custom preset updated')
+ assert(entry.p.trafficGapSeconds==2.5 and entry.p.trafficVariation==45 and Presets.encode(entry).revision==14,'Beta 1.19 custom preset updated')
 end
 -- Beta 1.21 : dans une file, pas de cession pour une voiture à peine plus rapide, ni à la pression, ni sur l'appel de
 -- phares d'une IA : elle ne passerait pas et toute la file ralentirait (train de voitures identiques en journée circuit,
@@ -4371,7 +4371,7 @@ tests.START_MIGRATION=function()
  for k,v in pairs(p) do store['p_'..k]=v end
  store.g_useBrakeAssist=false
  local entry=Presets.decode(store)
- assert(math.abs(entry.p.startCautionMult-1.3)<1e-9 and entry.g.useBrakeAssist and Presets.encode(entry).revision==13,'Beta 1.23 custom preset updated')
+ assert(math.abs(entry.p.startCautionMult-1.3)<1e-9 and entry.g.useBrakeAssist and Presets.encode(entry).revision==14,'Beta 1.23 custom preset updated')
 end
 -- Beta 1.24 : contacts entre voitures notés au journal (qui touche l'arrière de qui, ou sur le côté), une fois par paire
 -- toutes les 10 s ; un mur n'en est pas un.
@@ -4966,7 +4966,7 @@ tests.FLASH_RANGE_DEFAULTS_129=function()
  local store=Pr.layout(); store.name='Ancien'; store.profile='J'; store.revision=12; store.p_flashRange=120; store.p_flashCloseAdvantage=5
  local entry=Pr.decode(store); assert(entry.p.flashRange==200 and entry.p.flashCloseAdvantage==-5,'custom preset at the old defaults follows')
  store.p_flashRange=90; entry=Pr.decode(store); assert(entry.p.flashRange==90,'tuned custom preset kept')
- assert(Pr.encode(entry).revision==13)
+ assert(Pr.encode(entry).revision==14)
  local listed=false; for _,u in ipairs(upgraded) do if u=='J:phares' then listed=true end end; assert(listed,'logged')
 end
 -- Beta 1.29 (demande du pilote) : un préréglage règle tout son profil, règles de championnat comprises ; il ne garde que
@@ -5916,4 +5916,14 @@ tests.PANEL_LIGHTS_ALL_138=function()
 end
 -- Beta 1.41 : trafic des IA (fichier à part).
 for name,test in pairs(require('tests/ai141')) do assert(tests[name]==nil,name); tests[name]=test end
+for name,test in pairs(require('tests/schema142')) do assert(tests[name]==nil,name); tests[name]=test end
+for name,test in pairs(require('tests/aero142')) do assert(tests[name]==nil,name); tests[name]=test end
+-- 1.42 STRATEGY : stratégie, tour de sortie, usure, pannes (fichier à part).
+for name,test in pairs(require('tests/strategy142')) do assert(tests[name]==nil,name); tests[name]=test end
+for name,test in pairs(require('tests/sanctions142')) do assert(tests[name]==nil,name); tests[name]=test end
+-- Beta 1.42, fusion : défauts trouvés par la scène de course complète, et la scène elle-même.
+for name,test in pairs(require('tests/merge142')) do assert(tests[name]==nil,name); tests[name]=test end
+-- Beta 1.42, relecture adverse des sanctions des IA.
+for name,test in pairs(require('tests/review142x')) do assert(tests[name]==nil,name); tests[name]=test end
+for name,test in pairs(require('tests/fixsa142')) do assert(tests[name]==nil,name); tests[name]=test end -- FIXSA 1.42 (relecture STRATÉGIE et AERO)
 return tests

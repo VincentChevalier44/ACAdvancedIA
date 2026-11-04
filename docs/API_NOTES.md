@@ -238,3 +238,12 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 
 - `ac.getFolder(ac.FolderID.Logs)` gives `Documents/Assetto Corsa/logs`. The app writes there with `io.open(path, 'a')` every two seconds (small appends, never a complete rewrite), after an `io.fileExists` / `io.move` rotation on the first cycle of a game launch (since 1.8.0, a marker in `ac.store` makes it continue the same file after an app reload). `os.date` timestamps the lines. If `io.open` is missing or fails three times, the log switches off with no effect on the engine.
 - The CSP and AC logs are truncated when they exceed their maximum size, often as soon as a 30-car grid is loaded: they then do not cover the race. The app's log is independent of this limit.
+
+## Beta 1.42: AI strategy and sanctions
+
+- `physics.setAIThrottleLimit(index, limit)` (0 to 1): the throttle cut of a sanction, dirty air and failures. The app lowers it gradually (never below 0.3), writes it once per change, returns exactly 1 when the limit comes back above 0.99, and gives it back when the car is not driven (pits, off track, release). After a reload on error, every recovered car gets its throttle back.
+- `physics.setTyresVirtualKM(index, wheel, km)`: the flat spot of a lock-up on the more worn front tyre, one event at a time, bounded per stint.
+- Read for the AI: `car.wheels[i].tyreWear` (0 new to 1 worn per the SDK, still to confirm in game), `tyreVirtualKM`, core and optimum temperatures, `car.fuel`, `car.maxFuel`, `car.fuelPerLap` (AC's estimate), `car.wheelsOutside`, `car.isLapValid`, `car.currentSector`, `sim.pitsSpeedLimit` (ignored below 40 km/h).
+- Not possible with CSP: AC's penalties (`physics.setCarPenalty`) apply to the player only, and AC's results cannot be changed; `markLapAsSpoiled` works only in a race for an AI, so invalidated AI laps in practice and qualifying stay in the app. An AI drive-through is a pit request without service (AC's AI stops briefly at its box).
+- The `isInPitlane` flag can drop for a frame: a pit-lane exit is confirmed after 1 s out of the lane (the exit point and the pit junction are taken from the first frame out).
+

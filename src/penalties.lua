@@ -134,6 +134,10 @@ function M.update(t,frame,p,profile,inc,now,_,d)
  t.passedUnder=t.passMade or next(t.waiting)~=nil
  return result
 end
+-- Beta 1.42 : vitesse maximale d'une IA qui rend une place (sous l'allure de la voiture à laisser repasser, levée de
+-- pied progressive depuis sa vitesse au début) : place à rendre sous drapeau (moteur) et après un dépassement hors piste
+-- (sanctions des IA).
+function M.giveBackLimit(fromKmh,at,now,otherKmh,decel) return max(max(K.trafficMinSpeed,otherKmh-K.giveBackDrop),fromKmh-decel*3.6*(now-at)) end
 -- Sanction d'une IA : pied levé quelques secondes ; au-delà du nombre toléré, disqualification.
 local function sanction(t,s,i,j,a,p,now,events)
  s.lastAt[i]=now; s.count[i]=(s.count[i] or 0)+1; s.passed[i]=j

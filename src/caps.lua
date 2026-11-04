@@ -1,5 +1,5 @@
 local K=require('src/config').K
-local M={errorLength=160,names={'level','aggression','caution','offset','grip','brake','speed','rain','tyres','pit','stop','flag','flash','park','teleport','penalty','drs','drsActive','brakeMistake','tractionMistake','fuel','fuelSet','startDelay','awake','position','velocity','repairBody','repairSuspension','repairEngine'}}
+local M={errorLength=160,names={'level','aggression','caution','offset','grip','brake','speed','rain','tyres','pit','stop','flag','flash','park','teleport','penalty','drs','drsActive','brakeMistake','tractionMistake','fuel','fuelSet','startDelay','awake','position','velocity','repairBody','repairSuspension','repairEngine','throttle','tyreKm'}}
 function M.new(port)
  local c={port=port,native110=false,levelMode='none',probeIndex=0,probeID='',probeAt=0,probeOriginal=1,probeDone=false}
  for _,name in ipairs(M.names) do local available=port.present(name); c[name]={available=available,failures=0,reason=available and 'present' or 'missing',error='',noted=false,notedOff=false} end

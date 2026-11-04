@@ -39,6 +39,7 @@ ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP
   - [Red flag](#red-flag)
   - [DRS and Overtake Mode](#drs-and-overtake-mode)
   - [Pit stops: mandatory stops, tyres, fuel and repairs](#pit-stops-mandatory-stops-tyres-fuel-and-repairs)
+  - [AI strategy, out-lap, tyre wear and failures](#ai-strategy-out-lap-tyre-wear-and-failures)
   - [Endurance and multi-class](#endurance-and-multi-class)
   - [Weather and tyres](#weather-and-tyres)
   - [Track-day traffic spacing](#track-day-traffic-spacing)
@@ -408,6 +409,11 @@ Section **Overtaking** (sidebar **TRAFFIC**).
   - Never against a car lapping it or from a faster class, never weaving and never under braking.
   - A defence ends as soon as the cars overlap, and an AI never moves towards a car alongside it.
 
+**Breaking the tow, dirty air and the last laps (Beta 1.42)** (sidebar **Overtaking**, subgroups *Slipstream and dirty air* and *End of race*):
+- **Breaking the tow** (race): on a long straight (relearnt each session from the AI's own laps, braking zones excluded; nothing on the race's first lap), a leader followed in its slipstream by a direct rival (same lap, same class) makes one move away from the follower, never towards the overtaking side forced by **Overtaking side**, and no move at all if the follower is already clearly on that side. It returns to its line before the braking zone, and ends the move as soon as the follower pulls out. Never when the follower is more than 12 km/h faster, already overtaking or is you; never under a flag, under braking, with a car alongside, near the pit exit (100 m before to 500 m after it), in front of a car that laps it or of another class, and never without room in the anti-weaving budget. Breaking the tow and a defence never both happen on the same straight.
+- **Dirty air**: in a corner, within the set distance behind another car and in its wake, the AI lifts the throttle slightly (at most the set percentage) and its usual line variation becomes faster micro-corrections, never towards an occupied side and never counted as a change of side. Off in track day by default.
+- **Last-laps urgency** (race): in each car's own last laps (held until it finishes; a timed race includes the lap after the time ends), with a direct rival close ahead or behind, aggression rises step by step (still capped, never above the base under braking or in corners) and the defence triggers from further away. No extra aggression with a lapped car, another class or you just ahead, no defence boost against you, never under a flag.
+
 ### Lateral movement, lane holding and anti-weaving
 
 Section **Lines** (sidebar **DRIVING**).
@@ -539,6 +545,17 @@ Section **Accidents** (sidebar **RACE & SAFETY**).
 - An AI that overtakes under yellow, a neutralisation or a red flag lifts off for a few seconds. There is at most one sanction every 20 s, and a car that went off track during the pass does not count.
 - When a neutralisation or a red flag starts, an AI that passes during the braking lifts off clearly to give the place back. It is only sanctioned if it keeps the place.
 - Beyond the allowed number of infringements, the AI is disqualified, returned to its pit box and parked until the end of the session.
+
+**AI sanctions (Beta 1.42)** (sidebar **AI sanctions**; everything in Race; in Practice and Qualifying only track limits, wrong way and notices; never on a Track day or in Hotlap; never you, whom AC sanctions itself). AC cannot give its own penalties to an AI nor change its results: everything below is applied by the app, and time penalties exist only in the app's **corrected classification**.
+- **Track limits** (three wheels or more off for 0.3 s, at 40 km/h or more, without a spin, not under a yellow flag, not while the app itself moves the car aside): in Practice and Qualifying the lap is invalidated in the app (journal and Diagnostic; AC's lap times and grid do not change), and the next lap too in the last sector. In the race: warnings (3 by default), then a time penalty for each further off; these time penalties never lead to a black flag. A place where three different AI go off within 5 minutes is the AI line itself leaving the limits: it is ignored, the warnings already given there are taken back, and it is forgotten after 30 minutes without an off.
+- **Corner cut with a time gain** (race): an AI that gains 0.3 s or more on its learnt pace gets a throttle cut (5 s by default), lowered gradually to 35 % (never to zero), only on a straight (lateral acceleration at most 2 m/s²), without braking, above 80 km/h, not in the 3 s after rejoining or leaving the pits, never with a car behind closer than 30 m or 4 s at its closing speed (then not before 50 m), never under a flag. With no safe moment for 90 s it becomes a time penalty.
+- **Procedural offences** (race): jump start at the app's standing start (a held movement of 0.5 s, counted once), pit-lane speeding, crossing the pit-exit line. Penalty: drive-through (default), stop-and-go (a drive-through when the app cannot hold a car at its box) or time penalty.
+- **Serving**: the AI is called in once the race has run 30 s, with the pits open and no red flag or neutralisation, never while another stop is wanted. The penalty pass has no tyres, no repairs and no wait (stop-and-go: the stop time) and is neither a mandatory stop nor counted as a stop; AC's AI still stops briefly at its box. Not served within the set laps (the lap of the notice and laps without a chance to serve do not count): black flag; if no AI at all has entered the pits after two laps of calls (a track whose pit lane the AI never take), a time penalty instead. Too few laps left to serve: added to the result.
+- **Black flag**: wrong way for 5 s at 20 km/h or more (not off the track nor during a spin), an ignored penalty, or too many penalties. The AI is brought back to its pit box and parked there; it is never parked on the track.
+- **Give the place back** (race): an AI that passes a car of the same lap while off the track, or within 3 s of rejoining, lifts off to let it back past within 15 s (never below that car's speed minus 25 km/h nor 70 % of its own pace); otherwise a time penalty. Cancelled under a yellow, red or neutralisation, or if that car pits, crashes, is lapped, has a blue flag or crawls.
+- **Corrected classification**: the places of AC's finished cars are redistributed in corrected order (time added); Diagnostic block « AI RACE », the journal line `classement corrige` (written when it changes) and the race recap line « Corrected classification: P<n> » when your place changes. Nothing is shown when nobody has a time penalty.
+- **Notices**: penalties, throttle cuts and places owed on the overlay (one every 6 s at most; black flags always, with priority).
+- Unticking the section or the switch of a penalty's source during a session cancels what is under way.
 
 ### Racing rules and rule sets
 
@@ -696,6 +713,17 @@ The settings are under **RACING RULES › Mandatory stop in the race**. They are
 - **How it is measured.** Consumption is measured lap by lap on each car and remembered per car model and track for the next race; until then, AC's estimate is used. While consumption is unknown, or if fuel use is off in the session, nothing is imposed.
 - **Safety net.** Each request also tells AC after how many laps to make an emergency stop, so an AI never runs dry.
 - The player is never concerned. The log notes the amount requested and the fuel before and after the stop.
+
+### AI strategy, out-lap, tyre wear and failures
+
+New in Beta 1.42 (sidebar **AI strategy**, Race only; out-lap and tyre wear in **Weather**):
+- **Individual pit strategy**: each AI is its own strategist, cautious to bold (drawn per session around **Average risk taking**, spread by **Spread between strategists**). It plans its stops from its own tyre wear per lap, its fuel and the laps left, through the usual pit request; a mandatory stop is aligned on the planned stop when that falls later in the window, and refuelling covers the next stint plus the margin. Near the finish the last stint is stretched instead of stopping: no stop when the fuel reaches the flag with the usual reserve and the tyres last to their wear limit, at most two laps (one to three, with the risk taking) past the set wear. Under a new neutralisation, strategists close to their stop pit.
+- **Undercut and overcut**: a bold strategist a few laps from its stop undercuts the rival just ahead; a cautious one covers the rival behind that pits (never with fresh tyres); one with good tyres stays out two laps when the rival ahead pits. Never in reaction to a car serving a penalty, a disqualified car or a car pitting with a failure.
+- **Out-lap warm-up**: after a real stop at its box (never after a penalty pass, a recovery to the pits, a red-flag recall or at the race start), an AI drives its out-lap a few percent slower until the line or warm tyres, then gets its level back smoothly. It acts through the AI level, so it needs the **General** section ticked (as does the level part of a failure; the throttle part of a failure works either way).
+- **Lock-ups and tyre wear**: worn, asymmetric front tyres make lock-ups more frequent at the end of a stint; each lock-up adds a small flat spot (virtual km) to the more worn front tyre, bounded per stint (reset at each stop).
+- **Tyre wear is used only once its scale is checked in game**: the app waits until it has seen a fresh tyre (low wear) and the wear rising. Until then, and if the values stay implausible (`usure des pneus non fiable ici`), there is no stop for tyres and no wear-linked lock-ups; fuel and the stop rules still apply.
+- **Safety of the plan**: whether a stop is needed is decided on the raw fuel and tyre capacity; margins only place a stop that is needed. No tyre stop and a fuel reserve of 0.1 lap in the last 2 laps; critical fuel (under 1.5 laps, cannot finish) is called even with the pits closed or the call limit reached; strategy stops fit new tyres when **New tyres at every stop** is ticked; a stop that changed nothing (tyres or fuel) is not asked again; one call limit is shared with the stop rules and a call is never withdrawn; a non-critical stop waits for the mandatory window to open; a neutralised lap does not teach fuel use.
+- **Progressive failures** (rare): a fluid leak, overheating, a slow puncture or a battery drain lowers the pace gradually (up to **Failure: maximum pace loss**); the AI heads to the pits, is repaired in 8 to 20 s, then gets its pace back. Never parked on the track, never on the first lap nor in the last 10 % of the race, at most once per AI per session.
 
 ### Endurance and multi-class
 
@@ -1205,6 +1233,16 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Maximum defending offset** | 0.1 – 0.5 | 0.35 | 0.35 | 0.35 |
 | **Pause between defences (s)** | 2 – 30 | 8 | 8 | 8 |
 | **Defending distance (m)** | 5 – 25 | 12 | 12 | 12 |
+| **Break the tow on straights** | on / off | n/a | n/a | on |
+| **Tow to break: distance (m)** | 10 – 60 | n/a | n/a | 30 |
+| **Minimum straight (m)** | 200 – 1500 | n/a | n/a | 400 |
+| **Dirty air behind a car** | on / off | off | on | on |
+| **Dirty air: distance (m)** | 5 – 40 | 20 | 20 | 20 |
+| **Dirty air: throttle lift in corners (%)** | 0 – 10 | 3 | 3 | 3 |
+| **Last-laps urgency** | on / off | n/a | n/a | on |
+| **Last laps concerned** | 1 – 10 | n/a | n/a | 3 |
+| **Extra aggression (%)** | 0 – 50 | n/a | n/a | 15 |
+| **Stronger defence (%)** | 0 – 100 | n/a | n/a | 40 |
 
 #### Traffic spacing (sidebar: **Spacing**)
 
@@ -1248,6 +1286,42 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Offences allowed before disqualification** | 1 – 20 | n/a | 5 | 5 |
 | **AI sanctions under flags** | on / off | n/a | on | on |
 
+#### AI strategy (sidebar: **AI strategy**, Race only)
+
+| Setting | Range | Track day | Practice / Qualifying | Race |
+|---|---|---|---|---|
+| **Individual pit-stop strategy** | on / off | n/a | n/a | on |
+| **Tyre wear before stopping (%)** | 30 – 95 | n/a | n/a | 75 |
+| **Fuel margin (laps)** | 0 – 3 | n/a | n/a | 1 |
+| **Undercut and overcut (reacting to rivals’ stops)** | on / off | n/a | n/a | on |
+| **Average risk taking (%)** | 0 – 100 | n/a | n/a | 50 |
+| **Spread between strategists (%)** | 0 – 100 | n/a | n/a | 60 |
+| **Progressive mechanical failures** | on / off | n/a | n/a | on |
+| **Failures: rate (per hour and per AI)** | 0 – 2 | n/a | n/a | 0.05 |
+| **Failure: maximum pace loss (%)** | 3 – 30 | n/a | n/a | 12 |
+
+#### AI sanctions (sidebar: **AI sanctions**)
+
+| Setting | Range | Track day | Practice / Qualifying | Race |
+|---|---|---|---|---|
+| **Track limits (at least three wheels off)** | on / off | n/a | on | on |
+| **Warnings before a penalty (race)** | 0 – 5 | n/a | n/a | 3 |
+| **Corner cut with a time gain: throttle cut** | on / off | n/a | n/a | on |
+| **Throttle cut (s)** | 2 – 15 | n/a | n/a | 5 |
+| **Jump start** | on / off | n/a | n/a | on |
+| **Pit-lane speeding** | on / off | n/a | n/a | on |
+| **Pit-exit line crossed** | on / off | n/a | n/a | on |
+| **Penalty for procedural offences** | Drive-through / Stop-and-go / Time penalty (added to the result) | n/a | n/a | Drive-through |
+| **Wrong way: black flag** | on / off | n/a | on | on |
+| **Wrong way tolerated (s)** | 2 – 15 | n/a | 5 | 5 |
+| **Laps to serve a penalty (then black flag)** | 1 – 5 | n/a | n/a | 3 |
+| **Stop-and-go: stop (s)** | 5 – 30 | n/a | n/a | 10 |
+| **Time penalty (s)** | 1 – 30 | n/a | n/a | 5 |
+| **Unserved penalty added to the result** | on / off | n/a | n/a | on |
+| **Give the place back after an off-track overtake** | on / off | n/a | n/a | on |
+| **Time to give the place back (s)** | 5 – 30 | n/a | n/a | 15 |
+| **AI sanction notices on screen** | on / off | n/a | on | on |
+
 #### Endurance and classes (sidebar: **Classes / Endurance**)
 
 | Setting | Range | Track day | Practice / Qualifying | Race |
@@ -1267,6 +1341,11 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Manage dry and wet tyres** | on / off | on | on | on |
 | **On-screen message on a weather change** | on / off | on | on | on |
 | **Rain compensation without wet tyres (%)** | 0 – 30 | 15 | 15 | 15 |
+| **Out-lap: tyre warm-up** | on / off | off | on | on |
+| **Out-lap: level lowered by (%)** | 0 – 15 | 7 | 7 | 7 |
+| **Lock-ups linked to tyre wear** | on / off | off | on | on |
+| **Lock-ups: gain at the end of a stint** | 0 – 3 | 1.5 | 1.5 | 1.5 |
+| **Flat spot: wear added per lock-up (km)** | 0 – 5 | 1 | 1 | 1 |
 
 #### Track light panels (sidebar: **Track light panels**)
 
@@ -1444,6 +1523,35 @@ Ticked by default in every profile, Hotlap included. See [Track light panels](#t
    - the app version, your CSP version (shown in **DIAGNOSTICS**), the track, the cars;
    - the Content Manager mode and session type, the number of AI;
    - what you expected and what happened.
+
+**Lines added in Beta 1.42**:
+
+| Line | Meaning |
+|---|---|
+| `strategie: X plan n arret(s), prochain vers le tour l (pneus\|carburant), risque r %` | X's plan to the finish and what limits its stint. |
+| `strategie: X arret demande (cause)` / `strategie: X reste dehors (overcut sur Y)` | The strategist calls X in (tyres, fuel, undercut, covering an undercut, neutralisation, failure), or keeps it out. |
+| `tour de sortie: X pneus a chauffer (niveau -x %)` | X's out-lap after a stop, slightly slower. |
+| `usure: X blocage, pneu … +km km (usure w %, asymetrie a %)` | A lock-up added a flat spot to that tyre. |
+| `panne: X kind (perte x % sur t s), retour aux stands` / `panne: X reparee aux stands` | A progressive failure, and its repair. |
+| `aspiration: X casse l aspiration de Y (gap m, ligne droite len m)` | A leader breaks a direct rival's tow with one move. |
+| `usure des pneus: echelle verifiee sur X (a % a b % en n tour(s))` / `usure des pneus non fiable ici (X : w % apres n tours) : ni arret pour les pneus, ni blocages lies a l usure` | Tyre wear scale checked in game, or judged unreliable on this car/track. |
+| `strategie: X arret retenu jusqu a l ouverture de la fenetre obligatoire` | A non-critical stop waits for the mandatory window. |
+| `strategie: X pneus non changes a l arret (usure w %) : plus d arret pour les pneus` / `strategie: X pas de carburant ajoute a l arret : plus d arret pour le carburant` | A stop changed nothing: that cause is not asked again. |
+| `resume: … \| aspiration cassee n (finies n), air sale n` | Minute summary, written only when not zero. |
+| `fin de course: n derniers tours, agressivite +x %, defense +y %` | Last-laps urgency has started (once per session). |
+| `tour invalide IA: X (secteur n[, dernier secteur : tour suivant aussi])` | Practice or qualifying: X's lap invalidated by the app. |
+| `limites de piste IA: X avertissement k / n` / `… zone ignoree a m m …` / `… X, sanction annulee (zone ignoree)` | Track-limit warning; a place where the AI line leaves the limits; a warning taken back. |
+| `sanction IA: X penalite de temps +s s (reason), total +s s` | Time penalty in the corrected classification. |
+| `sanction IA: X coupure des gaz s s (virage coupe, gain g s)` | Throttle cut for a corner cut with a gain. |
+| `sanction IA: X drive-through\|stop-and-go (reason), a purger en n tours` / `sanction IA purgee: X …` | Penalty to serve in the pits, and served. |
+| `sanction IA: X drapeau noir (contresens\|penalite non purgee\|trop d infractions)` | Black flag: the AI is parked at its box. |
+| `stands IA: X a v km/h dans la voie (limite l km/h)` / `stands IA: X sortie de la voie m m avant la jonction` | Pit-lane speeding; pit-exit line crossed. |
+| `passage de penalite a l emplacement: X, non compte comme arret` | A penalty pass at the box: not a stop. |
+| `place a rendre IA: X doit rendre la place a Y (s s)` / `place rendue IA: …` / `… annulee (cause)` | Place to give back after an off-track overtake. |
+| `faux depart IA: X, m m, v km/h, s s avant l extinction` | AI jump start at the app's standing start. |
+| `classement corrige (le classement d AC reste inchange): …` | The app's corrected classification (only with a time penalty). |
+
+Summary counters: `tow` and `tow_end` (tows broken and ended), `dirtyAir` (dirty-air episodes).
 
 ## Compatibility and known limitations
 

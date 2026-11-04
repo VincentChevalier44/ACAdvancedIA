@@ -243,7 +243,7 @@ end
 -- seules les saisies de texte et la liste des voitures restent natives. Identifiants des commandes inchangés.
 local tabs={'home','settings','rules','diagnostic'}
 local sidebar={{'drive','general','human','lateral','start'},{'traffic','yield','blue','flash','overtake','traffic'},
- {'race','accidents','lights','endurance','weather'},{'advanced','globals','overlay'}}
+ {'race','accidents','sanctions','strategy','lights','endurance','weather'},{'advanced','globals','overlay'}}
 local languageOrder={'fr','en'}
 local languageLabels={fr='FR',en='EN'}
 local HEADER=84
@@ -396,13 +396,15 @@ end
 -- Note d'un réglage masqué dans ce profil (pénalités en journée circuit, surcouche Endurance en essais et en
 -- qualifications, répartition des IA en course et en hotlap) ; nil sans note.
 local function hiddenNote(view,key,shown)
- if C.penaltyKeys[key] then return not shown.penalties and 'penalties' or nil end
+ if C.penaltyKeys[key] or C.sanctionKeys[key] and C.solo(view) then return not shown.penalties and 'penalties' or nil end
+ -- Beta 1.42 : stratégie, pannes, aspiration cassée, fin de course et sanctions de course : course seulement.
+ if C.raceKeys[key] or C.sanctionRaceKeys[key] then return not shown.race and 'race' or nil end
  if key=='enduranceOverlay' then return 'endurance' end
  if key=='spawnMode' then return 'spawn' end
  if key=='floodRangeKm' and not C.hidden(view,'spawnMode') then return 'flood' end
  return nil
 end
-local noteTexts={penalties='penaltiesTrackDay',endurance='enduranceNotAvailable',spawn='spawnNotAvailable',flood='floodNotAvailable'}
+local noteTexts={race='raceOnlySetting',penalties='penaltiesTrackDay',endurance='enduranceNotAvailable',spawn='spawnNotAvailable',flood='floodNotAvailable'}
 -- Hauteur estimée d'un sous-groupe (répartition des deux colonnes) : titre 30, curseur 44, choix 46, interrupteur 28.
 local heightShown={}
 local function groupHeight(group,view)
@@ -783,6 +785,10 @@ local function statusLines(v,e,group,view,p,out)
    end
   end
   out[#out+1]=fmt(v,'weather',L.weatherStatus,e.frame.wet*100,wet,fallback,known)
+ elseif group=='strategy' then
+  if view~='C' then out[#out+1]=L.strategyOnlyRace end
+ elseif group=='sanctions' then
+  if C.solo(view) then out[#out+1]=L.sanctionsWeekend elseif view~='C' then out[#out+1]=L.sanctionsPractice end
  elseif group=='accidents' then
   local t=e.incidents
   out[#out+1]=fmt(v,'accidents',L.accidentStatus,t.activeCount,t.zoneCount,t.holdCount,L.neutralNames[t.neutral and t.neutralMode or 'none'])
@@ -1751,22 +1757,26 @@ local function settingsTab(v,e)
  local offset=W.scroll(v.scrolls,'nav',PAD,listTop,navW,height,v.contentHeights.nav or 0)
  W.clip(PAD,listTop,navW,height)
  local y=listTop+2-offset
+ -- Beta 1.42 : 17 sections ; lignes resserrées (24 px au moins) si la liste dépasse la hauteur de la fenêtre.
+ local items=0; for _,block in ipairs(sidebar) do items=items+#block-1 end
+ local rowH=28
+ if #sidebar*30+items*28>height then rowH=math.max(24,math.floor((height-4-#sidebar*30)/items)) end
  for _,block in ipairs(sidebar) do
   if W.visible(y,22) then W.text(W.upper(L.sidebar[block[1]]),PAD+10,y+8,11,c.group,'label') end
   y=y+26
   for i=2,#block do
    local group=block[i]
-   if W.visible(y,28) then
+   if W.visible(y,rowH) then
     local selected=v.category==group
     local sectionOn=group=='overlay' or C.on(p,group)
     local count=group~='overlay' and group~='globals' and modifiedCount(v,group,view,p) or 0
-    local clicked=W.nav(idOf('cat_',group),L.categories[group],PAD,y,navW,selected,not sectionOn,count>0 and intText(count) or '',v.tips.tabs[group])
+    local clicked=W.nav(idOf('cat_',group),L.categories[group],PAD,y,navW,selected,not sectionOn,count>0 and intText(count) or '',v.tips.tabs[group],rowH)
     if group~='overlay' then
-     if W.switch(idOf('section_',group),PAD+navW-38,y+6,C.on(p,group),v.tips.sections[group]) then p[idOf('section_',group)]=not C.on(p,group); touch(v,p) end
+     if W.switch(idOf('section_',group),PAD+navW-38,y+math.floor((rowH-16)/2),C.on(p,group),v.tips.sections[group]) then p[idOf('section_',group)]=not C.on(p,group); touch(v,p) end
     end
     if clicked then if v.category~=group then v.presetMessage='' end; v.category=group end
    end
-   y=y+28
+   y=y+rowH
   end
   y=y+4
  end
@@ -1858,6 +1868,27 @@ end
 -- Diagnostic (refonte Racing 26) : à gauche les mises à jour, la calibration, les phares et les zones, le journal, les
 -- capacités CSP et les fonctions IA exposées ; à droite le tableau des IA pilotées, les performances et le journal
 -- circulaire filtrable. Chaque zone défile à la molette.
+-- Beta 1.42 : course des IA (stratégies, sanctions) dans le Diagnostic : lignes préparées et mises en cache par les
+-- modules ({text=, kind=}), bloc montré seulement s'il y en a.
+local function raceRows(list,x,y,w,c)
+ for k=1,#list do
+  local row=list[k]
+  if W.visible(y,18) then W.cell(row.text or '',x+12,y+3,w-24,11,row.kind=='warn' and c.warn or row.kind=='text' and c.text or c.soft,'mono') end
+  y=y+18
+ end
+ return y
+end
+local function aiRaceBlock(e,x,y,w)
+ local a,b=e.strategy.rows,e.sanctions.rows
+ local n=#a+#b
+ if n==0 then return y end
+ local c=W.colors()
+ local h=40+n*18
+ if W.visible(y,h) then W.panel(x,y,w,h); W.heading(L.aiRaceHeading,x+12,y+7,w-24,L.aiRaceNote,'body',c.label) end
+ local ry=raceRows(a,x,y+34,w,c)
+ raceRows(b,x,ry,w,c)
+ return y+h+GAP
+end
 local function diagnosticTab(v,e,host)
  local c=W.colors(); local frame=e.frame
  local fw,fh=W.frame().w,W.frame().h
@@ -2016,6 +2047,7 @@ local function diagnosticTab(v,e,host)
   end
  end
  y=y+ah+GAP
+ y=aiRaceBlock(e,x,y,w)
  W.clip(); v.contentHeights.diagLeft=y+offset-top
  -- Colonne de droite : IA pilotées, performances, journal circulaire.
  local rx=PAD+lw+GAP; local rw=fw-PAD-rx

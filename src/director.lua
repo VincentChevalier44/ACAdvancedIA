@@ -8,6 +8,7 @@ local Incidents=require('src/incidents')
 local Penalties=require('src/penalties')
 local Flash=require('src/flash')
 local Delta=require('src/delta')
+local Strategy=require('src/strategy')
 local K=C.K
 local abs,min,max=math.abs,math.min,math.max
 local M={}
@@ -37,6 +38,9 @@ function M.newState()
  -- Relecture : suiveur que l'IA n'attend plus (cession perdue, échec « cible plus rapide ») ; jamais un drapeau bleu ni
  -- une classe. Demande d'arrêt d'une IA lente et endommagée (course).
  s.yieldIgnore=0; s.yieldIgnoreUntil=0; s.slowPitAsked=false; s.slowPitDone=false
+ -- Beta 1.42 AERO : aspiration cassée (une manœuvre par ligne droite, attentes en secondes restantes : rien à recaler),
+ -- air sale (0 à 1) et urgence des derniers tours (0 à 1).
+ s.towing=false; s.towDone=false; s.towWait=0; s.towPair=0; s.towPairWait=0; s.dirty=0; s.dirtyBefore=false; s.dirtyLogWait=0; s.urgency=0
  for j=1,K.directionLimit do s.directions[j]=-math.huge; s.directionStates[j]=''; s.directionSides[j]=0 end
  for j=1,K.maxCars do s.followers[j]=false; s.followerSlow[j]=0; s.followerStall[j]=0 end
  return s
@@ -58,6 +62,7 @@ function M.reset(s,now,keepOffset,preserveErrors)
  s.trafficReference=0; s.trafficApplied=false; s.yellow=false; s.overtakeArmed=false; s.overtakeSpline=-1; s.yieldClass=false
  if not keepOffset then s.offset=0 end
  s.lane=0; s.laneActive=false; s.laneLatched=false; s.laneMeters=0; s.laneLogged=false
+ s.towing=false; s.towDone=false; s.dirty=0; s.dirtyBefore=false; s.urgency=0
 end
 function M.configure(s,g,profile,p,now)
  Persona.fill(s.persona,g.seed,s.slot or 0,profile,p,s.stint)
@@ -290,6 +295,9 @@ local function pace(s,a,row,dt,p,fleet,bins)
   if median>0 then
    local ratio=a.speed/median
    s.paceRatio=s.paceRatioCount>0 and s.paceRatio+(ratio-s.paceRatio)*K.paceRatioAlpha or ratio; s.paceRatioCount=s.paceRatioCount+1
+   -- Fusion 1.42 : rythme de longue durée (IA anormalement lente) borné, une flotte encore apprise au départ arrêté
+   -- (voitures à l'accélération) ne gonfle plus l'allure habituelle d'une IA.
+   ratio=U.clamp(ratio,K.paceRatioLow,K.paceRatioHigh)
    -- Beta 1.41 : rythme relatif de longue durée, figé dès que l'IA roule anormalement lente (moteur) : la référence d'une
    -- IA endommagée reste son allure d'avant les dégâts.
    if s.abnormalFor==0 then s.longRatio=s.longRatioTime>0 and U.ema(s.longRatio,ratio,dt,K.longRatioTau) or ratio; s.longRatioTime=s.longRatioTime+dt end
@@ -422,6 +430,126 @@ function M.trafficCap(cmd,s,a,p,profile,dt)
  else cmd.speedLimit=K.unlimitedSpeed end
  s.trafficApplied=cmd.speedLimit<K.unlimitedSpeed
 end
+-- Beta 1.42 AERO : carte des lignes droites du circuit, apprise des IA pilotées (part de passages en ligne droite par
+-- endroit de l'allure apprise), et longueur des lignes droites recalculée toutes les K.towMapPeriod s : longueur de la
+-- ligne droite de chaque endroit et longueur restante devant. Oubliée au changement de circuit ou de découpage.
+local function aeroMap(e,frame)
+ local m=e.aero; local bins=e.delta.bins
+ if not m or m.bins~=bins or m.length~=frame.length then
+  m={bins=bins,length=frame.length,st={},seen={},run={},len={},at=-math.huge,session=m and m.session,finalLogged=m and m.finalLogged or false}
+  for b=1,bins do m.st[b]=0; m.seen[b]=0; m.run[b]=0; m.len[b]=0 end
+  e.aero=m
+ end
+ if m.session~=frame.session then
+  m.session=frame.session; m.finalLogged=false
+  -- Relecture 1.42 : carte réapprise à chaque session (celle des essais ne vaut pas pour le premier tour de la course).
+  for b=1,m.bins do m.st[b]=0; m.seen[b]=0; m.run[b]=0; m.len[b]=0 end
+  m.at=-math.huge
+ end
+ return m
+end
+local function straightBin(m,b) return m.seen[b]>=K.towMapSeen and m.st[b]>=K.towStraightShare end
+local function aeroRuns(m,now)
+ if now<m.at and now>=m.at-K.towMapPeriod then return end
+ m.at=now+K.towMapPeriod
+ local bins=m.bins; local run,len=m.run,m.len
+ local z=0
+ for b=1,bins do if not straightBin(m,b) then z=b; break end end
+ if z==0 then for b=1,bins do run[b]=bins; len[b]=bins end; return end
+ run[z]=0
+ for k=1,bins-1 do local b=(z-1-k)%bins+1; run[b]=straightBin(m,b) and run[b%bins+1]+1 or 0 end
+ local current,previous=0,false
+ for k=1,bins do
+  local b=(z-1+k)%bins+1; local straight=run[b]>0
+  if straight and not previous then current=run[b] end
+  len[b]=straight and current or 0; previous=straight
+ end
+end
+-- Tours d'avance de a sur b (symétrique de Classes.laps).
+local function lapsAhead(a,b,rel,length)
+ if length<=0 or not a.lapValid or not b.lapValid or not a.splineValid or not b.splineValid or a.lap<1 then return 0 end
+ return max(0,math.floor((a.lap+a.spline)-(b.lap+b.spline)+rel.long/length+K.lapTolerance))
+end
+-- Adversaire direct : même tour (ni attardée, ni voiture qui prend un tour), même classe, ni voiture de sécurité ni
+-- voiture aux stands.
+local function rival(e,s,a,n,p,frame)
+ local other=frame.cars[n.index]; local os=e.states[n.index]
+ if other.safetyCar or other.pit then return false end
+ if Classes.laps(a,other,n,frame.length)>0 or lapsAhead(a,other,n,frame.length)>0 then return false end
+ return not faster(p,s,os) and not faster(p,os,s)
+end
+-- Plafond anti-zigzag : au moins n changements de côté encore permis dans la minute.
+local function directionRoom(s,now,p,n)
+ if now<s.driveUntil or now-s.lastDirectionAt<p.lateralCooldown then return false end
+ local active=0
+ for j=1,K.directionLimit do if now-s.directions[j]<K.directionWindow then active=active+1 end end
+ return active<=K.directionLimit-n
+end
+-- Air sale (0 à 1) : dans le sillage d'une voiture à moins de dirtyAirGap m, en virage, à vive allure ; jamais sous
+-- drapeau, au départ, à côté d'une voiture, ni en évitement, reprise au calme ou attente.
+local function dirtyAir(e,s,a,front,p,startPhase)
+ if not p.dirtyAirEnabled or startPhase or s.yellow or e.incidents.neutral or e.incidents.red or s.alongside or not front or front.long<=0 or front.gap<0
+  or front.gap>p.dirtyAirGap or abs(front.lat)>K.dirtyAirLat or a.kmh<K.dirtyAirSpeed or a.corner>=p.cornerMin
+  or s.state=='AVOID' or s.state=='CALM' or s.state=='IDLE' then return 0 end
+ return U.clamp(1-(front.gap-K.dirtyAirFull)/max(1,p.dirtyAirGap-K.dirtyAirFull),0,1)
+end
+-- Urgence des derniers tours (0 à 1) : course commencée, finalLaps derniers tours du leader, drapeau vert, un adversaire
+-- direct à moins de K.finalRange m devant ou derrière ; montée d'un cran par tour jusqu'au dernier.
+local function urgency(e,s,a,row,p,profile,frame,startPhase)
+ if profile~='C' or not p.finalLapsEnabled or not frame.started or a.finished or startPhase or s.yellow
+  or e.incidents.neutral or e.incidents.red or s.bluePending or s.yieldBlue then return 0 end
+ -- Relecture 1.42 : tours restants de la voiture elle-même (le leader arrivé, les autres finissent leur dernier tour ;
+ -- course chronométrée : tour qui suit la fin du temps compris), jamais face au joueur.
+ local left=Strategy.lapsLeft(e,frame,a)
+ if left<1 or left>p.finalLaps then return 0 end
+ for j=1,row.count do
+  local n=row.neighbors[j]
+  if n.gap>=0 and n.gap<=K.finalRange and n.index~=frame.player and rival(e,s,a,n,p,frame) then return (p.finalLaps-left+1)/p.finalLaps end
+ end
+ return 0
+end
+-- Aspiration cassée : en tête d'une paire en ligne droite (longue d'au moins towBreakStraight m, au moins
+-- K.towMinAheadTime s encore devant), suivie dans son sillage à moins de towBreakRange m par un adversaire direct :
+-- une seule manœuvre, du côté opposé à la file du suiveur, tenue jusqu'à K.towReturnTime s de la fin de la ligne
+-- droite. Jamais sous drapeau, au freinage, à côté d'une voiture, devant une voiture qui prend un tour (drapeau bleu)
+-- ou d'une autre classe, ni sans deux changements de côté encore permis par le plafond anti-zigzag ; une évaluation par
+-- ligne droite, attente par voiture et par paire.
+local function towStart(e,s,a,back,row,p,profile,frame,now,startPhase,braking,m,i,g)
+ if profile~='C' or not p.towBreakEnabled or s.towDone or s.towWait>0 or not back or m.bins<=0 or s.returning or startPhase or s.yellow or e.incidents.neutral
+  or e.incidents.red or braking or a.brake>K.ruleBrake or s.alongside or s.bluePending or s.yieldBlue or s.lapseUntil>now or a.corner<K.towCorner
+  or a.kmh<K.towSpeed or back.long>=0 or back.gap>p.towBreakRange or abs(back.lat)>K.towLat or back.sa<K.towSaMin
+  or e.flash.requests[i].untilTime>now or not directionRoom(s,now,p,2) then return false end
+ -- Relecture 1.42 : jamais après une défense sur cette ligne droite (un seul mouvement), au premier tour, face au joueur,
+ -- à un suiveur qui arrive vite (plus de K.towSaMax km/h) ou déjà en dépassement, ni près de la sortie des stands (zone
+ -- des stands, ou K.towMergeBefore m avant à K.towMergeAfter m après la jonction apprise).
+ if s.defendUsed or (a.lap or 0)<1 or back.index==frame.player or back.sa>K.towSaMax or passStates[e.states[back.index].state] then return false end
+ if a.pitDistance and a.pitDistance<K.pitZone then return false end
+ local junction=e.merge and e.merge.spline or -1
+ if junction>=0 and frame.length>0 then
+  local after=U.spline(a.spline-junction)*frame.length
+  if after>=-K.towMergeBefore and after<=K.towMergeAfter then return false end
+ end
+ if s.towPair==back.index and s.towPairWait>0 then return false end
+ if not rival(e,s,a,back,p,frame) then return false end
+ local b=paceBin(a.spline,m.bins); local binLength=frame.length/m.bins
+ local straight=m.len[b]*binLength
+ if straight<p.towBreakStraight or m.run[b]*binLength<K.towMinAheadTime*a.speed then return false end
+ s.towDone=true
+ if U.unit(g.seed,i,(a.lap+back.index)*3+K.towSalt)>=K.towChance+K.towAssert*s.persona.assertiveness then return false end
+ -- Relecture 1.42 : jamais vers le côté de dépassement imposé par le réglage (le suiveur y déboîte) ; sinon s'éloigner du
+ -- suiveur (lat>0 : suiveur du côté gauche, repère interne où -1 est la gauche). Suiveur déjà nettement du côté visé, ou
+ -- côté occupé : pas de manœuvre (jamais vers le suiveur).
+ local away=back.lat>0 and 1 or -1
+ local forced=(p.overtakeSide=='left' or p.overtakeSide=='right') and fixedSide(p.overtakeSide,1,g) or p.overtakeSide=='opposite' and -fixedSide(p.yieldSide,1,g) or 0
+ local side=forced~=0 and -forced or away
+ if side~=away and abs(back.lat)>K.towLatSide or not sideFree(row,side) then return false end
+ s.targetSide=side; s.towing=true; s.defendUntil=now+K.towHoldMax; s.towPair=back.index; s.towPairWait=K.towPairCooldown; s.towWait=K.towCooldown
+ -- Un seul mouvement par ligne droite : la défense ne suit pas la cassure (même attaquant, même tour).
+ s.defendUsed=true; s.defendAttacker=back.index; s.defendLap=a.lap
+ transition(e,s,'DEFEND','tow',now)
+ U.log(e.log,now,'INFO',string.format('aspiration: %s casse l aspiration de %s (%.0f m, ligne droite %.0f m)',a.name,frame.cars[back.index].name,back.gap,straight),i)
+ return true
+end
 function M.step(e,i,dt,now)
  local frame=e.frame; local a=frame.cars[i]; local s=e.states[i]; local cmd=e.commands[i]
  local p,g,profile=e.run,e.runtimeG,e.profile; local row=e.perception.rows[i]
@@ -448,6 +576,17 @@ function M.step(e,i,dt,now)
   s.pitCautionUntil=now+K.stintExitCautionTime; s.pitGuardUntil=now+K.pitGuardTime; M.reset(s,now,true)
  end
  a.corner=U.clamp(1-abs(a.yawRate or 0)/p.cornerYawRef,0,1)
+ -- Beta 1.42 AERO : attentes de l'aspiration cassée, carte des lignes droites (seulement quand elle sert).
+ s.towWait=max(0,s.towWait-dt); s.towPairWait=max(0,s.towPairWait-dt); s.dirtyLogWait=max(0,s.dirtyLogWait-dt)
+ local m=aeroMap(e,frame)
+ if p.towBreakEnabled and m.bins>0 then
+  if a.splineValid and a.kmh>=K.towMapSpeed then
+   -- Relecture 1.42 : une zone de freinage n'est pas de la ligne droite (retour à la ligne avant le point de freinage).
+   local b=paceBin(a.spline,m.bins); m.st[b]=m.st[b]+((a.corner>=K.towCorner and a.brake<=K.ruleBrake and 1 or 0)-m.st[b])*K.towMapAlpha
+   if m.seen[b]<K.towMapSeen then m.seen[b]=m.seen[b]+1 end
+  end
+  aeroRuns(m,now)
+ end
  if s.returning and abs(s.offset-M.reachable(s,a,p,g,s.base))<K.centerEpsilon then s.returning=false end
  Zones.at(e.zones,a.spline,s.zone)
  if a.pitDistance and a.pitDistance<K.pitZone then s.zone.maxOffset=min(s.zone.maxOffset,K.pitOffsetMax) end
@@ -504,6 +643,18 @@ function M.step(e,i,dt,now)
  local desired=0; local elapsed=now-math.max(e.startedAt,e.launchAt or -math.huge)
  cmd.active=true; cmd.brake=0
  local startPhase=profile=='C' and elapsed<p.startDelay+p.startRelax
+ -- Beta 1.42 AERO : air sale (sillage en virage) et urgence des derniers tours (agressivité, défense).
+ s.dirty=dirtyAir(e,s,a,front,p,startPhase)
+ s.urgency=urgency(e,s,a,row,p,profile,frame,startPhase)
+ if s.urgency>0 then
+  -- Relecture 1.42 : jamais d'agressivité en plus avec une attardée, une autre classe ou le joueur juste devant.
+  local blocked=front and front.long>0 and front.gap<=K.finalRange and (front.index==frame.player or not rival(e,s,a,front,p,frame))
+  if not blocked then aggression=aggression*(1+p.finalAggressionPct/100*s.urgency) end
+  if not m.finalLogged then
+   m.finalLogged=true
+   U.log(e.log,now,'INFO',string.format('fin de course: %d derniers tours, agressivite +%.0f %%, defense +%.0f %%',p.finalLaps,p.finalAggressionPct,p.finalDefensePct),-1)
+  end
+ end
  -- Règle sportive : aucun changement de trajectoire ne commence au freinage.
  -- Beta 1.30 (essais du pilote : une IA arrivée vite derrière lui, qu'il laissait passer en s'écartant, a ralenti
  -- jusqu'à l'arrêt) : le léger freinage ajouté par l'app (radar avant) n'est pas un freinage du pilote. Compté comme tel,
@@ -711,6 +862,15 @@ function M.step(e,i,dt,now)
      end
      if s.state=='OVT_OUT' then desired=s.base; if abs(s.offset-M.reachable(s,a,p,g,s.base))<K.centerEpsilon then s.restUntil=now+p.overtakeRestTime; s.target=0; transition(e,s,'DRIVE','pass_end',now) end end
      if s.state=='OVT_IN' or s.state=='OVT_HOLD' then aggression=aggression*K.passAggression; caution=min(caution,max(K.slipCautionMin,caution*K.passCaution)) end
+    elseif s.state=='DEFEND' and s.towing then
+     -- Beta 1.42 AERO : aspiration cassée, côté tenu jusqu'à la fin de la ligne droite ; retour à la ligne (conduite libre,
+     -- jamais compté par le plafond) avant le freinage.
+     desired=s.targetSide*min(K.towOffset,p.maxSideOffset)
+     local ahead=m.bins>0 and m.run[paceBin(a.spline,m.bins)]*frame.length/m.bins or 0
+     local req=e.flash.requests[i]
+     if now>=s.defendUntil or s.alongside or s.yellow or e.incidents.neutral or e.incidents.red or a.brake>K.ruleBrake or req.untilTime>now or not back
+      or not sideFree(row,s.targetSide) or a.corner<p.cornerMin or ahead<K.towReturnTime*a.speed
+      or s.towPair>0 and (e.states[s.towPair].state=='OVT_IN' or e.states[s.towPair].state=='OVT_HOLD') then s.towing=false; transition(e,s,'DRIVE','tow_end',now) end
     elseif s.state=='DEFEND' then
      desired=s.targetSide*min(p.defenseMaxOffset,p.maxSideOffset); aggression=aggression*K.defenseAggression; caution=caution*K.defenseCaution
      local req=e.flash.requests[i]
@@ -718,21 +878,29 @@ function M.step(e,i,dt,now)
     else
      s.base=userSide(s.persona.laneBias,g)
      if row.nearest>K.jitterRange then s.base=s.base+(math.sin(now/s.persona.jitterPeriod*math.pi*2+s.persona.phase)+0.5*math.sin(now/s.persona.jitterPeriod2*math.pi*2-s.persona.phase))/1.5*p.personalLineJitter end
+     -- Beta 1.42 AERO : dans l'air sale, la variation de ligne de l'IA (mêmes ondes, plus rapides) devient des
+     -- micro-corrections ; jamais vers un côté occupé, bornée comme la ligne, jamais comptée comme changement de côté.
+     if s.dirty>0 and not row.left and not row.right then
+      local t=now*K.dirtyJitterRate
+      s.base=s.base+(math.sin(t/s.persona.jitterPeriod*math.pi*2+s.persona.phase)+0.5*math.sin(t/s.persona.jitterPeriod2*math.pi*2-s.persona.phase))/1.5*s.dirty*max(K.dirtyJitterAmp,p.personalLineJitter*K.dirtyJitterGain)
+     end
      s.base=U.clamp(s.base,-K.baseMax,K.baseMax); desired=s.base
      local defend=false
      -- Défense : jamais au freinage, quel que soit l'onglet Règles.
-     if not s.returning and not startPhase and not s.yellow and a.brake<=K.ruleBrake and s.lapseUntil<=now and profile=='C' and p.defenseEnabled and back and back.gap<p.defenseTriggerGap and back.sa>0 and a.corner>=K.passCornerC and not s.alongside and now>=s.defendCooldown and directionBudget(s,now,p) and not s.defendUsed and e.flash.requests[i].untilTime<=now then
+     local boost=s.urgency>0 and back and back.index~=frame.player and rival(e,s,a,back,p,frame) and 1+p.finalDefensePct/100*s.urgency or 1
+     if not s.returning and not startPhase and not s.yellow and a.brake<=K.ruleBrake and s.lapseUntil<=now and profile=='C' and p.defenseEnabled and back and back.gap<p.defenseTriggerGap*boost and back.sa>0 and a.corner>=K.passCornerC and not s.alongside and now>=s.defendCooldown and directionBudget(s,now,p) and not s.defendUsed and e.flash.requests[i].untilTime<=now then
       local laps,upper=lapOrClass(e,s,a,frame.cars[back.index],back,p,profile)
       if laps==0 and not upper and (s.defendAttacker~=back.index or s.defendLap~=a.lap) then
        s.defendAttacker=back.index; s.defendLap=a.lap
-       local probability=K.defenseChance+K.defenseAssert*s.persona.assertiveness
+       local probability=min(1,(K.defenseChance+K.defenseAssert*s.persona.assertiveness)*boost)
        local side=back.lat>0 and -1 or 1
        if U.unit(g.seed,i,a.lap+back.index)<probability and sideFree(row,side) then
-        s.targetSide=side; s.defendUntil=now+K.defenseTime; s.defendCooldown=now+p.defenseCooldown; s.defendUsed=true
+        s.targetSide=side; s.defendUntil=now+K.defenseTime; s.defendCooldown=now+p.defenseCooldown/boost; s.defendUsed=true; s.towing=false
         transition(e,s,'DEFEND','attacker',now); defend=true
        end
       end
      end
+     if not defend and towStart(e,s,a,back,row,p,profile,frame,now,startPhase,braking,m,i,g) then defend=true end
      -- Joueur écarté au-delà de la file de l'IA (il n'est alors pas « la voiture devant ») : cible de l'invitation.
      local front=front
      if frame.player>0 and (not front or front.index~=frame.player) then
@@ -840,6 +1008,7 @@ function M.step(e,i,dt,now)
   end
  end
  if a.corner<K.passCornerC then s.defendUsed=false end
+ if a.corner<p.cornerMin then s.towDone=false end
  -- Départ de course (Beta 1.25) : à fond en ligne droite derrière la voiture de devant ; la prudence de départ ne vient
  -- qu'au freinage et en virage (premier virage), vite, et repart lentement (sortie du virage). Lancement : ligne droite
  -- pendant le départ, sans prudence de suivi ; seul un contact vraiment imminent fait freiner le radar.
@@ -964,6 +1133,16 @@ function M.step(e,i,dt,now)
  local protect=ownBrake>K.ruleBrake or a.corner<p.cornerMin
  if protect then caution=max(caution,s.baseCaution); aggression=min(aggression,s.baseAggression) end
  if passStates[s.state] or yieldStates[s.state] or s.state=='DEFEND' then s.maneuverAt=now end
+ -- Beta 1.42 AERO : air sale, accélérateur limité (au plus dirtyAirLiftPct % de moins) ; épisodes comptés.
+ if s.dirty>0 then
+  cmd.throttleLimit=min(cmd.throttleLimit or 1,1-p.dirtyAirLiftPct/100*s.dirty)
+  if not s.dirtyBefore then e.stats.dirtyAir=(e.stats.dirtyAir or 0)+1 end
+  if e.runtimeG.debugLog and s.dirtyLogWait<=0 and front then
+   s.dirtyLogWait=K.dirtyLogPeriod
+   U.log(e.log,now,'DEBUG',string.format('air sale: %s derriere %s (%.0f m)',a.name,frame.cars[front.index].name,front.gap),i)
+  end
+ end
+ s.dirtyBefore=s.dirty>0
  local tau=s.state=='CALM' or s.state=='AVOID'
  tau=tau and K.fastModulatorTau or s.state=='YIELD_OUT' and K.yieldRecoveryTau or s.yieldBlue and yieldStates[s.state] and K.blueRecoveryTau or K.modulatorTau
  cmd.level=U.ema(cmd.level,U.clamp(level,K.minNativeLevel,1.1),dt,tau)

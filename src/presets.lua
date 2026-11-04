@@ -64,7 +64,9 @@ function M.decode(store)
  -- défaut et l'espacement élargi (révisions 10 à 12 des données).
  if revision<12 then C.migrateProfile(profile,checked,revision<8 and math.max(4,math.min(revision,7)) or revision+1,true)
  -- Beta 1.29 : préréglage des Beta 1.24 à 1.28 (révision 12) : appels de phares restés aux anciens défauts.
- elseif revision<13 then C.migrateProfile(profile,checked,16,true) end
+ elseif revision<13 then C.migrateProfile(profile,checked,16,true)
+ -- Beta 1.42 : préréglage des Beta 1.29 à 1.41 (révision 13) : stratégie et sanctions des IA (révision 19 des données).
+ elseif revision<14 then C.migrateProfile(profile,checked,18,true) end
  local globals,globalErrors=C.validateGlobals(g)
  return {name=store.name,profile=profile,p=checked,g=globals},errors+globalErrors
 end
@@ -75,7 +77,7 @@ function M.capture(name,profile,p,g)
  return {name=name,profile=profile,p=C.validate(profile,p),g=C.validateGlobals(g)}
 end
 function M.encode(entry)
- local out=M.layout(); out.name=entry.name; out.profile=entry.profile; out.revision=13
+ local out=M.layout(); out.name=entry.name; out.profile=entry.profile; out.revision=14
  for key,value in pairs(entry.p) do out['p_'..key]=value end
  for _,key in ipairs(M.globalKeys) do out['g_'..key]=entry.g[key] end
  return out

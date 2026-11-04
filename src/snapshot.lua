@@ -88,6 +88,10 @@ local function readCar(a,index,dt,lane)
  a.spline=a.splineValid and raw.splinePosition or 0
  a.lapValid=U.finite(raw.lapCount) and raw.lapCount>=0 and raw.lapCount%1==0
  a.lap=a.lapValid and raw.lapCount or 0
+ -- Beta 1.42 : roues hors des limites (0 à 4), validité du tour en cours, secteur et temps du tour (sanctions des IA).
+ a.wheelsOut=U.finite(raw.wheelsOutside) and math.max(0,math.min(4,math.floor(raw.wheelsOutside))) or 0
+ a.lapNowValid=raw.isLapValid~=false; a.sector=U.finite(raw.currentSector) and math.max(0,math.floor(raw.currentSector)) or 0
+ a.lapTimeMs=U.number(raw.lapTimeMs,0,1e9,0)
  -- Meilleur et dernier tour (Beta 1.25, overlay et récapitulatif de course), en secondes ; 0 : aucun.
  a.bestLap=U.number(raw.bestLapTimeMs,0,1e8,0)/1000; a.lastLap=U.number(raw.previousLapTimeMs,0,1e8,0)/1000
  local size=raw.aabbSize
@@ -139,6 +143,13 @@ local function simRead(s)
  s.wet=U.number(r.rainWetness,0,1,0)
  s.rain=U.number(r.rainIntensity,0,1,0); s.water=U.number(r.rainWater,0,1,0)
  s.count=math.floor(U.number(r.carsCount,0,K.maxCars,0))
+ -- 1.42 SANCTIONS : vitesse limite des stands (excès de vitesse des IA) ; nombre de secteurs (dernier secteur : tour
+ -- suivant invalidé aussi), lu une fois par session.
+ s.pitsSpeedLimit=U.number(r.pitsSpeedLimit,10,400,K.sanPitLimitDefault)
+ if s.sectorsSession~=s.session or s.sectorsLength~=s.length then
+  s.sectorsSession=s.session; s.sectorsLength=s.length
+  local ok,n=pcall(function() return #r.lapSplits end); s.sectorCount=ok and U.number(n,0,64,0) or 0
+ end
 end
 -- Drapeau, fenêtre d'arrêt et tours du leader (1.3.0), lus à part : un champ indisponible les laisse neutres.
 local function raceRead(s)
@@ -155,6 +166,22 @@ local function conflictingApp(app)
  local id=name:lower():gsub('[^%w]','')
  if id:find('realistictrackday',1,true) or id:find('fullsendai',1,true) or id:find('aiwhisperer',1,true) or id:find('verve',1,true) then return name:lower():gsub('^%s+',''):gsub('%s+$','') end
  return nil
+end
+-- Beta 1.42 : usure, distance virtuelle et températures des pneus, eau et batterie d'une IA (une fois par seconde) ;
+-- tables créées une fois par voiture.
+local function wearRead(a)
+ local raw=ac.getCar(a.index)
+ local wheels=raw and raw.wheels
+ if not wheels then a.wearKnown=false; return end
+ if not a.tyreWear then a.tyreWear={0,0,0,0}; a.tyreKm={0,0,0,0}; a.tyreTemp={0,0,0,0}; a.tyreOptimum={0,0,0,0} end
+ for w=1,4 do
+  local wheel=wheels[w-1]
+  if wheel then
+   a.tyreWear[w]=U.number(wheel.tyreWear,0,1,0); a.tyreKm[w]=U.number(wheel.tyreVirtualKM,0,100000,0)
+   a.tyreTemp[w]=U.number(wheel.tyreCoreTemperature,-50,400,0); a.tyreOptimum[w]=U.number(wheel.tyreOptimumTemperature,0,400,0)
+  end
+ end
+ a.waterTemp=U.number(raw.waterTemperature,-50,300,-1); a.kers=U.number(raw.kersCharge,0,1,-1); a.wearKnown=true
 end
 local function tyres(a)
  a.tyresID=a.identity or ''; a.tyresKnown=false; a.dryCompound=-1; a.wetCompound=-1; a.interCompound=-1; a.dryCompounds={}; a.dryList={}; a.tyreNames={}; a.tyreLongNames={}; a.dryPrimary={}
@@ -233,6 +260,7 @@ function M.read(s,dt,now,light)
    if a.id~=oldID or a.name~=oldName then a.identity=(a.id..'\0'..a.name):gsub('.',hexByte) end
    -- Livrée (dossier du skin) : une livrée « safety » désigne la voiture de sécurité parmi celles du modèle.
    local skinOK,skin=pcall(ac.getCarSkinID,a.index)
+   if a.valid and a.control and not pcall(wearRead,a) then a.wearKnown=false end
    if skinOK and type(skin)=='string' and (skin~=a.skin or not a.skinKnown) then a.skin=skin:sub(1,K.metadataLength); a.skinKnown=true; a.skinSafety=a.skin:lower():find(K.safetySkinPattern,1,true)~=nil end
   end end
   s.conflict=''

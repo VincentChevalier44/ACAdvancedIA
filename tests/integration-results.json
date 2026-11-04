@@ -122,6 +122,7 @@
     "Beta 1.39 : image lente de la fenêtre journalisée une fois par lieu",
     "Beta 1.39 : reste new_behaviour.ini.bak des anciennes versions effacé au lancement",
     "Beta 1.39 : derniers écarts de la maquette",
-    "Beta 1.40 : options de CSP de gui.ini tenues par l app, valeurs d origine rendues"
+    "Beta 1.40 : options de CSP de gui.ini tenues par l app, valeurs d origine rendues",
+    "sections Stratégie et Sanctions des IA : réglages, notes de profil, barre latérale et bloc du diagnostic"
   ]
 }

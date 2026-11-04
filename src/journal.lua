@@ -53,6 +53,8 @@ function M.summary(e)
  minute=minute..string.format(' | depassements reels %d (manoeuvre de l app %d), IA passees devant le joueur %d',c('realPass'),c('realPassApp'),c('passedPlayer'))
  t.suppressed.queue=0; t.suppressed.spawn=0; t.suppressed.crawl=0
  local drsOpen,drsAsk=c('drsOpen'),c('drsAsk')
+ -- Beta 1.42 (relecture) : aspiration cassée et air sale de la minute, écrits seulement s'il y en a eu.
+ local tows,towEnds,dirtyAirs=c('tow'),c('tow_end'),c('dirtyAir')
  for key in pairs(n) do n[key]=0 end
  t.started=0; t.held=0
  -- Pneus des IA à l'instant du résumé, et météo retenue par l'app.
@@ -71,6 +73,7 @@ function M.summary(e)
  end
  minute=minute..string.format(' | pneus IA : secs %d, intermediaires %d, pluie %d, inconnus %d (meteo %s)',dry,inter,wet,unknown,e.weather and e.weather.wet and 'pluie' or 'sec')
   ..string.format(' | DRS des IA : ouvertures %d, dont demandees par l app %d',drsOpen,drsAsk)
+  ..(tows+towEnds+dirtyAirs>0 and string.format(' | aspiration cassee %d (finies %d), air sale %d',tows,towEnds,dirtyAirs) or '')
  return string.format('resume: profil %s, garde %s, IA %d, gerees %d | conduite %d, cession %d, depassement %d, evitement %d, recuperation %d | sous jaune %d, incidents %d, zones %d, IA arretees %d, neutralisation %s | cout moyen %.3f ms, max %.3f ms, erreurs %d',
   e.profile,e.guard,ai,managed,drive,yield,pass,avoid,calm,yellow,t.activeCount,t.zoneCount,t.holdCount,t.neutral and t.neutralMode or 'aucune',e.meanFrame,e.maxFrame,e.errors)
   ..(e.maxFrame==0 and ' (cout non mesure : aucun chronometre disponible)' or '')..(#unmanaged>0 and ' | hors gestion : '..table.concat(unmanaged,', ') or '')..minute

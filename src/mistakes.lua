@@ -7,7 +7,7 @@ local U=require('src/util')
 local K=require('src/config').K
 local abs,max=math.abs,math.max
 local M={}
-local function car() return {armedUntil=-math.huge,nextCheck=0,lastAt=-math.huge,cause=''} end
+local function car() return {armedUntil=-math.huge,nextCheck=0,lastAt=-math.huge,cause='',lockWear=0,lockAsym=0,lockKm=0,lastFront=0,visit=-1} end
 function M.new()
  local t={cars={},lastAt=-math.huge,calmUntil=-math.huge,counter=0}
  for i=1,K.maxCars do t.cars[i]=car() end
@@ -39,6 +39,16 @@ local function risk(s,p,frame,now)
  local cause=lapse and 'inattention' or fatigue>1 and 'fatigue' or wet>=K.mistakeWetCause and 'pluie' or skill<K.mistakeWeak and 'pilote moins fort' or 'erreur isolee'
  return r,cause
 end
+-- Beta 1.42 (blocages liés à l'usure) : facteur de fréquence selon l'usure des pneus avant (comptée au-delà de
+-- K.lockWearStart) et leur asymétrie gauche-droite ; usure avant la plus forte et asymétrie (0 à 1) pour le journal.
+local function lockFactor(a,p)
+ if not a.wearKnown or not a.tyreWear then return 1,0,0 end
+ local fl,fr=a.tyreWear[1] or 0,a.tyreWear[2] or 0
+ local w=max(fl,fr)
+ local asym=w>0 and U.clamp(abs(fl-fr)/w,0,1) or 0
+ local worn=U.clamp((w-K.lockWearStart)/(1-K.lockWearStart),0,1)
+ return 1+p.lockWearGain*worn*(K.lockWearBase+(1-K.lockWearBase)*asym),w,asym
+end
 -- Renvoie les IA dont l'erreur vient d'être décidée (commande mistakeId incrémentée), sinon nil.
 function M.update(t,e,frame,p,profile,now)
  if not (p.mistakesEnabled and p.section_human) or p.mistakeRate<=0 then return nil end
@@ -61,6 +71,15 @@ function M.update(t,e,frame,p,profile,now)
     c.nextCheck=now+K.mistakeCheck
     if c.armedUntil<now and now-c.lastAt>=K.mistakeCooldown then
      local r,cause=risk(s,p,frame,now)
+     -- Relecture 1.42 : usure prise en compte seulement une fois son échelle vérifiée en jeu (strategy.lua).
+     if p.lockWearEnabled and e.strategy and e.strategy.wearTrust=='trusted' then
+      local f,w,asym=lockFactor(a,p)
+      -- Pneus changés (usure retombée) ou nouveau passage à l'emplacement : méplats du relais oubliés.
+      local visit=e.pits.cars[i].visit
+      if w<c.lastFront-K.lockWearReset or visit~=c.visit then c.lockKm=0; c.visit=visit end
+      c.lastFront=w; c.lockWear=w; c.lockAsym=asym
+      r=r*f; if f>=K.lockWearCause then cause='pneus uses' end
+     end
      t.counter=t.counter%K.counterMax+1
      if U.unit(e.runtimeG.seed,i,K.mistakeSalt+t.counter)<p.mistakeRate/3600*K.mistakeCheck*r then c.armedUntil=now+K.mistakeArm; c.cause=cause end
     end
@@ -76,6 +95,13 @@ function M.update(t,e,frame,p,profile,now)
      cmd.mistakeTime=kind=='brake' and U.lerp(K.mistakeBrakeMin,K.mistakeBrakeMax,u) or U.lerp(K.mistakeTractionMin,K.mistakeTractionMax,u)
      cmd.mistakeSeverity=K.mistakeSeverity
      c.armedUntil=-math.huge; c.lastAt=now; t.lastAt=now
+     -- Beta 1.42 : un blocage use le pneu avant le plus usé (méplat), borné par relais ; une seule écriture (wearId).
+     if kind=='brake' and p.lockWearEnabled and p.lockFlatSpotKm>0 and a.wearKnown and a.tyreKm and c.lockKm<K.lockWearMaxKm and e.strategy and e.strategy.wearTrust=='trusted' then
+      local km=math.min(p.lockFlatSpotKm,K.lockWearMaxKm-c.lockKm)
+      local _,w,asym=lockFactor(a,p)
+      c.lockKm=c.lockKm+km; c.lockWear=w; c.lockAsym=asym
+      cmd.wearId=(cmd.wearId or 0)%K.counterMax+1; cmd.wearWheel=(a.tyreWear[1] or 0)>=(a.tyreWear[2] or 0) and 0 or 1; cmd.wearKm=km
+     end
      events=events or {}; events[#events+1]=i
     end
    end

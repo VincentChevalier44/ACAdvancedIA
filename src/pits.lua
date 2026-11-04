@@ -71,7 +71,8 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
  t.done=0; t.total=0
  -- Appels simultanés limités : les IA déjà appelées gardent leur place, les nouvelles attendent.
  local requested=0
- for i=1,frame.count do local a=frame.cars[i]; if t.cars[i].wanted and t.cars[i].identity==(a.identity or a.id) and not a.pit then requested=requested+1 end end
+ -- Relecture 1.42 : la stratégie (image précédente, cmd.stratCalled) partage la même limite d'appels.
+ for i=1,frame.count do local a=frame.cars[i]; if (t.cars[i].wanted and t.cars[i].identity==(a.identity or a.id) or commands[i].stratCalled) and not a.pit then requested=requested+1 end end
  for i=1,frame.count do
   local a=frame.cars[i]; local c=t.cars[i]; local cmd=commands[i]
   local identity=a.identity or a.id
@@ -84,7 +85,13 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
   if cmd.recover or a.teleport then c.towedAt=now end
   local towed=c.towedAt~=nil and now>=c.towedAt and now-c.towedAt<=K.towWindow
   -- Un passage à l'emplacement compte une fois, quelle qu'en soit la raison (météo comprise).
-  if a.inPitBox and not c.boxed then
+  -- Passage de pénalité d'une IA (drive-through, stop-and-go ; cmd.penaltyPass mis par sanctions.lua, Beta 1.42) : ni
+  -- visite (la stratégie et les réparations la prendraient pour leur arrêt), ni arrêt compté, ni arrêt obligatoire.
+  local pass=cmd.penaltyPass==true
+  if a.inPitBox and not c.boxed and pass then
+   c.boxed=true; c.boxSince=now
+   if t.note and not a.player then t.note('INFO',string.format('passage de penalite a l emplacement: %s, non compte comme arret',a.name),i) end
+  elseif a.inPitBox and not c.boxed then
    c.boxed=true; c.boxSince=now; c.visit=c.visit+1
    -- Voiture ramenée à son stand par l'app (dépannage, Beta 1.24) ou voiture de sécurité : aucun arrêt compté ; sous
    -- drapeau rouge, toutes les voitures rentrent aux stands : compté comme avant.
@@ -106,6 +113,11 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
     else
      local span=(closing-opening)/p.mandatoryStops; local k=c.windowStops
      want=position>=opening+span*k+span*K.pitSpread*U.unit(seed,i,K.pitSalt+k)
+     -- Beta 1.42 (stratégie individuelle) : arrêt obligatoire aligné sur l'arrêt prévu par le stratège s'il tombe plus
+     -- tard dans la fenêtre (avancement relu de l'image précédente) ; jamais au-delà de la fin de la fenêtre.
+     local planAt=cmd.stratPlanAt or -1
+     -- Relecture 1.42 : au plus jusqu'à la fin de la tranche de cet arrêt (deux arrêts obligatoires ou plus : pas tassés).
+     if want and not csp and not c.wanted and planAt>position and planAt<opening+span*(k+1)-span*K.strategyWindowMargin then want=false end
     end
    end
    if p.maxStintMin>0 and not c.boxed and now-c.lastStop>=p.maxStintMin*60 and (progress<0 or progress<K.pitLastStint) then want=true end
@@ -121,7 +133,7 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
   -- Réparations (Beta 1.20) : en course, à chaque passage d'une IA endommagée à son emplacement (arrêt des règles ou
   -- arrêt natif) ; elle y reste le temps de la réparation. Sous drapeau rouge, seulement si les règles y permettent le
   -- travail (F1), comme les pneus.
-  if profile=='C' and p.pitRepair and a.inPitBox and a.valid and a.control and not a.player and not a.safetyCar and (not red or p.redFlagWork) and not (dq and dq[i]) then
+  if profile=='C' and p.pitRepair and not pass and a.inPitBox and a.valid and a.control and not a.player and not a.safetyCar and (not red or p.redFlagWork) and not (dq and dq[i]) then
    if c.repairVisit~=c.visit then c.repairVisit=c.visit; c.repairTime=M.repairTime(a) end
    if c.repairTime>0 then cmd.pitRepair=true; if now-c.boxSince<c.repairTime then cmd.pitHold=true end end
   end
@@ -142,8 +154,10 @@ local function learn(t,c,a,frame,now)
     model.perLap=c.perLap; model.lapTime=c.lapTime
    end
   end
-  c.fuelLap=a.lap; c.fuelAt=a.fuel; c.lapAt=now; c.pitLap=a.pit==true
- elseif a.pit then c.pitLap=true end
+  -- Relecture 1.42 : un tour neutralisé (voiture de sécurité, VSC, FCY, drapeau rouge ; t.neutral mis par strategy.lua)
+  -- n'apprend rien : sa consommation ferait arriver l'arrêt trop tard ensuite.
+  c.fuelLap=a.lap; c.fuelAt=a.fuel; c.lapAt=now; c.pitLap=a.pit==true or t.neutral==true
+ elseif a.pit or t.neutral then c.pitLap=true end
 end
 -- Tours restants de la voiture : course aux tours, sinon temps restant au rythme appris (+1 tour : la ligne après la
 -- fin du temps) ; -1 inconnu.
@@ -190,6 +204,8 @@ function M.fuel(t,frame,commands,p,profile,now,red)
     elseif cmd.rulePit or cmd.weatherManaged and cmd.weatherPit then
      local laps=left
      if mode=='refuel' and not red then laps=stintLaps(t,frame,c,p,lapTime,left) end
+     -- Beta 1.42 : arrêt du stratège, carburant pour son relais suivant (marge réglée comprise), au plus jusqu'à l'arrivée.
+     if mode=='refuel' and not red and (cmd.stratLaps or 0)>0 then laps=math.min(left,cmd.stratLaps+math.ceil(p.strategyFuelMarginLaps or 0)) end
      local target=U.clamp(laps*perLap*K.fuelMargin+reserve,a.fuel,a.maxFuel)
      cmd.fuelTarget=target; cmd.fuelLaps=math.max(1,math.floor((target-reserve)/perLap))
     end

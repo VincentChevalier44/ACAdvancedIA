@@ -58,3 +58,12 @@ DWrite weight names are CSP's (`ui.DWriteFont.Weight`): Regular is 400 and Ultra
 - **Scroll bars** are dragged by their 6 px rail (only when the content overflows); clicking the rail does not jump.
 - **Built-in presets** aimed at another profile keep the profile shown (the driver's choice for Beta 1.38); custom presets still show the profile they were saved for. Since Beta 1.39 the HOME line then stays *No active preset*, as on the MainApplique board; it shows the preset again on the profile it was applied to.
 - **English texts** follow MainEN and TextesEN, except on purpose: the circuit status lines keep the Settings board's wording (TextesEN predates it); the colour legend uses ' · ' in both languages, like the French board; the link line says *Race & safety*, the sidebar's real name; the applied message is *Preset applied to the Race profile* (MainEN without *the automatic profile stays on*, which is only true with the automatic profile); the warning's offence count is in its pill (*OFFENCES: 1 / 5*), not in the instruction.
+
+## Beta 1.42: new settings sections not yet in the mockup
+
+- Two sidebar entries in « RACE & SAFETY », after Accidents: **AI strategy** (9 settings) and **AI sanctions** (17 settings), drawn with the same settings lists, subgroups and hidden-setting notes as the other sections.
+- New subgroups: **Slipstream and dirty air** and **End of race** in Overtaking; **Out-lap** and **Wear and lock-ups** in Weather.
+- Diagnostic: an « AI RACE » block (strategy, failures, sanctions, corrected classification), shown only when it has rows.
+- Race recap: the line « Corrected classification: P<n> » when the app's classification changes your place.
+- The sidebar rows shrink from 28 to 24 px only if the list is taller than the window (at 700 px everything fits).
+

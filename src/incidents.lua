@@ -49,7 +49,7 @@ function M.rebase(t,amount)
  end
 end
 -- Un seul message affiché par image : le plus important l'emporte (rouge, neutralisation, vert, jaune, stands, météo).
-local priorities={penaltyDq=5,aiDq=4,penaltyDelta=5,penaltyPass=5,penaltyRed=5,penaltyStop=5,red=5,redSession=5,sessionResume=3,redRestartSc=4,standing=4,penaltyJump=5,redRestartVsc=4,redRestartFcy=4,sc=4,fcy=4,vsc=4,vscEnd=4,scIn=3,green=3,restart=3,yellow=2,pitOpen=1,pitOpenCsp=1,wet=1,dry=1,drsLaps=1,drsOn=1,drsWet=1}
+local priorities={penaltyDq=5,aiDq=4,aiBlackFlag=4,aiSanction=2,penaltyDelta=5,penaltyPass=5,penaltyRed=5,penaltyStop=5,red=5,redSession=5,sessionResume=3,redRestartSc=4,standing=4,penaltyJump=5,redRestartVsc=4,redRestartFcy=4,sc=4,fcy=4,vsc=4,vscEnd=4,scIn=3,green=3,restart=3,yellow=2,pitOpen=1,pitOpenCsp=1,wet=1,dry=1,drsLaps=1,drsOn=1,drsWet=1}
 local function message(t,kind,value,extra,text)
  local priority=priorities[kind] or 0
  if t.messageFrame==t.frameId and priority<t.messagePriority then return end

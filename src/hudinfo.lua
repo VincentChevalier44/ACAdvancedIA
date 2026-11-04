@@ -5,13 +5,14 @@
 local U=require('src/util')
 local C=require('src/config')
 local L=require('src/lang')
+local Sanctions=require('src/sanctions')
 local K=C.K
 local M={}
 function M.new()
  return {session=-1,lap=-1,lapUntil=-math.huge,lapTitle='',lapDetail='',lapCode='',lapSerial=0,best=0,
   msgTitle='',msgDetail='',msgText='',msgIllegal=false,msgUntil=-math.huge,msgCount=0,seen={},
   started=false,grid=0,finished=false,dnf=false,dq=false,final=0,passes=0,lost=0,rel={},at=-math.huge,cars=0,
-  fieldBest=0,fieldBestName='',recap={},recapSerial=0,recapNew=false,strip={},stripCount=0,stripAt=-math.huge,stripKey=''}
+  fieldBest=0,fieldBestName='',recap={},recapSerial=0,recapNew=false,strip={},stripCount=0,stripAt=-math.huge,stripKey='',corrected=0}
 end
 -- Temps au tour « 2:01,456 » (séparateur décimal de la langue) ; 0 ou moins : aucun.
 function M.lapTime(seconds)
@@ -29,7 +30,7 @@ end
 local function reset(h,session)
  h.session=session; h.lap=-1; h.lapUntil=-math.huge; h.best=0; h.seen={}; h.msgUntil=-math.huge
  h.started=false; h.grid=0; h.finished=false; h.dnf=false; h.dq=false; h.final=0; h.passes=0; h.lost=0; h.rel={}
- h.fieldBest=0; h.fieldBestName=''; h.recap={}; h.recapNew=false; h.stripKey=''
+ h.fieldBest=0; h.fieldBestName=''; h.recap={}; h.recapNew=false; h.stripKey=''; h.corrected=0
 end
 -- Message d'AC (ac.onMessage) : affiché sur la ligne de session pendant sa durée (bornée) ; renvoie vrai la première
 -- fois qu'un titre apparaît dans la session (journal).
@@ -87,6 +88,8 @@ local function recap(h,a)
  elseif h.fieldBest<=0 or best<=h.fieldBest+1e-4 then lines[3]=string.format(L.recapFastest,M.lapTime(best))
  else lines[3]=string.format(L.recapBest,M.lapTime(best),M.lapTime(h.fieldBest),h.fieldBestName) end
  lines[4]=string.format(L.recapStats,h.passes,h.lost,math.max(0,a.lap))
+ -- Beta 1.42 : place corrigée par les pénalités de temps des IA (classement de l'app ; celui d'AC ne change pas).
+ if h.corrected>0 and h.corrected~=place and not h.dq and not h.dnf then lines[5]=string.format(L.sanctionTexts.classification,'P'..h.corrected) end
  h.recapSerial=h.recapSerial+1; h.recapNew=true
 end
 -- Ligne de session : éléments {label, valeur, alerte}, refaits au plus toutes les K.hudStripPeriod s.
@@ -115,8 +118,12 @@ local function strip(h,frame,e,a)
 end
 function M.update(h,frame,e,now)
  if frame.session~=h.session then reset(h,frame.session) end
+ -- Beta 1.42 : arrivées et classement corrigé des sanctions des IA, même course finie (moteur arrêté).
+ if e.sanctions then Sanctions.watch(e.sanctions,frame,e,now) end
  if frame.player<=0 then h.stripCount=0; return end
  local a=frame.cars[frame.player]
+ -- Relecture : place corrigée du joueur suivie après son arrivée (les IA arrivées ensuite peuvent la changer).
+ if h.recapSerial>0 and e.sanctions then local pos=Sanctions.position(e.sanctions,frame.player); if pos~=h.corrected then h.corrected=pos; recap(h,a) end end
  if not a.valid then return end
  local cars=0; for i=1,frame.count do local b=frame.cars[i]; if b.valid and not b.safetyCar then cars=cars+1 end end
  h.cars=cars
@@ -148,6 +155,7 @@ function M.update(h,frame,e,now)
      local b=frame.cars[i]
      if b.valid and not b.safetyCar and (b.bestLap or 0)>0 and (h.fieldBest<=0 or b.bestLap<h.fieldBest) then h.fieldBest=b.bestLap; h.fieldBestName=b.name~='' and b.name or b.id end
     end
+    h.corrected=e.sanctions and Sanctions.position(e.sanctions,frame.player) or 0
     recap(h,a)
    end
   end
