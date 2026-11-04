@@ -60,7 +60,10 @@ local function slow(l,inc,frame,p,d,states,multi,dt,now)
   l.slowFor[j]=held
   if held>=K.slowVehicleTime then
    local ahead=U.spline(b.spline-a.spline)*frame.length
-   if ahead>=-K.slowVehicleBehind and ahead<=K.slowVehicleRange and ahead<gap then best=j; gap=ahead end
+   -- Beta 1.44 : relevé seulement s'il est nettement devant le joueur (jamais à sa hauteur ni juste derrière, retenu
+   -- par lui : « 0 m devant » le 4 novembre), puis gardé jusqu'à K.slowVehicleBehind m derrière quand il le double.
+   local nearest=j==l.slowSlot and -K.slowVehicleBehind or K.slowVehicleAhead
+   if ahead>=nearest and ahead<=K.slowVehicleRange and ahead<gap then best=j; gap=ahead end
   end
  end
  l.slowSlot=best; l.slowGap=best>0 and math.max(0,gap) or 0; l.slowKmh=best>0 and frame.cars[best].kmh or 0

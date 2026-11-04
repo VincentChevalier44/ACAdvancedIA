@@ -11,12 +11,14 @@ local K=require('src/config').K
 local abs,max,min=math.abs,math.max,math.min
 local M={}
 -- boxSeen, boxSpline : emplacement de la voiture pendant ce passage dans la voie des stands.
-local function car() return {wasPit=false,pitFor=0,holding=false,released=false,holdFor=0,boxSeen=false,boxSpline=0} end
+local function car() return {wasPit=false,pitFor=0,holding=false,released=false,holdFor=0,boxSeen=false,boxSpline=0,exitAt=-math.huge} end
 function M.new()
  local t={spline=-1,samples=0,outliers=0,holds=0,cars={}}
  for i=1,K.maxCars do t.cars[i]=car() end
  return t
 end
+-- Recalage du temps (Beta 1.44 : instant de sortie des stands).
+function M.rebase(t,amount) for i=1,K.maxCars do local c=t.cars[i]; if c.exitAt>-math.huge then c.exitAt=c.exitAt-amount end end end
 function M.reset(t)
  t.spline=-1; t.samples=0; t.outliers=0; t.holds=0
  for i=1,K.maxCars do t.cars[i]=car() end
@@ -37,12 +39,13 @@ local function learn(t,spline,length,log,now)
  if t.samples==1 then U.log(log,now,'INFO',string.format('jonction des stands: relevee a %.0f m',t.spline*length),-1) end
 end
 -- Voiture en piste (joueur compris) qui arrive à la jonction dans les window s, ou la passe à moins de K.mergeClear m :
--- la plus proche (indice, secondes).
-local function arriving(t,frame,i,window)
+-- la plus proche (indice, secondes). Beta 1.44 : jamais une voiture sortie des stands depuis moins de K.mergeExitGrace s
+-- (elle vient de la voie, devant l'IA qui attend : relevé du 4 novembre, attente de 0,0 s sur la voiture qui sortait).
+local function arriving(t,frame,i,window,now)
  local length=frame.length; local best,soonest=0,math.huge
  for j=1,frame.count do
   local b=frame.cars[j]
-  if j~=i and b.valid and not b.pit and b.splineValid and b.kmh>=K.mergeTrafficKmh then
+  if j~=i and b.valid and not b.pit and b.splineValid and b.kmh>=K.mergeTrafficKmh and now-t.cars[j].exitAt>=K.mergeExitGrace then
    local d=M.before(t,b.spline,length)
    local time=d>0 and d/max(b.speed,1) or 0
    if d>=-K.mergeClear and time<=window and time<soonest then best=j; soonest=time end
@@ -64,6 +67,7 @@ function M.update(t,frame,commands,now,dt,log,red,profile,canStop)
    learn(t,a.spline,length,log,now)
   end
   if a.pit and not a.inPitBox then c.pitFor=c.pitFor+dt else c.pitFor=0 end
+  if c.wasPit and not a.pit and not a.teleport then c.exitAt=now end
   c.wasPit=a.pit==true
   if a.inPitBox and a.splineValid then c.boxSeen=true; c.boxSpline=a.spline elseif not a.pit then c.boxSeen=false end
   local d=t.spline>=0 and length>0 and a.valid and a.pit and not a.inPitBox and a.splineValid and M.before(t,a.spline,length) or nil
@@ -72,7 +76,7 @@ function M.update(t,frame,commands,now,dt,log,red,profile,canStop)
    and (c.holding or c.boxSeen and d<=M.before(t,c.boxSpline,length)-K.mergeBoxClear and a.kmh>=K.mergeHoldStartKmh)
   if zone then
    local window=min(K.mergeWindowMax,K.mergeWindow+d/max(a.speed,K.mergeCrawl))
-   local j,time=arriving(t,frame,i,window)
+   local j,time=arriving(t,frame,i,window,now)
    if j>0 and c.holdFor<K.mergeHoldMax then
     if not c.holding then
      c.holding=true; t.holds=t.holds+1

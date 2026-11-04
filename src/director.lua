@@ -109,6 +109,23 @@ local function realAdvantage(e,s,o,a,p)
  if mine<=0 or theirs<=0 then return nil end
  return mine>=theirs*(1+K.passFreeMargin)
 end
+-- Beta 1.44 : joueur nettement plus lent que l'allure libre de l'IA s ici (moins de K.playerSlowRatio fois elle ;
+-- inconnue : seulement sous K.speedMinPass*K.playerCrawlRatio km/h, au pas). Jamais son allure apprise à lui : apprise à
+-- chaque image en conduite libre, elle suit sa vitesse du moment quand il ralentit.
+local function playerSlow(e,s,b,a,p)
+ local mine=freeAt(e,s,paceBin(a.spline,e.delta.bins),p)
+ if mine>0 then return b.speed<mine*K.playerSlowRatio end
+ return b.kmh<K.speedMinPass*K.playerCrawlRatio
+end
+-- Invitation : en course, les deux voitures en ligne droite (rayon K.inviteCurve), comme avant ; hors course
+-- (Beta 1.44), courbe douce permise (au plus K.inviteLatAccel m/s² de part et d'autre), l'écart latéral moins celui que
+-- la courbure seule donne à cette distance (k·d²/2) devant valoir K.inviteLat.
+local function inviteGeometry(profile,a,b,rel)
+ if profile=='C' then return abs(a.yawRate)<=K.inviteCurve*a.speed and abs(b.yawRate)<=K.inviteCurve*b.speed end
+ if abs(a.yawRate)*a.speed>K.inviteLatAccel or abs(b.yawRate)*b.speed>K.inviteLatAccel then return false end
+ local k=abs(a.yawRate)/max(a.speed,1)
+ return abs(rel.lat)-k*rel.long*rel.long*0.5>=K.inviteLat
+end
 -- Côté de l'interface, convention SDK (+1 = droite), converti dans le repère latéral interne calibré.
 local function userSide(side,g) return g.offsetSign<0 and -side or side end
 local function fixedSide(value,fallback,g) return userSide(value=='left' and -1 or value=='right' and 1 or fallback,g) end
@@ -838,7 +855,8 @@ function M.step(e,i,dt,now)
         -- K.passIgnore s, multiplié par K.passIgnoreGrowth à chaque nouvel échec sur elle (au plus K.passIgnoreMax s,
         -- compte oublié K.passIgnoreForget s après la fin de la dernière attente) ; hors course, elle ne lui cède plus
         -- pendant ce temps (jamais un drapeau bleu ni une classe : en course, rien n'est ignoré par elle).
-        if why=='abort_slow' then
+        -- Beta 1.44 : jamais contre le joueur hors course (il ralentit et repart à sa guise pour se faire doubler).
+        if why=='abort_slow' and (profile=='C' or s.target~=frame.player) then
          if s.passIgnore~=s.target or now>s.passIgnoreUntil+K.passIgnoreForget then s.passIgnore=s.target; s.passIgnoreCount=0 end
          s.passIgnoreCount=s.passIgnoreCount+1
          local hold=min(K.passIgnoreMax,K.passIgnore*K.passIgnoreGrowth^(s.passIgnoreCount-1))
@@ -914,7 +932,10 @@ function M.step(e,i,dt,now)
      else s.closeFront=front and front.index or 0; s.closeMeters=0 end
      -- Beta 1.41 : derrière une IA anormalement lente, dépassement permis dès K.slowPassRatio fois sa vitesse (à 30 km/h
      -- derrière elle, K.speedMinPass n'était jamais atteinte).
-     local slowAhead=front and e.states[front.index].abnormal==true
+     -- Beta 1.44 (essais du 4 novembre, Nordschleife) : hors course, joueur nettement plus lent que l'IA ici (il ralentit
+     -- pour se faire doubler) : dépassement permis au pas (zone morte sous K.speedMinPass) et courtoisie levée.
+     local slowPlayer=front~=nil and profile~='C' and front.index==frame.player and playerSlow(e,s,frame.cars[front.index],a,p)
+     local slowAhead=front and (e.states[front.index].abnormal==true or slowPlayer)
      local minPass=slowAhead and min(K.speedMinPass,K.slowPassRatio*frame.cars[front.index].kmh) or K.speedMinPass
      local canPass=not s.returning and not startPhase and not s.yellow and not braking and s.lapseUntil<=now and p.overtakeEnabled and front and front.gap>=0 and now>=s.restUntil and directionBudget(s,now,p) and not s.zone.noOvertake and not s.alongside
       and a.kmh>=minPass and a.corner>=(profile=='C' and K.passCornerC or p.cornerMin) and ownBrake<K.passBrakeMax
@@ -928,7 +949,8 @@ function M.step(e,i,dt,now)
        local why=s.yellow and 'drapeau jaune' or startPhase and 'depart' or s.returning and 'retour a la ligne' or (braking or ownBrake>=K.passBrakeMax) and 'freinage'
         or a.corner<(profile=='C' and K.passCornerC or p.cornerMin) and 'virage' or now<s.restUntil and 'repos apres manoeuvre' or not directionBudget(s,now,p) and 'plafond anti-zigzag'
         or s.alongside and 'voiture a cote' or a.kmh<minPass and 'trop lent' or not p.overtakeEnabled and 'depassements coupes' or s.zone.noOvertake and 'zone sans depassement'
-        or s.lapseUntil>now and 'inattention' or 'conditions de passage'
+        or s.lapseUntil>now and 'inattention' or front.sa<=-K.inviteSa and 'joueur plus rapide'
+        or profile~='C' and abs(a.yawRate)*a.speed>K.inviteLatAccel and 'virage' or 'conditions de passage'
        U.log(e.log,now,'INFO',string.format('invitation du joueur non suivie: %s derriere a %.0f m (ecart lateral %.1f m, %+.0f km/h, lacet IA %.3f, joueur %.3f rad/s) : %s',
         a.name,front.gap,abs(front.lat),front.sa,abs(a.yawRate),abs(frame.cars[front.index].yawRate),why),i)
       end
@@ -968,12 +990,12 @@ function M.step(e,i,dt,now)
       local yieldingToMe=(otherState.state=='YIELD_IN' or otherState.state=='YIELD_HOLD') and otherState.target==i and (not ignored or otherState.yieldBlue) and front.sa>=-K.cessionSaMin
        and (otherState.yieldBlue or adv==true or adv==nil and front.sa>=advantage)
       local invited=yieldingToMe or front.index==frame.player and abs(front.lat)>=K.inviteLat and front.gap<=K.inviteGap and front.sa>-K.inviteSa
-       and abs(a.yawRate)<=K.inviteCurve*a.speed and abs(other.yawRate)<=K.inviteCurve*other.speed and not busy(frame,front.index,i)
+       and inviteGeometry(profile,a,other,front) and not busy(frame,front.index,i)
       s.invited=invited and s.invited+dt or 0
       invited=s.invited>=K.inviteTime
       trigger=trigger or invited
       -- Beta 1.29 : hors course, pas de riposte sur le joueur qui vient de la doubler, sauf s'il ralentit nettement.
-      if passedByPlayer and front.index==frame.player and not invited and front.sa<K.courtesyPassSa then trigger=false end
+      if passedByPlayer and front.index==frame.player and not invited and front.sa<K.courtesyPassSa and not slowPlayer then trigger=false end
       if trigger and (potential>=advantage or invited) and not slowClass and not fight then
        if s.passCandidate~=front.index then s.passCandidate=front.index; s.passConfirm=0 end
        -- Beta 1.31 (journaux du 2 novembre : 12 tentatives sur 14 abandonnées, la cible repartant plus vite) : engagé sur

@@ -1979,7 +1979,9 @@ tests.LET_PASS_INVITATION=function()
  local side=s.targetSide
  local first2,s2=run('J',-3); assert(first2 and s2.targetSide==-side,'player aside on the left: pass on the other side')
  assert(not run('J',0),'player centred, nothing learned: no forced pass')
- assert(not run('J',3,0.1),'long curve: the curvature offset is not an invitation')
+ assert(not run('C',3,0.1),'race, long curve: invitation on straights only')
+ -- Beta 1.44 : hors course, courbe douce, écart net (3 m pour 0,7 m dû à la courbure) : invitation.
+ assert(run('J',3,0.1),'track day, gentle curve with a clear offset: invitation')
  assert(not run('J',3,0,50),'player catching another car: not an invitation')
  assert(run('J',3,0,50,100),'car ahead of the player at its pace (an AI that already passed): invitation still possible')
  local first3,s3=run('C',3); assert(first3 and first3<2.5 and s3.targetSide==side,'race: invitation too, on the freed side ('..s3.state..')')
@@ -5928,4 +5930,5 @@ for name,test in pairs(require('tests/review142x')) do assert(tests[name]==nil,n
 for name,test in pairs(require('tests/fixsa142')) do assert(tests[name]==nil,name); tests[name]=test end -- FIXSA 1.42 (relecture STRATÉGIE et AERO)
 for name,test in pairs(require('tests/postfix142')) do assert(tests[name]==nil,name); tests[name]=test end -- POSTFIX 1.42 (relecture des correctifs)
 for name,test in pairs(require('tests/notices143')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.43 (annonces des sanctions des IA)
+for name,test in pairs(require('tests/player144')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.44 (IA derrière le joueur qui ralentit)
 return tests

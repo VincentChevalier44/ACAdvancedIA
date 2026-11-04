@@ -1,13 +1,13 @@
-# Settings and functions inventory Beta 1.43
+# Settings and functions inventory Beta 1.44
 
 This inventory links every declared parameter to its consumers. A static reference shows a connection, not proof of a physical result. The `PARAMETER_BOUNDARY_ENGINE` tests and the two full walks through the interface complete this trace.
 
 | Section | Parameter | Range | Default J / P / Q / C | Consumers |
 |---|---|---|---|---|
-| general | `levelPct` — Level (%) | 40 to 110 | 95 / 100 / 100 / 100 | src/director.lua:134, src/groups.lua:8, src/lang_en.lua:149, src/mistakes.lua:33, src/tips_en.lua:48 |
-| general | `aggressionPct` — Aggression (%) | 0 to 100 | 55 / 45 / 45 / 80 | src/director.lua:135, src/director.lua:1083, src/groups.lua:8, src/lang_en.lua:149, src/tips_en.lua:49 |
-| general | `caution` — Caution | 0.5 to 8 | 1.6 / 2.2 / 2.2 / 1.2 | src/applier.lua:10, src/applier.lua:92, src/applier.lua:298, src/applier.lua:304, src/applier.lua:327, src/applier.lua:1029, src/applier.lua:1037, src/applier.lua:1115, src/applier.lua:1135, src/caps.lua:2, src/director.lua:136, src/director.lua:138, src/director.lua:141, src/director.lua:143, src/director.lua:144, src/director.lua:640, src/director.lua:641, src/director.lua:682, src/director.lua:721, src/director.lua:754, src/director.lua:864, src/director.lua:875, src/director.lua:1025, src/director.lua:1026, src/director.lua:1028, src/director.lua:1029, src/director.lua:1047, src/director.lua:1067, src/director.lua:1083, src/director.lua:1086, src/director.lua:1088, src/director.lua:1134, src/director.lua:1150, src/director.lua:1153, src/engine.lua:127, src/engine.lua:175, src/engine.lua:570, src/engine.lua:625, src/groups.lua:8, src/lang_en.lua:80, src/lang_en.lua:83, src/lang_en.lua:149, src/lang_en.lua:183, src/lang_en.lua:282, src/lang_en.lua:283, src/lang_en.lua:312, src/tips_en.lua:50, src/tips_en.lua:51, src/tips_en.lua:54, src/tips_en.lua:106, src/tips_en.lua:141, src/tips_en.lua:215, src/tips_en.lua:222, src/tips_en.lua:276, src/tips_en.lua:283, src/tips_en.lua:295 |
-| general | `brakeZonePct` — Emulated braking zone (%) | 50 to 150 | 100 / 100 / 100 / 100 | src/director.lua:1088, src/groups.lua:8, src/lang_en.lua:149, src/tips_en.lua:51 |
+| general | `levelPct` — Level (%) | 40 to 110 | 95 / 100 / 100 / 100 | src/director.lua:151, src/groups.lua:8, src/lang_en.lua:149, src/mistakes.lua:33, src/tips_en.lua:48 |
+| general | `aggressionPct` — Aggression (%) | 0 to 100 | 55 / 45 / 45 / 80 | src/director.lua:152, src/director.lua:1105, src/groups.lua:8, src/lang_en.lua:149, src/tips_en.lua:49 |
+| general | `caution` — Caution | 0.5 to 8 | 1.6 / 2.2 / 2.2 / 1.2 | src/applier.lua:10, src/applier.lua:92, src/applier.lua:298, src/applier.lua:304, src/applier.lua:327, src/applier.lua:1029, src/applier.lua:1037, src/applier.lua:1115, src/applier.lua:1135, src/caps.lua:2, src/director.lua:153, src/director.lua:155, src/director.lua:158, src/director.lua:160, src/director.lua:161, src/director.lua:657, src/director.lua:658, src/director.lua:699, src/director.lua:738, src/director.lua:771, src/director.lua:882, src/director.lua:893, src/director.lua:1047, src/director.lua:1048, src/director.lua:1050, src/director.lua:1051, src/director.lua:1069, src/director.lua:1089, src/director.lua:1105, src/director.lua:1108, src/director.lua:1110, src/director.lua:1156, src/director.lua:1172, src/director.lua:1175, src/engine.lua:127, src/engine.lua:175, src/engine.lua:570, src/engine.lua:625, src/groups.lua:8, src/lang_en.lua:80, src/lang_en.lua:83, src/lang_en.lua:149, src/lang_en.lua:183, src/lang_en.lua:282, src/lang_en.lua:283, src/lang_en.lua:312, src/tips_en.lua:50, src/tips_en.lua:51, src/tips_en.lua:54, src/tips_en.lua:106, src/tips_en.lua:141, src/tips_en.lua:215, src/tips_en.lua:222, src/tips_en.lua:276, src/tips_en.lua:283, src/tips_en.lua:295 |
+| general | `brakeZonePct` — Emulated braking zone (%) | 50 to 150 | 100 / 100 / 100 / 100 | src/director.lua:1110, src/groups.lua:8, src/lang_en.lua:149, src/tips_en.lua:51 |
 | general | `paceSpreadPct` — Level spread (%) | 0 to 20 | 8 / 3 / 3 / 2 | src/groups.lua:9, src/lang_en.lua:149, src/persona.lua:13, src/tips_en.lua:52 |
 | general | `aggrSpreadPct` — Aggression spread (%) | 0 to 30 | 12 / 8 / 8 / 10 | src/groups.lua:9, src/lang_en.lua:149, src/persona.lua:14, src/tips_en.lua:53 |
 | general | `cautSpreadPct` — Caution spread (%) | 0 to 30 | 12 / 8 / 8 / 8 | src/groups.lua:9, src/lang_en.lua:149, src/persona.lua:15, src/tips_en.lua:54 |
@@ -17,77 +17,77 @@ This inventory links every declared parameter to its consumers. A static referen
 | general | `spawnPitPct` — AI left in the pits at the start (%) | 0 to 50 | 25 / 25 / 25 / 25 | src/groups.lua:10, src/lang_en.lua:149, src/tips_en.lua:57, src/traffic.lua:72, src/traffic.lua:74 |
 | general | `spawnGapVariation` — Start gap variation (%) | 0 to 100 | 100 / 100 / 100 / 100 | src/groups.lua:10, src/lang_en.lua:149, src/tips_en.lua:58, src/traffic.lua:80, src/traffic.lua:83 |
 | general | `floodRangeKm` — CSP AI flood range, below the threshold (km) | 1 to 5 | 1 / 1 / 1 / 1 | src/engine.lua:265, src/engine.lua:280, src/engine.lua:281, src/groups.lua:10, src/lang_en.lua:149, src/tips_en.lua:60 |
-| yield | `yieldEnabled` — Standard yielding | boolean | true / true / true / false | src/director.lua:362, src/director.lua:765, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:62 |
-| yield | `yieldSide` — Yield side | left, right, auto | right / right / right / right | src/director.lua:115, src/director.lua:116, src/director.lua:123, src/director.lua:126, src/director.lua:405, src/director.lua:543, src/director.lua:723, src/groups.lua:18, src/lang_en.lua:150, src/lang_en.lua:280, src/persona.lua:23, src/tips_en.lua:63 |
-| yield | `yieldOffset` — Yield offset | 0.2 to 0.95 | 0.65 / 0.8 / 0.8 / 0.6 | src/director.lua:748, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:64 |
-| yield | `yieldDetectBehind` — Rear detection (m) | 30 to 400 | 100 / 200 / 200 / 80 | src/director.lua:369, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:65 |
-| yield | `yieldBehindMargin` — Follower speed advantage (km/h) | 1 to 30 | 6 / 4 / 4 / 6 | src/director.lua:322, src/director.lua:366, src/director.lua:765, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:66 |
-| yield | `yieldHorizon` — Rear horizon (s) | 3 to 30 | 10 / 12 / 12 / 8 | src/director.lua:367, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:67 |
-| yield | `confirmTime` — Confirmation (s) | 0.1 to 2 | 0.6 / 0.4 / 0.4 / 0.5 | src/director.lua:386, src/director.lua:992, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:68 |
-| yield | `yieldHoldMin` — Minimum hold (s) | 0.3 to 5 | 1 / 1 / 1 / 1 | src/director.lua:413, src/director.lua:766, src/director.lua:789, src/flash.lua:78, src/groups.lua:19, src/lang_en.lua:151, src/tips_en.lua:69 |
+| yield | `yieldEnabled` — Standard yielding | boolean | true / true / true / false | src/director.lua:379, src/director.lua:782, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:62 |
+| yield | `yieldSide` — Yield side | left, right, auto | right / right / right / right | src/director.lua:132, src/director.lua:133, src/director.lua:140, src/director.lua:143, src/director.lua:422, src/director.lua:560, src/director.lua:740, src/groups.lua:18, src/lang_en.lua:150, src/lang_en.lua:280, src/persona.lua:23, src/tips_en.lua:63 |
+| yield | `yieldOffset` — Yield offset | 0.2 to 0.95 | 0.65 / 0.8 / 0.8 / 0.6 | src/director.lua:765, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:64 |
+| yield | `yieldDetectBehind` — Rear detection (m) | 30 to 400 | 100 / 200 / 200 / 80 | src/director.lua:386, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:65 |
+| yield | `yieldBehindMargin` — Follower speed advantage (km/h) | 1 to 30 | 6 / 4 / 4 / 6 | src/director.lua:339, src/director.lua:383, src/director.lua:782, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:66 |
+| yield | `yieldHorizon` — Rear horizon (s) | 3 to 30 | 10 / 12 / 12 / 8 | src/director.lua:384, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:67 |
+| yield | `confirmTime` — Confirmation (s) | 0.1 to 2 | 0.6 / 0.4 / 0.4 / 0.5 | src/director.lua:403, src/director.lua:1014, src/groups.lua:18, src/lang_en.lua:150, src/tips_en.lua:68 |
+| yield | `yieldHoldMin` — Minimum hold (s) | 0.3 to 5 | 1 / 1 / 1 / 1 | src/director.lua:430, src/director.lua:783, src/director.lua:806, src/flash.lua:78, src/groups.lua:19, src/lang_en.lua:151, src/tips_en.lua:69 |
 | yield | `yieldHoldAfterMin` — Hold after the pass, min. (s) | 0.2 to 6 | 0.8 / 0.6 / 0.6 / 0.8 | src/groups.lua:19, src/lang_en.lua:151, src/persona.lua:27, src/persona.lua:38, src/tips_en.lua:70 |
 | yield | `yieldHoldAfterMax` — Hold after the pass, max. (s) | 0.2 to 6 | 2.2 / 1.6 / 1.6 / 1.8 | src/groups.lua:19, src/lang_en.lua:151, src/persona.lua:27, src/persona.lua:38, src/tips_en.lua:71 |
-| yield | `yieldSlowdownPct` — Slowdown while yielding (%) | 0 to 20 | 6 / 8 / 8 / 6 | src/director.lua:753, src/director.lua:1091, src/groups.lua:20, src/lang_en.lua:151, src/tips_en.lua:72 |
-| yield | `inviteSlowdownPct` — Extra slowdown to invite a pass (%) | 0 to 25 | 10 / 10 / 10 / 10 | src/director.lua:758, src/groups.lua:20, src/lang_en.lua:151, src/tips_en.lua:73 |
-| yield | `yieldMaxHold` — Maximum yield duration (s) | 8 to 60 | 25 / 25 / 25 / 25 | src/director.lua:799, src/flash.lua:45, src/groups.lua:19, src/lang_en.lua:151, src/tips_en.lua:74 |
-| yield | `pressureEnabled` — Reaction to pressure | boolean | true / true / true / false | src/director.lua:373, src/director.lua:382, src/groups.lua:21, src/lang_en.lua:152, src/tips_en.lua:75 |
-| yield | `pressureGap` — Pressure distance (m) | 5 to 30 | 15 / 15 / 15 / 15 | src/director.lua:373, src/director.lua:376, src/groups.lua:21, src/lang_en.lua:152, src/tips_en.lua:76 |
-| yield | `pressureTime` — Pressure duration (s) | 1 to 15 | 4 / 3 / 3 / 4 | src/director.lua:382, src/groups.lua:21, src/lang_en.lua:152, src/tips_en.lua:77 |
-| blue | `blueFlagEnabled` — Blue flags | boolean | false / true / true / true | src/director.lua:312, src/director.lua:1184, src/engine.lua:45, src/groups.lua:22, src/lang_en.lua:153, src/panel.lua:20, src/tips_en.lua:79 |
-| blue | `blueFlagRange` — Blue flag range (m) | 50 to 400 | 150 / 200 / 200 / 150 | src/director.lua:344, src/director.lua:1184, src/director.lua:1192, src/engine.lua:45, src/groups.lua:22, src/lang_en.lua:153, src/panel.lua:29, src/tips_en.lua:80 |
-| blue | `blueFlagSide` — Side under blue flag | auto, left, right | auto / auto / auto / auto | src/director.lua:116, src/groups.lua:22, src/lang_en.lua:153, src/lang_en.lua:280, src/tips_en.lua:81 |
-| flash | `flashMode` — Headlight flashes | never, lapped, always | always / always / always / lapped | src/director.lua:353, src/flash.lua:50, src/flash.lua:59, src/groups.lua:23, src/lang_en.lua:154, src/lang_en.lua:280, src/tips_en.lua:83 |
-| flash | `flashRange` — Flash range (m) | 40 to 250 | 200 / 200 / 200 / 150 | src/director.lua:331, src/director.lua:337, src/director.lua:370, src/director.lua:623, src/director.lua:627, src/engine.lua:785, src/engine.lua:786, src/flash.lua:58, src/groups.lua:23, src/lang_en.lua:154, src/tips_en.lua:84 |
-| flash | `flashMinAdvantage` — Speed advantage for a flash (km/h) | 3 to 40 | 12 / 8 / 8 / 15 | src/director.lua:1098, src/flash.lua:45, src/groups.lua:23, src/lang_en.lua:154, src/tips_en.lua:85 |
+| yield | `yieldSlowdownPct` — Slowdown while yielding (%) | 0 to 20 | 6 / 8 / 8 / 6 | src/director.lua:770, src/director.lua:1113, src/groups.lua:20, src/lang_en.lua:151, src/tips_en.lua:72 |
+| yield | `inviteSlowdownPct` — Extra slowdown to invite a pass (%) | 0 to 25 | 10 / 10 / 10 / 10 | src/director.lua:775, src/groups.lua:20, src/lang_en.lua:151, src/tips_en.lua:73 |
+| yield | `yieldMaxHold` — Maximum yield duration (s) | 8 to 60 | 25 / 25 / 25 / 25 | src/director.lua:816, src/flash.lua:45, src/groups.lua:19, src/lang_en.lua:151, src/tips_en.lua:74 |
+| yield | `pressureEnabled` — Reaction to pressure | boolean | true / true / true / false | src/director.lua:390, src/director.lua:399, src/groups.lua:21, src/lang_en.lua:152, src/tips_en.lua:75 |
+| yield | `pressureGap` — Pressure distance (m) | 5 to 30 | 15 / 15 / 15 / 15 | src/director.lua:390, src/director.lua:393, src/groups.lua:21, src/lang_en.lua:152, src/tips_en.lua:76 |
+| yield | `pressureTime` — Pressure duration (s) | 1 to 15 | 4 / 3 / 3 / 4 | src/director.lua:399, src/groups.lua:21, src/lang_en.lua:152, src/tips_en.lua:77 |
+| blue | `blueFlagEnabled` — Blue flags | boolean | false / true / true / true | src/director.lua:329, src/director.lua:1206, src/engine.lua:45, src/groups.lua:22, src/lang_en.lua:153, src/panel.lua:20, src/tips_en.lua:79 |
+| blue | `blueFlagRange` — Blue flag range (m) | 50 to 400 | 150 / 200 / 200 / 150 | src/director.lua:361, src/director.lua:1206, src/director.lua:1214, src/engine.lua:45, src/groups.lua:22, src/lang_en.lua:153, src/panel.lua:29, src/tips_en.lua:80 |
+| blue | `blueFlagSide` — Side under blue flag | auto, left, right | auto / auto / auto / auto | src/director.lua:133, src/groups.lua:22, src/lang_en.lua:153, src/lang_en.lua:280, src/tips_en.lua:81 |
+| flash | `flashMode` — Headlight flashes | never, lapped, always | always / always / always / lapped | src/director.lua:370, src/flash.lua:50, src/flash.lua:59, src/groups.lua:23, src/lang_en.lua:154, src/lang_en.lua:280, src/tips_en.lua:83 |
+| flash | `flashRange` — Flash range (m) | 40 to 250 | 200 / 200 / 200 / 150 | src/director.lua:348, src/director.lua:354, src/director.lua:387, src/director.lua:640, src/director.lua:644, src/engine.lua:785, src/engine.lua:786, src/flash.lua:58, src/groups.lua:23, src/lang_en.lua:154, src/tips_en.lua:84 |
+| flash | `flashMinAdvantage` — Speed advantage for a flash (km/h) | 3 to 40 | 12 / 8 / 8 / 15 | src/director.lua:1120, src/flash.lua:45, src/groups.lua:23, src/lang_en.lua:154, src/tips_en.lua:85 |
 | flash | `flashCloseAdvantage` — Close-range advantage (km/h) | -10 to 15 | -5 / -5 / -5 / 6 | src/flash.lua:44, src/groups.lua:23, src/lang_en.lua:154, src/tips_en.lua:86 |
-| flash | `flashRequestTTL` — Request lifetime (s) | 3 to 20 | 8 / 8 / 8 / 8 | src/director.lua:1107, src/flash.lua:73, src/flash.lua:74, src/groups.lua:23, src/lang_en.lua:154, src/tips_en.lua:87 |
+| flash | `flashRequestTTL` — Request lifetime (s) | 3 to 20 | 8 / 8 / 8 / 8 | src/director.lua:1129, src/flash.lua:73, src/flash.lua:74, src/groups.lua:23, src/lang_en.lua:154, src/tips_en.lua:87 |
 | flash | `flashObliviousPct` — First flash missed (%) | 0 to 40 | 10 / 5 / 5 / 10 | src/flash.lua:70, src/groups.lua:24, src/lang_en.lua:154, src/tips_en.lua:88 |
 | flash | `flashMaxReactors` — Cars reacting | 1 to 3 | 3 / 3 / 3 / 3 | src/flash.lua:67, src/groups.lua:24, src/lang_en.lua:154, src/tips_en.lua:89 |
 | flash | `hornEnabled` — Horn counts as a flash | boolean | false / false / false / false | src/engine.lua:779, src/engine.lua:780, src/groups.lua:24, src/lang_en.lua:154, src/tips_en.lua:90 |
-| flash | `aiFlashEnabled` — AI-to-AI headlight flashes | boolean | true / true / true / true | src/director.lua:1094, src/groups.lua:24, src/lang_en.lua:154, src/tips_en.lua:91 |
-| overtake | `overtakeEnabled` — Overtaking | boolean | true / true / true / true | src/director.lua:919, src/director.lua:930, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:93 |
-| overtake | `overtakeSide` — Overtaking side | opposite, auto, left, right | left / left / left / left | src/director.lua:123, src/director.lua:124, src/director.lua:543, src/director.lua:990, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:94 |
-| overtake | `overtakeOffset` — Overtaking offset | 0.2 to 0.95 | 0.7 / 0.65 / 0.65 / 0.6 | src/director.lua:803, src/groups.lua:26, src/lang_en.lua:155, src/tips_en.lua:95 |
-| overtake | `overtakeDetectAhead` — Forward detection (m) | 20 to 200 | 60 / 50 / 50 / 50 | src/director.lua:859, src/director.lua:944, src/director.lua:950, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:96 |
-| overtake | `overtakeAheadMargin` — Speed advantage to overtake (km/h) | 1 to 30 | 8 / 10 / 10 / 3 | src/director.lua:937, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:97 |
-| overtake | `overtakeHorizon` — Forward horizon (s) | 2 to 20 | 6 / 6 / 6 / 6 | src/director.lua:944, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:98 |
-| overtake | `overtakeClearMargin` — Clearance after overtaking (m) | 8 to 40 | 18 / 20 / 20 / 10 | src/director.lua:857, src/director.lua:989, src/groups.lua:26, src/lang_en.lua:155, src/tips_en.lua:99 |
-| overtake | `overtakeRestTime` — Pause after overtaking (s) | 0 to 10 | 2 / 3 / 3 / 1 | src/director.lua:863, src/groups.lua:26, src/lang_en.lua:155, src/tips_en.lua:100 |
-| overtake | `overtakeChain` — Chain overtakes | boolean | true / false / false / true | src/director.lua:859, src/groups.lua:26, src/lang_en.lua:156, src/tips_en.lua:101 |
-| overtake | `stuckTime` — Held-up confirmation (s) | 0.5 to 10 | 2 / 3 / 3 / 1.2 | src/director.lua:946, src/director.lua:1098, src/groups.lua:25, src/lang_en.lua:156, src/tips_en.lua:102 |
-| overtake | `stuckPaceRatio` — Held-up pace threshold | 0.8 to 0.99 | 0.93 / 0.93 / 0.93 / 0.95 | src/director.lua:309, src/groups.lua:25, src/lang_en.lua:156, src/tips_en.lua:103 |
-| overtake | `pullOutGapBase` — Pull-out distance (m) | 4 to 15 | 8 / 8 / 8 / 8 | src/director.lua:854, src/groups.lua:26, src/lang_en.lua:156, src/tips_en.lua:104 |
-| overtake | `pullOutGapPerMps` — Pull-out gain (s) | 0 to 0.5 | 0.25 / 0.25 / 0.25 / 0.25 | src/director.lua:854, src/groups.lua:26, src/lang_en.lua:156, src/tips_en.lua:105 |
-| overtake | `slipstreamEnabled` — Slipstream | boolean | true / true / true / true | src/director.lua:1022, src/director.lua:1028, src/groups.lua:26, src/lang_en.lua:156, src/tips_en.lua:106 |
-| overtake | `defenseEnabled` — Defending | boolean | true / true / true / true | src/director.lua:891, src/groups.lua:27, src/lang_en.lua:156, src/tips_en.lua:107 |
-| overtake | `defenseMaxOffset` — Maximum defending offset | 0.1 to 0.5 | 0.35 / 0.35 / 0.35 / 0.35 | src/director.lua:875, src/groups.lua:27, src/lang_en.lua:156, src/tips_en.lua:108 |
-| overtake | `defenseCooldown` — Pause between defences (s) | 2 to 30 | 8 / 8 / 8 / 8 | src/director.lua:898, src/groups.lua:27, src/lang_en.lua:156, src/tips_en.lua:109 |
-| overtake | `defenseTriggerGap` — Defending distance (m) | 5 to 25 | 12 / 12 / 12 / 12 | src/director.lua:891, src/groups.lua:27, src/lang_en.lua:156, src/tips_en.lua:110 |
-| overtake | `towBreakEnabled` — Break the tow on straights | boolean | false / false / false / true | src/director.lua:518, src/director.lua:582, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:6 |
-| overtake | `towBreakRange` — Tow to break: distance (m) | 10 to 60 | 30 / 30 / 30 / 30 | src/director.lua:512, src/director.lua:520, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:7 |
-| overtake | `towBreakStraight` — Minimum straight (m) | 200 to 1500 | 400 / 400 / 400 / 400 | src/director.lua:511, src/director.lua:536, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:8 |
-| overtake | `dirtyAirEnabled` — Dirty air behind a car | boolean | false / true / true / true | src/director.lua:491, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:9 |
-| overtake | `dirtyAirGap` — Dirty air: distance (m) | 5 to 40 | 20 / 20 / 20 / 20 | src/director.lua:488, src/director.lua:492, src/director.lua:494, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:10 |
-| overtake | `dirtyAirLiftPct` — Dirty air: throttle lift in corners (%) | 0 to 10 | 3 / 3 / 3 / 3 | src/director.lua:1136, src/director.lua:1138, src/groups.lua:28, src/lang_en.lua:148, src/lang_en.lua:279, src/tips_en.lua:11 |
-| overtake | `finalLapsEnabled` — Last-laps urgency | boolean | false / false / false / true | src/director.lua:499, src/groups.lua:29, src/lang_en.lua:148, src/tips_en.lua:12 |
-| overtake | `finalLaps` — Last laps concerned | 1 to 10 | 3 / 3 / 3 / 3 | src/director.lua:496, src/director.lua:504, src/director.lua:507, src/director.lua:655, src/groups.lua:29, src/lang_en.lua:148, src/tips_en.lua:13 |
-| overtake | `finalAggressionPct` — Extra aggression (%) | 0 to 50 | 15 / 15 / 15 / 15 | src/director.lua:652, src/director.lua:655, src/groups.lua:29, src/lang_en.lua:148, src/lang_en.lua:279, src/tips_en.lua:14 |
-| overtake | `finalDefensePct` — Stronger defence (%) | 0 to 100 | 40 / 40 / 40 / 40 | src/director.lua:655, src/director.lua:890, src/groups.lua:29, src/lang_en.lua:148, src/lang_en.lua:279, src/tips_en.lua:15 |
-| lateral | `rampSpeed` — Lateral movement speed | 0.1 to 1 | 0.3 / 0.3 / 0.3 / 0.45 | src/director.lua:260, src/groups.lua:15, src/lang_en.lua:157, src/tips_en.lua:112 |
-| lateral | `rampAccel` — Lateral acceleration | 0.5 to 4 | 1.5 / 1.5 / 1.5 / 2 | src/director.lua:262, src/groups.lua:15, src/lang_en.lua:157, src/tips_en.lua:113 |
-| lateral | `lowPassTau` — Lateral smoothing (s) | 0.05 to 1 | 0.25 / 0.25 / 0.25 / 0.2 | src/director.lua:263, src/groups.lua:15, src/lang_en.lua:157, src/tips_en.lua:114 |
-| lateral | `maxSideOffset` — Maximum offset | 0.3 to 0.95 | 0.85 / 0.85 / 0.85 / 0.8 | src/director.lua:194, src/director.lua:729, src/director.lua:748, src/director.lua:868, src/director.lua:875, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:115 |
-| lateral | `cornerMin` — Straight threshold | 0 to 1 | 0.35 / 0.35 / 0.35 / 0.5 | src/director.lua:328, src/director.lua:403, src/director.lua:425, src/director.lua:492, src/director.lua:778, src/director.lua:872, src/director.lua:920, src/director.lua:929, src/director.lua:1011, src/director.lua:1095, src/director.lua:1118, src/director.lua:1133, src/director.lua:1164, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:116, src/traffic.lua:199 |
-| lateral | `cornerYawRef` — Yaw rate reference (rad/s) | 0.2 to 1.2 | 0.5 / 0.5 / 0.5 / 0.5 | src/director.lua:578, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:117 |
-| lateral | `lateralCooldown` — Pause between direction changes (s) | 0.3 to 5 | 1.2 / 1.2 / 1.2 / 1 | src/director.lua:159, src/director.lua:172, src/director.lua:483, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:118 |
-| lateral | `emergencyReleaseFactor` — Release factor | 1 to 4 | 2 / 2 / 2 / 2 | src/director.lua:249, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:119 |
+| flash | `aiFlashEnabled` — AI-to-AI headlight flashes | boolean | true / true / true / true | src/director.lua:1116, src/groups.lua:24, src/lang_en.lua:154, src/tips_en.lua:91 |
+| overtake | `overtakeEnabled` — Overtaking | boolean | true / true / true / true | src/director.lua:940, src/director.lua:951, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:93 |
+| overtake | `overtakeSide` — Overtaking side | opposite, auto, left, right | left / left / left / left | src/director.lua:140, src/director.lua:141, src/director.lua:560, src/director.lua:1012, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:94 |
+| overtake | `overtakeOffset` — Overtaking offset | 0.2 to 0.95 | 0.7 / 0.65 / 0.65 / 0.6 | src/director.lua:820, src/groups.lua:26, src/lang_en.lua:155, src/tips_en.lua:95 |
+| overtake | `overtakeDetectAhead` — Forward detection (m) | 20 to 200 | 60 / 50 / 50 / 50 | src/director.lua:877, src/director.lua:966, src/director.lua:972, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:96 |
+| overtake | `overtakeAheadMargin` — Speed advantage to overtake (km/h) | 1 to 30 | 8 / 10 / 10 / 3 | src/director.lua:959, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:97 |
+| overtake | `overtakeHorizon` — Forward horizon (s) | 2 to 20 | 6 / 6 / 6 / 6 | src/director.lua:966, src/groups.lua:25, src/lang_en.lua:155, src/tips_en.lua:98 |
+| overtake | `overtakeClearMargin` — Clearance after overtaking (m) | 8 to 40 | 18 / 20 / 20 / 10 | src/director.lua:875, src/director.lua:1011, src/groups.lua:26, src/lang_en.lua:155, src/tips_en.lua:99 |
+| overtake | `overtakeRestTime` — Pause after overtaking (s) | 0 to 10 | 2 / 3 / 3 / 1 | src/director.lua:881, src/groups.lua:26, src/lang_en.lua:155, src/tips_en.lua:100 |
+| overtake | `overtakeChain` — Chain overtakes | boolean | true / false / false / true | src/director.lua:877, src/groups.lua:26, src/lang_en.lua:156, src/tips_en.lua:101 |
+| overtake | `stuckTime` — Held-up confirmation (s) | 0.5 to 10 | 2 / 3 / 3 / 1.2 | src/director.lua:968, src/director.lua:1120, src/groups.lua:25, src/lang_en.lua:156, src/tips_en.lua:102 |
+| overtake | `stuckPaceRatio` — Held-up pace threshold | 0.8 to 0.99 | 0.93 / 0.93 / 0.93 / 0.95 | src/director.lua:326, src/groups.lua:25, src/lang_en.lua:156, src/tips_en.lua:103 |
+| overtake | `pullOutGapBase` — Pull-out distance (m) | 4 to 15 | 8 / 8 / 8 / 8 | src/director.lua:872, src/groups.lua:26, src/lang_en.lua:156, src/tips_en.lua:104 |
+| overtake | `pullOutGapPerMps` — Pull-out gain (s) | 0 to 0.5 | 0.25 / 0.25 / 0.25 / 0.25 | src/director.lua:872, src/groups.lua:26, src/lang_en.lua:156, src/tips_en.lua:105 |
+| overtake | `slipstreamEnabled` — Slipstream | boolean | true / true / true / true | src/director.lua:1044, src/director.lua:1050, src/groups.lua:26, src/lang_en.lua:156, src/tips_en.lua:106 |
+| overtake | `defenseEnabled` — Defending | boolean | true / true / true / true | src/director.lua:909, src/groups.lua:27, src/lang_en.lua:156, src/tips_en.lua:107 |
+| overtake | `defenseMaxOffset` — Maximum defending offset | 0.1 to 0.5 | 0.35 / 0.35 / 0.35 / 0.35 | src/director.lua:893, src/groups.lua:27, src/lang_en.lua:156, src/tips_en.lua:108 |
+| overtake | `defenseCooldown` — Pause between defences (s) | 2 to 30 | 8 / 8 / 8 / 8 | src/director.lua:916, src/groups.lua:27, src/lang_en.lua:156, src/tips_en.lua:109 |
+| overtake | `defenseTriggerGap` — Defending distance (m) | 5 to 25 | 12 / 12 / 12 / 12 | src/director.lua:909, src/groups.lua:27, src/lang_en.lua:156, src/tips_en.lua:110 |
+| overtake | `towBreakEnabled` — Break the tow on straights | boolean | false / false / false / true | src/director.lua:535, src/director.lua:599, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:6 |
+| overtake | `towBreakRange` — Tow to break: distance (m) | 10 to 60 | 30 / 30 / 30 / 30 | src/director.lua:529, src/director.lua:537, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:7 |
+| overtake | `towBreakStraight` — Minimum straight (m) | 200 to 1500 | 400 / 400 / 400 / 400 | src/director.lua:528, src/director.lua:553, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:8 |
+| overtake | `dirtyAirEnabled` — Dirty air behind a car | boolean | false / true / true / true | src/director.lua:508, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:9 |
+| overtake | `dirtyAirGap` — Dirty air: distance (m) | 5 to 40 | 20 / 20 / 20 / 20 | src/director.lua:505, src/director.lua:509, src/director.lua:511, src/groups.lua:28, src/lang_en.lua:148, src/tips_en.lua:10 |
+| overtake | `dirtyAirLiftPct` — Dirty air: throttle lift in corners (%) | 0 to 10 | 3 / 3 / 3 / 3 | src/director.lua:1158, src/director.lua:1160, src/groups.lua:28, src/lang_en.lua:148, src/lang_en.lua:279, src/tips_en.lua:11 |
+| overtake | `finalLapsEnabled` — Last-laps urgency | boolean | false / false / false / true | src/director.lua:516, src/groups.lua:29, src/lang_en.lua:148, src/tips_en.lua:12 |
+| overtake | `finalLaps` — Last laps concerned | 1 to 10 | 3 / 3 / 3 / 3 | src/director.lua:513, src/director.lua:521, src/director.lua:524, src/director.lua:672, src/groups.lua:29, src/lang_en.lua:148, src/tips_en.lua:13 |
+| overtake | `finalAggressionPct` — Extra aggression (%) | 0 to 50 | 15 / 15 / 15 / 15 | src/director.lua:669, src/director.lua:672, src/groups.lua:29, src/lang_en.lua:148, src/lang_en.lua:279, src/tips_en.lua:14 |
+| overtake | `finalDefensePct` — Stronger defence (%) | 0 to 100 | 40 / 40 / 40 / 40 | src/director.lua:672, src/director.lua:908, src/groups.lua:29, src/lang_en.lua:148, src/lang_en.lua:279, src/tips_en.lua:15 |
+| lateral | `rampSpeed` — Lateral movement speed | 0.1 to 1 | 0.3 / 0.3 / 0.3 / 0.45 | src/director.lua:277, src/groups.lua:15, src/lang_en.lua:157, src/tips_en.lua:112 |
+| lateral | `rampAccel` — Lateral acceleration | 0.5 to 4 | 1.5 / 1.5 / 1.5 / 2 | src/director.lua:279, src/groups.lua:15, src/lang_en.lua:157, src/tips_en.lua:113 |
+| lateral | `lowPassTau` — Lateral smoothing (s) | 0.05 to 1 | 0.25 / 0.25 / 0.25 / 0.2 | src/director.lua:280, src/groups.lua:15, src/lang_en.lua:157, src/tips_en.lua:114 |
+| lateral | `maxSideOffset` — Maximum offset | 0.3 to 0.95 | 0.85 / 0.85 / 0.85 / 0.8 | src/director.lua:211, src/director.lua:746, src/director.lua:765, src/director.lua:886, src/director.lua:893, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:115 |
+| lateral | `cornerMin` — Straight threshold | 0 to 1 | 0.35 / 0.35 / 0.35 / 0.5 | src/director.lua:345, src/director.lua:420, src/director.lua:442, src/director.lua:509, src/director.lua:795, src/director.lua:890, src/director.lua:941, src/director.lua:950, src/director.lua:1033, src/director.lua:1117, src/director.lua:1140, src/director.lua:1155, src/director.lua:1186, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:116, src/traffic.lua:199 |
+| lateral | `cornerYawRef` — Yaw rate reference (rad/s) | 0.2 to 1.2 | 0.5 / 0.5 / 0.5 / 0.5 | src/director.lua:595, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:117 |
+| lateral | `lateralCooldown` — Pause between direction changes (s) | 0.3 to 5 | 1.2 / 1.2 / 1.2 / 1 | src/director.lua:176, src/director.lua:189, src/director.lua:500, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:118 |
+| lateral | `emergencyReleaseFactor` — Release factor | 1 to 4 | 2 / 2 / 2 / 2 | src/director.lua:266, src/groups.lua:16, src/lang_en.lua:157, src/tips_en.lua:119 |
 | human | `reactMin` — Minimum reaction (s) | 0.1 to 2 | 0.25 / 0.2 / 0.2 / 0.2 | src/groups.lua:11, src/lang_en.lua:158, src/persona.lua:10, src/tips_en.lua:121 |
 | human | `reactMax` — Maximum reaction (s) | 0.1 to 2 | 0.9 / 0.6 / 0.6 / 0.6 | src/groups.lua:11, src/lang_en.lua:158, src/persona.lua:10, src/tips_en.lua:122 |
 | human | `awMin` — Minimum awareness delay (s) | 0.2 to 5 | 0.6 / 0.4 / 0.4 / 0.4 | src/groups.lua:11, src/lang_en.lua:158, src/persona.lua:10, src/tips_en.lua:123 |
 | human | `awMax` — Maximum awareness delay (s) | 0.2 to 5 | 2 / 1.2 / 1.2 / 1.2 | src/groups.lua:11, src/lang_en.lua:158, src/persona.lua:10, src/tips_en.lua:124 |
-| human | `paceDriftPct` — Slow pace drift (%) | 0 to 6 | 2 / 1 / 1 / 1 | src/director.lua:133, src/groups.lua:12, src/lang_en.lua:158, src/tips_en.lua:125 |
-| human | `personalLineJitter` — Line variation | 0 to 0.15 | 0.05 / 0.03 / 0.03 / 0.02 | src/director.lua:880, src/director.lua:885, src/groups.lua:12, src/lang_en.lua:158, src/tips_en.lua:126 |
-| human | `lapseEnabled` — Brief lapses in focus | boolean | true / false / false / false | src/director.lua:1072, src/groups.lua:13, src/lang_en.lua:158, src/tips_en.lua:127 |
+| human | `paceDriftPct` — Slow pace drift (%) | 0 to 6 | 2 / 1 / 1 / 1 | src/director.lua:150, src/groups.lua:12, src/lang_en.lua:158, src/tips_en.lua:125 |
+| human | `personalLineJitter` — Line variation | 0 to 0.15 | 0.05 / 0.03 / 0.03 / 0.02 | src/director.lua:898, src/director.lua:903, src/groups.lua:12, src/lang_en.lua:158, src/tips_en.lua:126 |
+| human | `lapseEnabled` — Brief lapses in focus | boolean | true / false / false / false | src/director.lua:1094, src/groups.lua:13, src/lang_en.lua:158, src/tips_en.lua:127 |
 | human | `lapseIntervalMin` — Minimum interval (s) | 20 to 900 | 60 / 120 / 120 / 120 | src/groups.lua:13, src/lang_en.lua:159, src/persona.lua:24, src/persona.lua:45, src/tips_en.lua:128 |
 | human | `lapseIntervalMax` — Maximum interval (s) | 20 to 900 | 300 / 600 / 600 / 600 | src/groups.lua:13, src/lang_en.lua:159, src/persona.lua:24, src/persona.lua:45, src/tips_en.lua:129 |
 | human | `lapseDurMin` — Minimum duration (s) | 0.5 to 8 | 1.5 / 1 / 1 / 1 | src/groups.lua:13, src/lang_en.lua:159, src/persona.lua:25, src/persona.lua:46, src/tips_en.lua:130 |
@@ -98,18 +98,18 @@ This inventory links every declared parameter to its consumers. A static referen
 | human | `laneBiasMax` — Maximum line bias | 0 to 0.4 | 0.25 / 0.25 / 0.25 / 0.25 | src/groups.lua:12, src/lang_en.lua:159, src/persona.lua:23, src/tips_en.lua:135 |
 | human | `mistakesEnabled` — AI driving mistakes (lock-ups, wheelspin) | boolean | true / true / true / true | src/groups.lua:14, src/lang_en.lua:160, src/lang_en.lua:301, src/mistakes.lua:54, src/tips_en.lua:136 |
 | human | `mistakeRate` — Mistakes: rate (per hour per AI) | 0 to 6 | 1 / 0.5 / 0.5 / 0.5 | src/groups.lua:14, src/lang_en.lua:160, src/lang_en.lua:302, src/mistakes.lua:54, src/mistakes.lua:88, src/tips_en.lua:137 |
-| start | `startDelay` — Start delay (s) | 0 to 30 | 0 / 0 / 0 / 1 | src/applier.lua:11, src/applier.lua:268, src/applier.lua:424, src/applier.lua:425, src/applier.lua:428, src/applier.lua:444, src/applier.lua:705, src/applier.lua:1009, src/applier.lua:1014, src/caps.lua:2, src/director.lua:645, src/director.lua:667, src/director.lua:685, src/director.lua:1015, src/director.lua:1064, src/director.lua:1065, src/engine.lua:127, src/engine.lua:460, src/engine.lua:464, src/engine.lua:468, src/engine.lua:481, src/groups.lua:17, src/lang_en.lua:161, src/lang_en.lua:282, src/mistakes.lua:57, src/tips_en.lua:139, src/traffic.lua:17, src/traffic.lua:145, src/traffic.lua:163, src/traffic.lua:167 |
-| start | `startCautionMult` — Caution at the start | 1 to 3 | 1 / 1 / 1 / 1.3 | src/director.lua:1067, src/engine.lua:45, src/groups.lua:17, src/lang_en.lua:161, src/tips_en.lua:141 |
-| start | `startAggrMult` — Aggression at the start | 0.2 to 1 | 1 / 1 / 1 / 0.8 | src/director.lua:1067, src/engine.lua:45, src/groups.lua:17, src/lang_en.lua:161, src/tips_en.lua:142 |
-| start | `startRelax` — Settling time after the start (s) | 2 to 30 | 12 / 12 / 12 / 25 | src/director.lua:645, src/director.lua:1015, src/director.lua:1064, src/director.lua:1065, src/engine.lua:468, src/groups.lua:17, src/lang_en.lua:161, src/mistakes.lua:57, src/tips_en.lua:143 |
-| start | `startLaneHold` — Hold the grid lane at the start | boolean | false / false / false / false | src/director.lua:1069, src/engine.lua:45, src/engine.lua:468, src/groups.lua:17, src/lang_en.lua:161, src/tips_en.lua:140 |
-| accidents | `obstacleEnabled` — Avoid stopped or crashed cars | boolean | true / true / true / true | src/director.lua:685, src/groups.lua:31, src/lang_en.lua:162, src/tips_en.lua:145 |
-| accidents | `obstacleSpeedKmh` — Obstacle speed (km/h) | 5 to 50 | 25 / 25 / 25 / 25 | src/director.lua:689, src/director.lua:694, src/director.lua:733, src/engine.lua:534, src/groups.lua:31, src/incidents.lua:154, src/incidents.lua:196, src/incidents.lua:206, src/incidents.lua:239, src/lang_en.lua:162, src/lights.lua:57, src/penalties.lua:39, src/tips_en.lua:146 |
-| accidents | `obstacleDetect` — Obstacle detection (m) | 50 to 300 | 150 / 150 / 150 / 150 | src/director.lua:689, src/director.lua:710, src/groups.lua:31, src/lang_en.lua:162, src/tips_en.lua:147 |
-| accidents | `obstacleLevelDrop` — Level drop near an obstacle (%) | 0 to 50 | 25 / 25 / 25 / 25 | src/director.lua:721, src/groups.lua:31, src/lang_en.lua:162, src/tips_en.lua:148 |
-| accidents | `obstacleCautionMult` — Caution near an obstacle | 1 to 3 | 1.5 / 1.5 / 1.5 / 1.5 | src/director.lua:721, src/groups.lua:31, src/lang_en.lua:162, src/tips_en.lua:149 |
-| accidents | `avoidOffset` — Avoidance offset | 0.3 to 0.9 | 0.6 / 0.6 / 0.6 / 0.6 | src/director.lua:729, src/groups.lua:32, src/lang_en.lua:162, src/tips_en.lua:150 |
-| accidents | `contactRecovery` — Recovery after contact | boolean | true / true / true / true | src/director.lua:673, src/groups.lua:32, src/lang_en.lua:163, src/tips_en.lua:151 |
+| start | `startDelay` — Start delay (s) | 0 to 30 | 0 / 0 / 0 / 1 | src/applier.lua:11, src/applier.lua:268, src/applier.lua:424, src/applier.lua:425, src/applier.lua:428, src/applier.lua:444, src/applier.lua:705, src/applier.lua:1009, src/applier.lua:1014, src/caps.lua:2, src/director.lua:662, src/director.lua:684, src/director.lua:702, src/director.lua:1037, src/director.lua:1086, src/director.lua:1087, src/engine.lua:127, src/engine.lua:460, src/engine.lua:464, src/engine.lua:468, src/engine.lua:481, src/groups.lua:17, src/lang_en.lua:161, src/lang_en.lua:282, src/mistakes.lua:57, src/tips_en.lua:139, src/traffic.lua:17, src/traffic.lua:145, src/traffic.lua:163, src/traffic.lua:167 |
+| start | `startCautionMult` — Caution at the start | 1 to 3 | 1 / 1 / 1 / 1.3 | src/director.lua:1089, src/engine.lua:45, src/groups.lua:17, src/lang_en.lua:161, src/tips_en.lua:141 |
+| start | `startAggrMult` — Aggression at the start | 0.2 to 1 | 1 / 1 / 1 / 0.8 | src/director.lua:1089, src/engine.lua:45, src/groups.lua:17, src/lang_en.lua:161, src/tips_en.lua:142 |
+| start | `startRelax` — Settling time after the start (s) | 2 to 30 | 12 / 12 / 12 / 25 | src/director.lua:662, src/director.lua:1037, src/director.lua:1086, src/director.lua:1087, src/engine.lua:468, src/groups.lua:17, src/lang_en.lua:161, src/mistakes.lua:57, src/tips_en.lua:143 |
+| start | `startLaneHold` — Hold the grid lane at the start | boolean | false / false / false / false | src/director.lua:1091, src/engine.lua:45, src/engine.lua:468, src/groups.lua:17, src/lang_en.lua:161, src/tips_en.lua:140 |
+| accidents | `obstacleEnabled` — Avoid stopped or crashed cars | boolean | true / true / true / true | src/director.lua:702, src/groups.lua:31, src/lang_en.lua:162, src/tips_en.lua:145 |
+| accidents | `obstacleSpeedKmh` — Obstacle speed (km/h) | 5 to 50 | 25 / 25 / 25 / 25 | src/director.lua:706, src/director.lua:711, src/director.lua:750, src/engine.lua:534, src/groups.lua:31, src/incidents.lua:154, src/incidents.lua:196, src/incidents.lua:206, src/incidents.lua:239, src/lang_en.lua:162, src/lights.lua:57, src/penalties.lua:39, src/tips_en.lua:146 |
+| accidents | `obstacleDetect` — Obstacle detection (m) | 50 to 300 | 150 / 150 / 150 / 150 | src/director.lua:706, src/director.lua:727, src/groups.lua:31, src/lang_en.lua:162, src/tips_en.lua:147 |
+| accidents | `obstacleLevelDrop` — Level drop near an obstacle (%) | 0 to 50 | 25 / 25 / 25 / 25 | src/director.lua:738, src/groups.lua:31, src/lang_en.lua:162, src/tips_en.lua:148 |
+| accidents | `obstacleCautionMult` — Caution near an obstacle | 1 to 3 | 1.5 / 1.5 / 1.5 / 1.5 | src/director.lua:738, src/groups.lua:31, src/lang_en.lua:162, src/tips_en.lua:149 |
+| accidents | `avoidOffset` — Avoidance offset | 0.3 to 0.9 | 0.6 / 0.6 / 0.6 / 0.6 | src/director.lua:746, src/groups.lua:32, src/lang_en.lua:162, src/tips_en.lua:150 |
+| accidents | `contactRecovery` — Recovery after contact | boolean | true / true / true / true | src/director.lua:690, src/groups.lua:32, src/lang_en.lua:163, src/tips_en.lua:151 |
 | accidents | `incidentStop` — Crashed AI stop | boolean | true / true / true / true | src/groups.lua:32, src/incidents.lua:237, src/lang_en.lua:163, src/tips_en.lua:152 |
 | accidents | `incidentStopMin` — Minimum stop (s) | 1 to 15 | 3 / 3 / 3 / 3 | src/groups.lua:32, src/incidents.lua:241, src/lang_en.lua:163, src/tips_en.lua:153 |
 | accidents | `incidentStopMax` — Maximum stop (s) | 1 to 30 | 8 / 8 / 8 / 8 | src/groups.lua:32, src/incidents.lua:241, src/lang_en.lua:163, src/tips_en.lua:154 |
@@ -118,7 +118,7 @@ This inventory links every declared parameter to its consumers. A static referen
 | accidents | `yellowBefore` — Zone start before the incident (m) | 50 to 800 | 300 / 300 / 300 / 300 | src/groups.lua:33, src/incidents.lua:431, src/incidents.lua:446, src/incidents.lua:449, src/incidents.lua:504, src/incidents.lua:505, src/incidents.lua:513, src/incidents.lua:514, src/lang_en.lua:164, src/tips_en.lua:160 |
 | accidents | `yellowAfter` — Zone end after the incident (m) | 0 to 300 | 50 / 50 / 50 / 50 | src/groups.lua:33, src/incidents.lua:446, src/incidents.lua:504, src/lang_en.lua:164, src/tips_en.lua:161 |
 | accidents | `yellowHold` — Hold after clearing (s) | 0 to 60 | 10 / 10 / 10 / 10 | src/groups.lua:33, src/incidents.lua:228, src/lang_en.lua:164, src/penalties.lua:39, src/tips_en.lua:162 |
-| accidents | `yellowDecel` — Approach deceleration (m/s²) | 2 to 10 | 5 / 5 / 5 / 5 | src/delta.lua:158, src/delta.lua:190, src/director.lua:612, src/engine.lua:928, src/groups.lua:33, src/incidents.lua:457, src/incidents.lua:496, src/lang_en.lua:164, src/sanctions.lua:512, src/tips_en.lua:163 |
+| accidents | `yellowDecel` — Approach deceleration (m/s²) | 2 to 10 | 5 / 5 / 5 / 5 | src/delta.lua:158, src/delta.lua:190, src/director.lua:629, src/engine.lua:928, src/groups.lua:33, src/incidents.lua:457, src/incidents.lua:496, src/lang_en.lua:164, src/sanctions.lua:512, src/tips_en.lua:163 |
 | accidents | `zoneDeltaPct` — Double yellow: reference time slower by (%) | 5 to 200 | 15 / 15 / 15 / 15 | src/delta.lua:89, src/groups.lua:34, src/lang_en.lua:165, src/lang_en.lua:302, src/tips_en.lua:158 |
 | accidents | `slowZoneKmh` — Double yellow: Slow Zone speed (km/h, 0 = delta time) | 0 to 150 | 0 / 0 / 0 / 0 | src/delta.lua:88, src/groups.lua:34, src/lang_en.lua:165, src/lang_en.lua:279, src/lang_en.lua:302, src/tips_en.lua:159 |
 | accidents | `yellowSpeedKmh` — Double yellow: fallback speed, unknown pace (km/h) | 30 to 200 | 50 / 50 / 50 / 50 | src/delta.lua:89, src/groups.lua:34, src/incidents.lua:495, src/lang_en.lua:165, src/lang_en.lua:303, src/tips_en.lua:157 |
@@ -131,7 +131,7 @@ This inventory links every declared parameter to its consumers. A static referen
 | accidents | `penaltySeconds` — Penalty: throttle cut (s) | 2 to 15 | 5 / 5 / 5 / 5 | src/engine.lua:772, src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:80, src/penalties.lua:81, src/penalties.lua:83, src/penalties.lua:87, src/penalties.lua:118, src/penalties.lua:128, src/penalties.lua:145, src/tips_en.lua:174 |
 | accidents | `penaltyDisqualify` — Offences allowed before disqualification | 1 to 20 | 5 / 5 / 5 / 5 | src/engine.lua:739, src/engine.lua:754, src/engine.lua:758, src/engine.lua:772, src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:53, src/penalties.lua:144, src/sanctions.lua:145, src/sanctions.lua:148, src/sanctions.lua:153, src/tips_en.lua:169 |
 | accidents | `aiPenalties` — AI sanctions under flags | boolean | false / true / true / true | src/groups.lua:36, src/lang_en.lua:167, src/penalties.lua:155, src/tips_en.lua:170 |
-| rules | `noMoveBraking` — No change of direction under braking | boolean | true / true / true / true | src/director.lua:665, src/groups.lua:56, src/lang_en.lua:168, src/tips_en.lua:179 |
+| rules | `noMoveBraking` — No change of direction under braking | boolean | true / true / true / true | src/director.lua:682, src/groups.lua:56, src/lang_en.lua:168, src/tips_en.lua:179 |
 | rules | `neutralization` — Neutralisation after a major incident | local, fcy, vsc, sc | local / local / local / local | src/engine.lua:63, src/groups.lua:56, src/incidents.lua:265, src/incidents.lua:404, src/lang_en.lua:168, src/tips_en.lua:180 |
 | rules | `majorIncidentTime` — Major incident: car stopped on track (s) | 5 to 60 | 15 / 15 / 15 / 15 | src/engine.lua:62, src/engine.lua:63, src/groups.lua:56, src/incidents.lua:225, src/incidents.lua:275, src/lang_en.lua:168, src/tips_en.lua:181 |
 | rules | `fcySpeedKmh` — FCY: fallback speed, unknown pace (km/h) | 40 to 150 | 80 / 80 / 80 / 80 | src/delta.lua:97, src/delta.lua:100, src/delta.lua:102, src/groups.lua:57, src/incidents.lua:408, src/incidents.lua:472, src/lang_en.lua:168, src/lang_en.lua:304, src/tips_en.lua:182 |
@@ -159,25 +159,25 @@ This inventory links every declared parameter to its consumers. A static referen
 | rules | `pitFuel` — Fuel at enforced stops | refuel, plan, ac | refuel / refuel / refuel / refuel | src/groups.lua:65, src/lang_en.lua:172, src/lang_en.lua:280, src/pits.lua:194, src/tips_en.lua:203 |
 | rules | `pitsClosed` — Pit lane closed under neutralisation | open, pitFcy, pitFcySc | open / open / open / open | src/engine.lua:811, src/engine.lua:862, src/groups.lua:65, src/incidents.lua:20, src/incidents.lua:31, src/incidents.lua:361, src/incidents.lua:364, src/lang_en.lua:172, src/lang_en.lua:280, src/sanctions.lua:583, src/strategy.lua:286, src/strategy.lua:382, src/strategy.lua:401, src/tips_en.lua:205 |
 | rules | `pitMessage` — Pit window opening message | boolean | true / true / true / true | src/groups.lua:63, src/lang_en.lua:172, src/lang_en.lua:309, src/pits.lua:64, src/pits.lua:74, src/tips_en.lua:206 |
-| rules | `overtakeMode` — Overtake Mode (F1 2026, within one second at detection) | boolean | false / false / false / false | src/director.lua:1114, src/groups.lua:59, src/lang_en.lua:173, src/lang_en.lua:307, src/tips_en.lua:207 |
-| rules | `overtakeModeGap` — Overtake Mode: detection gap (s) | 0.3 to 2 | 1 / 1 / 1 / 1 | src/director.lua:1116, src/groups.lua:59, src/lang_en.lua:173, src/lang_en.lua:307, src/tips_en.lua:208 |
-| rules | `overtakeModeBoostPct` — Overtake Mode: level gain (%) | 0 to 5 | 2 / 2 / 2 / 2 | src/director.lua:1118, src/groups.lua:59, src/lang_en.lua:173, src/lang_en.lua:308, src/tips_en.lua:209 |
+| rules | `overtakeMode` — Overtake Mode (F1 2026, within one second at detection) | boolean | false / false / false / false | src/director.lua:1136, src/groups.lua:59, src/lang_en.lua:173, src/lang_en.lua:307, src/tips_en.lua:207 |
+| rules | `overtakeModeGap` — Overtake Mode: detection gap (s) | 0.3 to 2 | 1 / 1 / 1 / 1 | src/director.lua:1138, src/groups.lua:59, src/lang_en.lua:173, src/lang_en.lua:307, src/tips_en.lua:208 |
+| rules | `overtakeModeBoostPct` — Overtake Mode: level gain (%) | 0 to 5 | 2 / 2 / 2 / 2 | src/director.lua:1140, src/groups.lua:59, src/lang_en.lua:173, src/lang_en.lua:308, src/tips_en.lua:209 |
 | rules | `drsAssist` — Player DRS: beep and panel | boolean | true / true / true / true | src/engine.lua:489, src/engine.lua:710, src/engine.lua:778, src/groups.lua:60, src/lang_en.lua:174, src/panel.lua:121, src/panel.lua:154, src/tips_en.lua:168 |
 | rules | `rulesDrs` — DRS: racing rules (rain, flags, start, Safety Car, red flag) | boolean | false / true / true / true | src/engine.lua:657, src/groups.lua:60, src/lang_en.lua:174, src/lang_en.lua:295, src/lang_en.lua:308, src/tips_en.lua:165 |
 | rules | `rulesDrsLaps` — DRS: leader laps before enabling (start, SC, red flag) | 0 to 5 | 1 / 1 / 1 / 1 | src/engine.lua:681, src/groups.lua:60, src/lang_en.lua:174, src/lang_en.lua:308, src/tips_en.lua:166 |
 | rules | `aiDrs` — AI DRS: opened in the zones | boolean | true / true / true / true | src/engine.lua:695, src/groups.lua:60, src/lang_en.lua:174, src/tips_en.lua:167 |
 | rules | `drsBeepVolume` — Beeps (DRS and delta): volume (%) | 25 to 400 | 200 / 200 / 200 / 200 | src/engine.lua:489, src/engine.lua:650, src/engine.lua:778, src/groups.lua:60, src/lang_en.lua:174, src/lang_en.lua:309, src/tips_en.lua:164 |
-| rules | `bopEnabled` — BoP: pace evened out within each class | boolean | false / false / false / false | src/classes.lua:42, src/director.lua:138, src/groups.lua:61, src/lang_en.lua:175, src/lang_en.lua:309, src/tips_en.lua:210 |
+| rules | `bopEnabled` — BoP: pace evened out within each class | boolean | false / false / false / false | src/classes.lua:42, src/director.lua:155, src/groups.lua:61, src/lang_en.lua:175, src/lang_en.lua:309, src/tips_en.lua:210 |
 | rules | `bopStrengthPct` — BoP: maximum correction (%) | 0 to 5 | 2 / 2 / 2 / 2 | src/classes.lua:45, src/groups.lua:61, src/lang_en.lua:175, src/tips_en.lua:211 |
 | rules | `proAmEnabled` — Pro-Am driver ratings (Bronze to Platinum) | boolean | false / false / false / false | src/groups.lua:61, src/lang_en.lua:175, src/persona.lua:31, src/persona.lua:32, src/tips_en.lua:212 |
-| rules | `predictableSlowClass` — Slower class: predictable line | boolean | false / false / false / false | src/director.lua:749, src/groups.lua:62, src/lang_en.lua:175, src/tips_en.lua:213 |
-| endurance | `enduranceOverlay` — Endurance layer | boolean | false / false / false / false | src/director.lua:139, src/director.lua:575, src/director.lua:1073, src/groups.lua:37, src/lang_en.lua:176, src/persona.lua:6, src/tips_en.lua:215 |
-| endurance | `multiClass` — Multi-class | boolean | false / false / false / false | src/delta.lua:134, src/director.lua:90, src/director.lua:99, src/director.lua:1193, src/engine.lua:298, src/engine.lua:559, src/engine.lua:723, src/engine.lua:789, src/groups.lua:38, src/incidents.lua:438, src/lang_en.lua:176, src/sanctions.lua:227, src/sanctions.lua:487, src/tips_en.lua:216 |
+| rules | `predictableSlowClass` — Slower class: predictable line | boolean | false / false / false / false | src/director.lua:766, src/groups.lua:62, src/lang_en.lua:175, src/tips_en.lua:213 |
+| endurance | `enduranceOverlay` — Endurance layer | boolean | false / false / false / false | src/director.lua:156, src/director.lua:592, src/director.lua:1095, src/groups.lua:37, src/lang_en.lua:176, src/persona.lua:6, src/tips_en.lua:215 |
+| endurance | `multiClass` — Multi-class | boolean | false / false / false / false | src/delta.lua:134, src/director.lua:90, src/director.lua:99, src/director.lua:1215, src/engine.lua:298, src/engine.lua:559, src/engine.lua:723, src/engine.lua:789, src/groups.lua:38, src/incidents.lua:438, src/lang_en.lua:176, src/sanctions.lua:227, src/sanctions.lua:487, src/tips_en.lua:216 |
 | endurance | `classGapPct` — Gap between classes (%) | 3 to 25 | 8 / 8 / 8 / 8 | src/classes.lua:31, src/groups.lua:38, src/lang_en.lua:176, src/tips_en.lua:217 |
-| endurance | `classYieldMargin` — Class speed advantage (km/h) | 1 to 15 | 4 / 4 / 4 / 4 | src/director.lua:348, src/director.lua:765, src/groups.lua:38, src/lang_en.lua:176, src/tips_en.lua:218 |
+| endurance | `classYieldMargin` — Class speed advantage (km/h) | 1 to 15 | 4 / 4 / 4 / 4 | src/director.lua:365, src/director.lua:782, src/groups.lua:38, src/lang_en.lua:176, src/tips_en.lua:218 |
 | endurance | `stintLevelSwing` — Variation between stints (%) | 0 to 8 | 3 / 3 / 3 / 3 | src/groups.lua:37, src/lang_en.lua:176, src/persona.lua:28, src/tips_en.lua:219 |
-| endurance | `stintDegradationPct` — Degradation over a stint (%) | 0 to 5 | 1 / 1 / 1 / 1 | src/director.lua:140, src/groups.lua:37, src/lang_en.lua:176, src/tips_en.lua:220 |
-| weather | `weatherAdaptation` — Adapt pace to the weather | boolean | true / true / true / true | src/director.lua:143, src/director.lua:369, src/groups.lua:39, src/lang_en.lua:177, src/tips_en.lua:222 |
+| endurance | `stintDegradationPct` — Degradation over a stint (%) | 0 to 5 | 1 / 1 / 1 / 1 | src/director.lua:157, src/groups.lua:37, src/lang_en.lua:176, src/tips_en.lua:220 |
+| weather | `weatherAdaptation` — Adapt pace to the weather | boolean | true / true / true / true | src/director.lua:160, src/director.lua:386, src/groups.lua:39, src/lang_en.lua:177, src/tips_en.lua:222 |
 | weather | `weatherTyresEnabled` — Manage dry and wet tyres | boolean | true / true / true / true | src/engine.lua:797, src/groups.lua:39, src/lang_en.lua:177, src/tips_en.lua:223, src/weather.lua:25 |
 | weather | `weatherMessage` — On-screen message on a weather change | boolean | true / true / true / true | src/engine.lua:803, src/groups.lua:42, src/lang_en.lua:177, src/lang_en.lua:304, src/tips_en.lua:224 |
 | weather | `rainGripBoostPct` — Rain compensation without wet tyres (%) | 0 to 30 | 15 / 15 / 15 / 15 | src/groups.lua:39, src/lang_en.lua:177, src/lang_en.lua:303, src/tips_en.lua:225, src/weather.lua:38 |
@@ -187,12 +187,12 @@ This inventory links every declared parameter to its consumers. A static referen
 | weather | `lockWearGain` — Lock-ups: gain at the end of a stint | 0 to 3 | 1.5 / 1.5 / 1.5 / 1.5 | src/groups.lua:41, src/lang_en.lua:148, src/lang_en.lua:279, src/mistakes.lua:50, src/tips_en.lua:19 |
 | weather | `lockFlatSpotKm` — Flat spot: wear added per lock-up (km) | 0 to 5 | 1 / 1 / 1 / 1 | src/groups.lua:41, src/lang_en.lua:148, src/lang_en.lua:279, src/mistakes.lua:103, src/mistakes.lua:104, src/tips_en.lua:20 |
 | lights | `lightsYellow` — Yellow · yellow flag, Safety Car, VSC, FCY | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lang_en.lua:279, src/tips_en.lua:227 |
-| lights | `lightsRed` — Red · red flag | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lang_en.lua:279, src/lights.lua:110, src/tips_en.lua:228 |
-| lights | `lightsBlue` — Blue · blue flag shown to you | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:126, src/tips_en.lua:229 |
-| lights | `lightsWhite` — White · very slow vehicle ahead | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:124, src/tips_en.lua:230 |
-| lights | `lightsOrange` — Orange · slippery track | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:125, src/tips_en.lua:231 |
-| lights | `lightsGreen` — Green · end of zone, neutralisation and restart | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:94, src/lights.lua:120, src/tips_en.lua:232 |
-| lights | `lightsGreenTime` — Green duration (s) | 0 to 15 | 5 / 5 / 5 / 5 | src/groups.lua:54, src/lang_en.lua:177, src/lang_en.lua:279, src/lights.lua:93, src/lights.lua:120, src/tips_en.lua:233 |
+| lights | `lightsRed` — Red · red flag | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lang_en.lua:279, src/lights.lua:113, src/tips_en.lua:228 |
+| lights | `lightsBlue` — Blue · blue flag shown to you | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:129, src/tips_en.lua:229 |
+| lights | `lightsWhite` — White · very slow vehicle ahead | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:127, src/tips_en.lua:230 |
+| lights | `lightsOrange` — Orange · slippery track | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:128, src/tips_en.lua:231 |
+| lights | `lightsGreen` — Green · end of zone, neutralisation and restart | boolean | true / true / true / true | src/groups.lua:53, src/lang_en.lua:177, src/lights.lua:97, src/lights.lua:123, src/tips_en.lua:232 |
+| lights | `lightsGreenTime` — Green duration (s) | 0 to 15 | 5 / 5 / 5 / 5 | src/groups.lua:54, src/lang_en.lua:177, src/lang_en.lua:279, src/lights.lua:96, src/lights.lua:123, src/tips_en.lua:233 |
 | lights | `lightsHold` — Delay before a less important colour (s) | 0.5 to 5 | 1.5 / 1.5 / 1.5 / 1.5 | ACAdvancedIA.lua:413, src/applier.lua:465, src/applier.lua:495, src/applier.lua:496, src/groups.lua:54, src/lang_en.lua:177, src/tips_en.lua:234 |
 | strategy | `strategyEnabled` — Individual pit-stop strategy | boolean | false / false / false / true | src/groups.lua:44, src/lang_en.lua:148, src/strategy.lua:299, src/tips_en.lua:21 |
 | strategy | `strategyTyreWearPct` — Tyre wear before stopping (%) | 30 to 95 | 75 / 75 / 75 / 75 | src/groups.lua:44, src/lang_en.lua:148, src/strategy.lua:123, src/strategy.lua:192, src/strategy.lua:197, src/tips_en.lua:22 |
@@ -232,14 +232,14 @@ This inventory links every declared parameter to its consumers. A static referen
 | `levelMode` | auto | auto, native, grip, none | src/applier.lua:1032, src/applier.lua:1039, src/caps.lua:4, src/caps.lua:52, src/caps.lua:53, src/lang_en.lua:81, src/tips_en.lua:257 |
 | `useGripBoost` | false | boolean | src/applier.lua:1039, src/caps.lua:53, src/tips_en.lua:258 |
 | `gripPerLevelPct` | 0.004 | [0, 0.01] | src/applier.lua:1039, src/lang_en.lua:146, src/tips_en.lua:269 |
-| `useBrakeAssist` | true | boolean | src/applier.lua:1017, src/applier.lua:1046, src/director.lua:1037, src/engine.lua:45, src/tips_en.lua:259 |
+| `useBrakeAssist` | true | boolean | src/applier.lua:1017, src/applier.lua:1046, src/director.lua:1059, src/engine.lua:45, src/tips_en.lua:259 |
 | `overrideAwareness` | false | boolean | src/applier.lua:1025, src/tips_en.lua:260 |
 | `occLatMin` | 0.3 | [0.1, 1] | src/lang_en.lua:146, src/lang_en.lua:311, src/perception.lua:53, src/perception.lua:54, src/perception.lua:55, src/tips_en.lua:265 |
-| `occLatMax` | 5.5 | [2, 8] | src/director.lua:639, src/director.lua:729, src/director.lua:817, src/director.lua:859, src/director.lua:992, src/lang_en.lua:146, src/lang_en.lua:311, src/perception.lua:42, src/perception.lua:47, src/perception.lua:54, src/perception.lua:55, src/perception.lua:107, src/tips_en.lua:266 |
+| `occLatMax` | 5.5 | [2, 8] | src/director.lua:656, src/director.lua:746, src/director.lua:834, src/director.lua:877, src/director.lua:1014, src/lang_en.lua:146, src/lang_en.lua:311, src/perception.lua:42, src/perception.lua:47, src/perception.lua:54, src/perception.lua:55, src/perception.lua:107, src/tips_en.lua:266 |
 | `occMargin` | 6 | [2, 15] | src/lang_en.lua:146, src/lang_en.lua:311, src/perception.lua:45, src/perception.lua:50, src/tips_en.lua:267 |
 | `occSpeedGain` | 0.8 | [0, 2] | src/lang_en.lua:146, src/lang_en.lua:311, src/perception.lua:45, src/perception.lua:50, src/tips_en.lua:268 |
-| `seed` | 19731019 | [0, 2147483647] | src/director.lua:68, src/director.lua:393, src/director.lua:538, src/director.lua:574, src/director.lua:897, src/director.lua:1075, src/engine.lua:101, src/engine.lua:181, src/engine.lua:448, src/engine.lua:547, src/engine.lua:791, src/engine.lua:811, src/engine.lua:882, src/flash.lua:70, src/grid.lua:166, src/grid.lua:198, src/incidents.lua:163, src/incidents.lua:241, src/lang_en.lua:82, src/mistakes.lua:88, src/mistakes.lua:97, src/persona.lua:5, src/persona.lua:8, src/persona.lua:9, src/persona.lua:28, src/persona.lua:30, src/persona.lua:40, src/persona.lua:43, src/persona.lua:45, src/persona.lua:46, src/persona.lua:47, src/pits.lua:51, src/pits.lua:121, src/strategy.lua:248, src/strategy.lua:259, src/strategy.lua:261, src/strategy.lua:263, src/strategy.lua:264, src/strategy.lua:265, src/strategy.lua:300, src/strategy.lua:334, src/tips_en.lua:270, src/tips_en.lua:290, src/tips_en.lua:356, src/traffic.lua:69, src/traffic.lua:86, src/traffic.lua:120, src/traffic.lua:197, src/util.lua:18, src/util.lua:19, src/util.lua:32, src/weather.lua:9, src/weather.lua:11, src/weather.lua:14, src/weather.lua:28 |
-| `debugLog` | false | boolean | src/director.lua:87, src/director.lua:1140, src/lang_en.lua:82, src/tips_en.lua:264 |
+| `seed` | 19731019 | [0, 2147483647] | src/director.lua:68, src/director.lua:410, src/director.lua:555, src/director.lua:591, src/director.lua:915, src/director.lua:1097, src/engine.lua:101, src/engine.lua:181, src/engine.lua:448, src/engine.lua:547, src/engine.lua:791, src/engine.lua:811, src/engine.lua:882, src/flash.lua:70, src/grid.lua:166, src/grid.lua:198, src/incidents.lua:163, src/incidents.lua:241, src/lang_en.lua:82, src/mistakes.lua:88, src/mistakes.lua:97, src/persona.lua:5, src/persona.lua:8, src/persona.lua:9, src/persona.lua:28, src/persona.lua:30, src/persona.lua:40, src/persona.lua:43, src/persona.lua:45, src/persona.lua:46, src/persona.lua:47, src/pits.lua:51, src/pits.lua:121, src/strategy.lua:248, src/strategy.lua:259, src/strategy.lua:261, src/strategy.lua:263, src/strategy.lua:264, src/strategy.lua:265, src/strategy.lua:300, src/strategy.lua:334, src/tips_en.lua:270, src/tips_en.lua:290, src/tips_en.lua:356, src/traffic.lua:69, src/traffic.lua:86, src/traffic.lua:120, src/traffic.lua:197, src/util.lua:18, src/util.lua:19, src/util.lua:32, src/weather.lua:9, src/weather.lua:11, src/weather.lua:14, src/weather.lua:28 |
+| `debugLog` | false | boolean | src/director.lua:87, src/director.lua:1162, src/lang_en.lua:82, src/tips_en.lua:264 |
 
 The section switches go through `C.on`/`C.effective` and are walked by the interface tests. `classPatterns` uses the `C.patterns` parser, `Classes.configure/update`, the eight dedicated rows and validated storage. The manual/automatic choice, the main button, panic, presets and the diagnostics tools are examined in AUDIT_V1.md.
 
@@ -443,39 +443,39 @@ List taken from the AST of the 42 active files, including local and anonymous fu
 | src/config.lua | 84 | `n` |
 | src/config.lua | 85 | `b` |
 | src/config.lua | 86 | `e` |
-| src/config.lua | 528 | `M.defaults` |
-| src/config.lua | 539 | `M.sectionsChanged` |
-| src/config.lua | 546 | `M.anySection` |
-| src/config.lua | 550 | `choice` |
-| src/config.lua | 551 | `M.patterns` |
-| src/config.lua | 561 | `M.validate` |
-| src/config.lua | 595 | `M.validateGlobals` |
-| src/config.lua | 616 | `M.preset` |
-| src/config.lua | 628 | `M.on` |
-| src/config.lua | 629 | `M.any` |
-| src/config.lua | 634 | `M.effective` |
-| src/config.lua | 670 | `M.effectiveGlobals` |
-| src/config.lua | 677 | `M.needsOffset` |
-| src/config.lua | 680 | `equal` |
-| src/config.lua | 696 | `M.legacyMatch` |
-| src/config.lua | 721 | `M.upgradeObstacles` |
-| src/config.lua | 732 | `M.migrateProfile` |
-| src/config.lua | 794 | `M.migrate` |
-| src/config.lua | 862 | `M.kept` |
-| src/config.lua | 863 | `ruleValue` |
-| src/config.lua | 864 | `M.restore` |
-| src/config.lua | 873 | `applyValues` |
-| src/config.lua | 877 | `M.weekendSwitch` |
-| src/config.lua | 886 | `M.applyRules` |
-| src/config.lua | 901 | `M.spreadRules` |
-| src/config.lua | 915 | `M.mark` |
-| src/config.lua | 919 | `M.setMark` |
-| src/config.lua | 925 | `M.withRules` |
-| src/config.lua | 936 | `category13` |
-| src/config.lua | 950 | `M.migrateRules` |
-| src/config.lua | 960 | `M.closestRuleCategory` |
-| src/config.lua | 969 | `M.ruleCategory` |
-| src/config.lua | 981 | `M.autoProfile` |
+| src/config.lua | 534 | `M.defaults` |
+| src/config.lua | 545 | `M.sectionsChanged` |
+| src/config.lua | 552 | `M.anySection` |
+| src/config.lua | 556 | `choice` |
+| src/config.lua | 557 | `M.patterns` |
+| src/config.lua | 567 | `M.validate` |
+| src/config.lua | 601 | `M.validateGlobals` |
+| src/config.lua | 622 | `M.preset` |
+| src/config.lua | 634 | `M.on` |
+| src/config.lua | 635 | `M.any` |
+| src/config.lua | 640 | `M.effective` |
+| src/config.lua | 676 | `M.effectiveGlobals` |
+| src/config.lua | 683 | `M.needsOffset` |
+| src/config.lua | 686 | `equal` |
+| src/config.lua | 702 | `M.legacyMatch` |
+| src/config.lua | 727 | `M.upgradeObstacles` |
+| src/config.lua | 738 | `M.migrateProfile` |
+| src/config.lua | 800 | `M.migrate` |
+| src/config.lua | 868 | `M.kept` |
+| src/config.lua | 869 | `ruleValue` |
+| src/config.lua | 870 | `M.restore` |
+| src/config.lua | 879 | `applyValues` |
+| src/config.lua | 883 | `M.weekendSwitch` |
+| src/config.lua | 892 | `M.applyRules` |
+| src/config.lua | 907 | `M.spreadRules` |
+| src/config.lua | 921 | `M.mark` |
+| src/config.lua | 925 | `M.setMark` |
+| src/config.lua | 931 | `M.withRules` |
+| src/config.lua | 942 | `category13` |
+| src/config.lua | 956 | `M.migrateRules` |
+| src/config.lua | 966 | `M.closestRuleCategory` |
+| src/config.lua | 975 | `M.ruleCategory` |
+| src/config.lua | 987 | `M.autoProfile` |
 | src/cspgui.lua | 28 | `hidden` |
 | src/cspgui.lua | 29 | `list` |
 | src/cspgui.lua | 34 | `heldKeys` |
@@ -522,34 +522,36 @@ List taken from the AST of the 42 active files, including local and anonymous fu
 | src/director.lua | 93 | `paceBin` |
 | src/director.lua | 96 | `freeAt` |
 | src/director.lua | 106 | `realAdvantage` |
-| src/director.lua | 113 | `userSide` |
-| src/director.lua | 114 | `fixedSide` |
-| src/director.lua | 115 | `yieldSide` |
-| src/director.lua | 122 | `passSide` |
-| src/director.lua | 131 | `baseModifiers` |
-| src/director.lua | 148 | `directionAllowed` |
-| src/director.lua | 171 | `directionBudget` |
-| src/director.lua | 181 | `wanted` |
-| src/director.lua | 182 | `limitText` |
-| src/director.lua | 191 | `M.reachable` |
-| src/director.lua | 202 | `laneTarget` |
-| src/director.lua | 211 | `laneHold` |
-| src/director.lua | 237 | `M.lateral` |
-| src/director.lua | 274 | `busy` |
-| src/director.lua | 287 | `pace` |
-| src/director.lua | 311 | `lapOrClass` |
-| src/director.lua | 316 | `yieldTrigger` |
-| src/director.lua | 423 | `M.trafficCap` |
-| src/director.lua | 436 | `aeroMap` |
-| src/director.lua | 451 | `straightBin` |
-| src/director.lua | 452 | `aeroRuns` |
-| src/director.lua | 469 | `lapsAhead` |
-| src/director.lua | 475 | `rival` |
-| src/director.lua | 482 | `directionRoom` |
-| src/director.lua | 490 | `dirtyAir` |
-| src/director.lua | 498 | `urgency` |
-| src/director.lua | 517 | `towStart` |
-| src/director.lua | 553 | `M.step` |
+| src/director.lua | 115 | `playerSlow` |
+| src/director.lua | 123 | `inviteGeometry` |
+| src/director.lua | 130 | `userSide` |
+| src/director.lua | 131 | `fixedSide` |
+| src/director.lua | 132 | `yieldSide` |
+| src/director.lua | 139 | `passSide` |
+| src/director.lua | 148 | `baseModifiers` |
+| src/director.lua | 165 | `directionAllowed` |
+| src/director.lua | 188 | `directionBudget` |
+| src/director.lua | 198 | `wanted` |
+| src/director.lua | 199 | `limitText` |
+| src/director.lua | 208 | `M.reachable` |
+| src/director.lua | 219 | `laneTarget` |
+| src/director.lua | 228 | `laneHold` |
+| src/director.lua | 254 | `M.lateral` |
+| src/director.lua | 291 | `busy` |
+| src/director.lua | 304 | `pace` |
+| src/director.lua | 328 | `lapOrClass` |
+| src/director.lua | 333 | `yieldTrigger` |
+| src/director.lua | 440 | `M.trafficCap` |
+| src/director.lua | 453 | `aeroMap` |
+| src/director.lua | 468 | `straightBin` |
+| src/director.lua | 469 | `aeroRuns` |
+| src/director.lua | 486 | `lapsAhead` |
+| src/director.lua | 492 | `rival` |
+| src/director.lua | 499 | `directionRoom` |
+| src/director.lua | 507 | `dirtyAir` |
+| src/director.lua | 515 | `urgency` |
+| src/director.lua | 534 | `towStart` |
+| src/director.lua | 570 | `M.step` |
 | src/engine.lua | 27 | `startReport` |
 | src/engine.lua | 53 | `decisionTime` |
 | src/engine.lua | 69 | `contacts` |
@@ -648,14 +650,14 @@ List taken from the AST of the 42 active files, including local and anonymous fu
 | src/lights.lua | 24 | `M.reset` |
 | src/lights.lua | 30 | `M.rebase` |
 | src/lights.lua | 40 | `slow` |
-| src/lights.lua | 71 | `damage` |
-| src/lights.lua | 87 | `green` |
-| src/lights.lua | 102 | `M.decide` |
-| src/lights.lua | 131 | `M.update` |
-| src/lights.lua | 144 | `M.output` |
-| src/lights.lua | 150 | `M.scan` |
-| src/lights.lua | 154 | `close` |
-| src/lights.lua | 187 | `M.equipped` |
+| src/lights.lua | 74 | `damage` |
+| src/lights.lua | 90 | `green` |
+| src/lights.lua | 105 | `M.decide` |
+| src/lights.lua | 134 | `M.update` |
+| src/lights.lua | 147 | `M.output` |
+| src/lights.lua | 153 | `M.scan` |
+| src/lights.lua | 157 | `close` |
+| src/lights.lua | 190 | `M.equipped` |
 | src/locale.lua | 12 | `copy` |
 | src/locale.lua | 19 | `fill` |
 | src/locale.lua | 25 | `texts` |
@@ -663,12 +665,13 @@ List taken from the AST of the 42 active files, including local and anonymous fu
 | src/locale.lua | 32 | `M.set` |
 | src/merge.lua | 14 | `car` |
 | src/merge.lua | 15 | `M.new` |
-| src/merge.lua | 20 | `M.reset` |
-| src/merge.lua | 25 | `M.before` |
-| src/merge.lua | 27 | `learn` |
-| src/merge.lua | 41 | `arriving` |
-| src/merge.lua | 58 | `M.update` |
-| src/merge.lua | 102 | `M.idle` |
+| src/merge.lua | 21 | `M.rebase` |
+| src/merge.lua | 22 | `M.reset` |
+| src/merge.lua | 27 | `M.before` |
+| src/merge.lua | 29 | `learn` |
+| src/merge.lua | 44 | `arriving` |
+| src/merge.lua | 61 | `M.update` |
+| src/merge.lua | 106 | `M.idle` |
 | src/mistakes.lua | 10 | `car` |
 | src/mistakes.lua | 11 | `M.new` |
 | src/mistakes.lua | 16 | `M.reset` |

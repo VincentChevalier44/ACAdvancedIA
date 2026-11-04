@@ -1,5 +1,5 @@
 local U=require('src/util')
-local M={version=3,release='Beta 1.43',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights','strategy','sanctions'}}
+local M={version=3,release='Beta 1.44',profiles={'J','P','Q','C','H'},schema={},sections={'general','yield','blue','flash','overtake','lateral','human','start','accidents','rules','endurance','weather','traffic','globals','lights','strategy','sanctions'}}
 local sectionKeys={}
 for _,group in ipairs(M.sections) do sectionKeys[group]='section_'..group end
 M.globalRuntimeKeys={'overrideAwareness','useGripBoost','useBrakeAssist','gripPerLevelPct','occLatMin','occLatMax','occMargin','occSpeedGain','seed','levelMode','debugLog'}
@@ -518,7 +518,13 @@ local k142merge={strategyStretchLaps=2,strategyCoverWear=0.35,paceRatioLow=0.6,p
  aiJumpDwell=0.5,aiJumpMinMove=1,sanCutBehindTime=4,sanCutTtc=5,sanCutResume=50,sanStraightLat=2,sanCutAfterRejoin=3,sanCutAfterStart=10,
  sanGiveBackFloorDrop=25,sanGiveBackPaceFloor=0.7,sanGiveBackSlowPace=0.6,sanNoPitLaps=2,sanAppOffset=0.3,sanPitLimitMin=40,sanLaneDebounce=1,
  sanLineWindow=300,sanLineDecay=1800}
-for _,block in ipairs({k142schema,k142aero,k142strategy,k142sanctions,k142merge}) do for key,value in pairs(block) do assert(M.K[key]==nil,key); M.K[key]=value end end
+-- Beta 1.44 (essais du 4 novembre : l'IA restait derrière le joueur qui ralentissait et se rangeait) : hors course, joueur
+-- « lent » sous playerSlowRatio fois l'allure libre de l'IA ici (inconnue : sous speedMinPass*playerCrawlRatio km/h) ;
+-- invitation hors course jusqu'à inviteLatAccel m/s² d'accélération latérale ; voiture sortie des stands depuis moins de
+-- mergeExitGrace s jamais prise pour une voiture qui arrive à la jonction ; véhicule lent devant le joueur : au moins
+-- slowVehicleAhead m devant lui pour être relevé (gardé ensuite jusqu'à slowVehicleBehind m derrière).
+local k144={playerSlowRatio=0.85,playerCrawlRatio=1.25,inviteLatAccel=4,mergeExitGrace=10,slowVehicleAhead=10}
+for _,block in ipairs({k142schema,k142aero,k142strategy,k142sanctions,k142merge,k144}) do for key,value in pairs(block) do assert(M.K[key]==nil,key); M.K[key]=value end end
 for _,key in ipairs({'passIgnoreUntil','yieldIgnoreUntil'}) do M.timerFields[#M.timerFields+1]=key end
 -- Beta 1.41 (sessions du 3 novembre, Beta 1.40) : bandeaux qu'AC dessine lui-même malgré l'option de CSP « Hide system
 -- messages » (coupe de piste, pénalités ; textes relevés dans acs.exe et dans les journaux) ; motifs Lua sur le titre

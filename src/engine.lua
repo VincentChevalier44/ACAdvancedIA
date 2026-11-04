@@ -140,7 +140,7 @@ function M.rebase(e,amount)
  e.time=e.time-amount; e.startedAt=e.startedAt-amount; if e.launchAt then e.launchAt=e.launchAt-amount end; if e.jumpGoAt then e.jumpGoAt=e.jumpGoAt-amount end; e.panel.at=e.panel.at-amount; Penalties.rebase(e.penalties,amount); Delta.rebase(e.delta,amount); Mistakes.rebase(e.mistakes,amount); e.deltaBeep.nextAt=e.deltaBeep.nextAt-amount
  if e.panel.noticeUntil>-math.huge then e.panel.noticeUntil=e.panel.noticeUntil-amount end
  if e.panel.warnUntil>-math.huge then e.panel.warnUntil=e.panel.warnUntil-amount end
- Lights.rebase(e.lights,amount); Grid.rebase(e.grid,amount)
+ Lights.rebase(e.lights,amount); Grid.rebase(e.grid,amount); Merge.rebase(e.merge,amount)
  if e.slowLoggedAt then e.slowLoggedAt=e.slowLoggedAt-amount end
  if e.panel.changedAt>-math.huge then e.panel.changedAt=e.panel.changedAt-amount end
  e.classes.nextAt=e.classes.nextAt-amount; e.classes.bopAt=e.classes.bopAt-amount

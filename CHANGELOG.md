@@ -1,5 +1,16 @@
 # Changelog
 
+## Beta 1.44 — 4 November 2026
+
+The AI no longer stays behind you when you slow down or move aside to let it by (practice, qualifying and track day).
+
+- **Never written off after one try.** An AI that gave up passing you because you sped up again (« cible plus rapide ») used to leave you alone for 45 s, then 3 min, then 10 min. Outside the race it now tries again as soon as you slow down; in the race nothing changes.
+- **Invitations in gentle corners.** Outside the race, moving aside in front of an AI now invites it past in a gentle corner too (up to about 0.4 g), not only on a straight. The lateral gap counts once the part due to the curve itself is taken off, so a car simply following the bend is never taken for an invitation. In the race, invitations still need a straight.
+- **A crawling player is passed.** Below 30 km/h the AI could neither treat you as an obstacle (under 25 km/h) nor overtake (30 km/h minimum). Outside the race, behind a player clearly slower than its own pace here, it may now pass at your speed, and the courtesy rule (no counter-attack right after you passed it) no longer holds it back once you slow down clearly.
+- **Log**: `invitation du joueur non suivie` now names two more reasons, `joueur plus rapide` (you were pulling away) and `virage` (corner tighter than 0.4 g outside the race). A car held behind you or alongside you is no longer reported as a « slow vehicle ahead » (`vehicule lent devant le joueur … 0 m devant`). At the pit exit, an AI no longer « waits » for the car that has just left the pit lane in front of it (`attend … dans 0.0 s`, then `repart apres 0.0 s`).
+
+**Verification**: 587 checks; 124 integration cases; 1,441 mutations, all detected; clean lint, parameter audit; the reference scenes identical to Beta 1.43 and the end-to-end race scene too; 8-hour soak with 0 errors (memory between 9.7 and 11.0 MB, peak frame 0.68 ms); engine bench, median of five alternating runs, 9 / 30 / 60 AI: 0.053 / 0.240 / 0.618 ms (Beta 1.43: 0.054 / 0.254 / 0.640 ms); long track (60.6 km, 46 AI): 0.291 ms, P99 0.640 ms (Beta 1.43: 0.272 ms, P99 0.626 ms).
+
 ## Beta 1.43 — 4 November 2026
 
 AI sanction notices redrawn on the overlay as in the mockup.
