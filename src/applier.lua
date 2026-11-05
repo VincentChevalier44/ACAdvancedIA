@@ -201,7 +201,7 @@ end
 -- quand c'est fait ou impossible (fonction ou fenêtre absente : noté au journal), pour ne jamais réessayer.
 function M.compactWindow(a,target)
  if not callable(ac.accessAppWindow) then return true end
- local ok,w=pcall(ac.accessAppWindow,'IMGUI_LUA_ACAdvancedIA_main')
+ local ok,w=pcall(ac.accessAppWindow,'IMGUI_LUA_AdvancedIA_main')
  if not ok or not w then note(a,'WARN','fenetre de reglages introuvable: taille laissee telle quelle',-1); return true end
  local good,size=pcall(function() return w:size() end)
  if good and size and size.x>target.x+1 then
@@ -912,7 +912,7 @@ function M.journalOpen(a)
   if not io or type(io.open)~='function' or not ac.getFolder or not ac.FolderID or not ac.FolderID.Logs then return end
   local root=ac.getFolder(ac.FolderID.Logs)
   if type(root)~='string' or root=='' then return end
-  local base=root..'/ACAdvancedIA'
+  local base=root..'/AdvancedIA'
   local continued=M.loadText(K.journalMarker)=='1' and type(io.fileExists)=='function' and io.fileExists(base..'.log')
   if not continued and type(io.fileExists)=='function' and type(io.move)=='function' then
    for n=K.journalKeep-1,1,-1 do local from=base..'.'..n..'.log'; if io.fileExists(from) then io.move(from,base..'.'..(n+1)..'.log',true) end end
@@ -1188,6 +1188,43 @@ function M.recover(a,frame)
 end
 -- Pont vers les apps compagnes (Beta 1.46, SpotterEnginer, src/bridge.lua). App lectrice installée : dossier
 -- apps/lua/<nom> avec son manifest.ini, lu une fois au lancement ; toute erreur vaut « absente » (pont jamais ouvert).
+-- Beta 1.49 : réglages du menu Quick Pitstop d'AC (CSP 0.2.7 et plus) et préréglage choisi (0 = premier) ; nil et la
+-- raison sinon. Lecture seule : le préréglage du joueur n'est jamais modifié.
+function M.pitSpinners()
+ if not ac or not callable(ac.getPitstopSpinners) then return nil,'CSP sans getPitstopSpinners' end
+ local ok,out,preset=pcall(function()
+  local list=ac.getPitstopSpinners()
+  if type(list)~='table' then return nil,0 end
+  local result={}
+  for k=1,#list do
+   local s=list[k]
+   if s then
+    local values={}
+    if type(s.values)=='table' then for j=1,#s.values do values[j]=s.values[j] end end
+    result[#result+1]={name=s.name,type=s.type,min=s.min,max=s.max,value=s.value,values=values}
+   end
+  end
+  local index=0
+  if callable(ac.getSim) then local sim=ac.getSim(); if sim and tonumber(sim.currentQuickPitPreset) then index=tonumber(sim.currentQuickPitPreset) end end
+  return result,index
+ end)
+ if not ok or type(out)~='table' then return nil,'lecture refusee' end
+ return out,preset
+end
+-- Beta 1.49 : réglages de l'ancienne app (ac.storage de apps/lua/ACAdvancedIA) présents alors que ceux d'AdvancedIA
+-- n'existent pas encore (première ouverture après le changement de nom) : rien n'est copié ici (CSP lit et écrit ce
+-- fichier lui-même), le pilote est seulement averti de la marche à suivre, jeu fermé.
+function M.oldSettings()
+ local ok,yes=pcall(function()
+  if not ac or not callable(ac.getFolder) or type(ac.FolderID)~='table' or not ac.FolderID.ExtCfgState then return false end
+  if not io or not callable(io.fileExists) then return false end
+  local root=ac.getFolder(ac.FolderID.ExtCfgState)
+  if type(root)~='string' or root=='' then return false end
+  local sep=string.char(92); local dir=root..sep..'lua'..sep..'app'..sep
+  return io.fileExists(dir..'ACAdvancedIA.ini')==true and io.fileExists(dir..'AdvancedIA.ini')~=true
+ end)
+ return ok and yes==true
+end
 function M.companionInstalled(name)
  if type(name)~='string' or not name:match('^[%w_%-]+$') then return false end
  local ok,yes=pcall(function()

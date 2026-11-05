@@ -8,6 +8,7 @@ local Traffic=require('src/traffic')
 local Weather=require('src/weather')
 local Incidents=require('src/incidents')
 local Pits=require('src/pits')
+local Pitplan=require('src/pitplan')
 local Panel=require('src/panel')
 local Penalties=require('src/penalties')
 -- Beta 1.42 : stratégie et sanctions des IA (modules remplis par les fourches de comportement).
@@ -101,12 +102,12 @@ local penaltyMessages={delta='penaltyDelta',pass='penaltyPass',red='penaltyRed',
 function M.new(g,profiles)
  local initial=g.autoProfile and 'J' or g.manualProfile
  local e={g=g,profiles=profiles,profile=initial,p=profiles[initial],states={},commands={},perception=Perception.new(),
-  flash=Flash.new(),classes=Classes.new(),traffic=Traffic.new(),weather=Weather.new(),incidents=Incidents.new(),pits=Pits.new(),panel=Panel.new(),penalties=Penalties.new(),delta=Delta.new(),mistakes=Mistakes.new(),deltaBeep={beepId=0,volume=1,nextAt=0},drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''},drs={was=false,beepId=0,volume=1},run={},runtimeG={},zones={},frame=nil,time=0,startedAt=0,session=-1,sessionType=-1,
+  flash=Flash.new(),classes=Classes.new(),traffic=Traffic.new(),weather=Weather.new(),incidents=Incidents.new(),pits=Pits.new(),pitplan=Pitplan.new(),panel=Panel.new(),penalties=Penalties.new(),delta=Delta.new(),mistakes=Mistakes.new(),deltaBeep={beepId=0,volume=1,nextAt=0},drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''},drs={was=false,beepId=0,volume=1},run={},runtimeG={},zones={},frame=nil,time=0,startedAt=0,session=-1,sessionType=-1,
   configured='',seed=-1,revision=0,configuredRevision=-1,eventSalt=0,wasStarted=false,
   log=U.newLog(K.logLines,K.logRate,K.logDedup),errors=0,frames=0,activeCount=0,maxFrame=0,meanFrame=0,
   guard='init',panic=false,returning=false,pitSpline=-1,zoneStart=-1,
   flood={user='',system=nil,writable=false,loaded=false,minLength=K.floodMinLength,at=0},probeSeen=false}
- e.announce=function(kind,value,extra) Incidents.message(e.incidents,kind,value,extra) end
+ e.announce=function(kind,value,extra,text) Incidents.message(e.incidents,kind,value,extra,text) end
  -- Événements des modules purs vers le journal circulaire (et le journal de session sur disque).
  e.note=function(level,message,index) U.log(e.log,e.time,level,message,index) end
  -- Compteurs d'événements de la minute écoulée, relevés et remis à zéro par le résumé du journal.
@@ -151,7 +152,7 @@ function M.rebase(e,amount)
  e.classes.nextAt=e.classes.nextAt-amount; e.classes.bopAt=e.classes.bopAt-amount
  e.traffic.nextAt=e.traffic.nextAt-amount
  e.weather.pendingAt=e.weather.pendingAt-amount
- Incidents.rebase(e.incidents,amount); Pits.rebase(e.pits,amount); Strategy.rebase(e.strategy,amount); Sanctions.rebase(e.sanctions,amount)
+ Incidents.rebase(e.incidents,amount); Pits.rebase(e.pits,amount); Pitplan.rebase(e.pitplan,amount); Strategy.rebase(e.strategy,amount); Sanctions.rebase(e.sanctions,amount)
  for i=1,K.maxCars do
   local s=e.states[i]
   for _,key in ipairs(C.timerFields) do if U.finite(s[key]) then s[key]=s[key]-amount end end
@@ -407,7 +408,7 @@ function M.step(e,frame,dt)
   e.session=frame.session; e.sessionType=frame.type
   M.reset(e,now,true); e.wasStarted=frame.started; e.startedAt=frame.started and now-frame.time or now; e.launchAt=nil; e.jumpDue=false
   e.classes.nextAt=0; e.flash=Flash.new()
-  e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); Lights.reset(e.lights); Grid.reset(e.grid); e.slowLogged=0; e.panel.warnPending=false; e.panel.warnUntil=-math.huge; e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
+  e.weather=Weather.new(); Incidents.reset(e.incidents); Pits.reset(e.pits,now); Pitplan.reset(e.pitplan); Penalties.reset(e.penalties); Delta.reset(e.delta); Mistakes.reset(e.mistakes); Lights.reset(e.lights); Grid.reset(e.grid); e.slowLogged=0; e.panel.warnPending=false; e.panel.warnUntil=-math.huge; e.drsRule={restart=false,started=false,seen=false,travel={},last={},leader=0,reason=''}
   e.configuredRevision=-1; Merge.reset(e.merge); Strategy.reset(e.strategy,now); Sanctions.reset(e.sanctions,now)
   FirstLap.reset(e.fl); e.fl.restartSerial=e.incidents.restartSerial or 0
   for i=1,K.maxCars do local s=e.states[i]; s.flOn=false; s.flW=0; s.flCare=0; s.flApproach=false end
@@ -842,6 +843,43 @@ function M.step(e,frame,dt)
  e.incidents.playerPitDue=due
  e.incidents.playerPitRemind=due>0 and (now-e.pits.openedAt<K.pitRemindTime or e.pits.position>=e.pits.close-(e.pits.close-e.pits.open)*K.pitRemindLate)
  if e.pits.justClosed and player and e.pits.cars[frame.player].windowStops<e.run.mandatoryStops then e.penalties.stopPending=true end
+ -- Beta 1.49 : F1 (changement de composé exigé), arrêt obligatoire encore dû : stratégie des stands du joueur relue
+ -- (src/pitplan.lua, lecture fournie par l'hôte) ; rappel « changez de composé » avant l'entrée des stands (environ
+ -- K.pitHintTime s, entrée relevée sur les autres voitures, sinon dernier tiers du tour), dans la voie et à
+ -- l'emplacement ; avis du joueur après l'arrêt (src/pits.lua). Rien ne change pour les IA.
+ local f1=e.profile=='C' and e.run.pitCompoundChange==true and not e.pits.waived and e.run.mandatoryStops>0
+ local pc=player and e.pits.cars[frame.player] or nil
+ local owed=f1 and pc~=nil and pc.windowStops<e.run.mandatoryStops and (e.pits.state=='pending' or e.pits.state=='open')
+ e.incidents.playerPitCompound=f1
+ if e.pitSpinners then Pitplan.update(e.pitplan,frame,now,owed,f1,frame.started and e.incidents.standing~='grid' and e.incidents.standing~='lights',e.pitSpinners,e.note) end
+ local hint=false
+ if owed and e.pits.state=='open' and player.valid then
+  if player.pit or player.inPitBox then hint=true
+  elseif player.splineValid then
+   local entry=e.pits.entrySpline
+   if entry>=0 and frame.length>0 then hint=U.spline(entry-player.spline)*frame.length/math.max(player.speed or 0,K.pitHintMinSpeed)<=K.pitHintTime
+   else hint=player.spline>=K.pitHintSector end
+  end
+ end
+ if owed and player.compoundIndex~=e.pits.hintFor then
+  local p0=e.pits; p0.hintFor=player.compoundIndex; p0.hintTyre=player.compoundIndex~=nil and player.tyreNames and player.tyreNames[player.compoundIndex] or ''
+  local others={}
+  for _,index in ipairs(player.dryList or {}) do if index~=player.compoundIndex and player.tyreNames and player.tyreNames[index] then others[#others+1]=player.tyreNames[index] end end
+  p0.hintOthers=others
+ end
+ -- Annonces du pont (SpotterEnginer) : au début du rappel d'avant l'entrée (une fois par approche) et de l'avis de
+ -- stratégie au départ ; stratégie au même composé : celle-ci à la place du rappel.
+ local planNotice=owed and e.pitplan.state=='same' and now<e.pitplan.noticeUntil
+ local fitted=player and player.compoundIndex or -1
+ if hint and not e.incidents.playerPitHint then
+  if owed and e.pitplan.state=='same' then e.announce('pitPlanSame',fitted,e.pitplan.plannedIndex or fitted) else e.announce('pitCompound',fitted,-1) end
+ elseif planNotice and not e.incidents.playerPlanNotice then e.announce('pitPlanSame',fitted,e.pitplan.plannedIndex or fitted) end
+ e.incidents.playerPitHint=hint
+ e.incidents.playerTyre=e.pits.hintTyre; e.incidents.playerTyreOthers=e.pits.hintOthers
+ e.incidents.playerPlan=owed and e.pitplan.state or ''; e.incidents.playerPlanned=e.pitplan.planned
+ e.incidents.playerPlanNotice=planNotice
+ e.incidents.playerPitNotice=now<e.pits.playerNoticeUntil and e.pits.playerNotice or ''
+ e.incidents.playerPitFrom=e.pits.playerNoticeFrom; e.incidents.playerPitTo=e.pits.playerNoticeTo
  -- Drapeau rouge : toutes les IA rentrent aux stands et y restent. Dépannage d'une IA immobile en piste jusqu'à son
  -- stand : sous drapeau rouge, sous neutralisation, ou bloquée longtemps (commissaires), jamais le joueur.
  local neutral=e.incidents.neutral
@@ -955,6 +993,8 @@ function M.step(e,frame,dt)
  end
  -- Beta 1.42 : sanctions des IA (limites de piste, virage coupé, procédure, contresens, purge, place à rendre).
  Sanctions.update(e.sanctions,e,frame,now,dt)
+ -- Beta 1.49 : annonce de l'arrêt F1 écartée dans une image déjà prise : publiée ici, à l'image suivante libre.
+ Incidents.flushHeld(e.incidents,now)
  return true
 end
 return M

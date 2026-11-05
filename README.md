@@ -1,12 +1,12 @@
-<p align="center"><img src="docs/banner.jpg" width="100%" alt="ACAdvancedIA, more human, more racing: smarter opponents, more immersive offline racing. Human-like AI, overtaking and defence, flags and Safety Car, pit and weather strategy."></p>
+<p align="center"><img src="docs/banner.jpg" width="100%" alt="AdvancedIA, more human, more racing: smarter opponents, more immersive offline racing. Human-like AI, overtaking and defence, flags and Safety Car, pit and weather strategy."></p>
 
-# ACAdvancedIA
+# AdvancedIA
 
 **Human-like AI drivers for Assetto Corsa, powered by Custom Shaders Patch.**
 
-ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP). Its HumanAI engine sits on top of the game's own AI and makes the AI cars drive more like people. On a track day they move aside for faster cars and spread out around the lap. In a race they respect blue flags, overtake and defend with intent, and flash their headlights at slower cars. They make the odd mistake, slow down for yellow flags, and follow Full Course Yellows, Virtual Safety Cars, a Safety Car and red flags. They make their mandatory pit stops, refuel and repair, and fit wet tyres when it rains. The app enforces the racing rules for you as well (delta time, penalties, DRS rules), and its in-game overlay tells you what is happening. It works in **offline sessions only**.
+AdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP). Its HumanAI engine sits on top of the game's own AI and makes the AI cars drive more like people. On a track day they move aside for faster cars and spread out around the lap. In a race they respect blue flags, overtake and defend with intent, and flash their headlights at slower cars. They make the odd mistake, slow down for yellow flags, and follow Full Course Yellows, Virtual Safety Cars, a Safety Car and red flags. They make their mandatory pit stops, refuel and repair, and fit wet tyres when it rains. The app enforces the racing rules for you as well (delta time, penalties, DRS rules), and its in-game overlay tells you what is happening. It works in **offline sessions only**.
 
-- **Current version:** Beta 1.36. See [CHANGELOG.md](CHANGELOG.md).
+- **Current version:** Beta 1.49. See [CHANGELOG.md](CHANGELOG.md).
 - **Interface:** English by default, French available (**FR** | **EN** buttons in the settings window).
 - **Author:** VincentChevalier44. MIT License.
 
@@ -18,6 +18,7 @@ ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP
   - [Manual installation](#manual-installation)
   - [First launch](#first-launch)
 - [Updating](#updating)
+  - [Moving from ACAdvancedIA (Beta 1.48 and older)](#moving-from-acadvancedia-beta-148-and-older)
 - [Uninstalling and resetting the settings](#uninstalling-and-resetting-the-settings)
 - [Features](#features)
   - [The settings window (Racing 26 interface)](#the-settings-window-racing-26-interface)
@@ -76,30 +77,30 @@ ACAdvancedIA is a Lua app for Assetto Corsa running on Custom Shaders Patch (CSP
 
 ## Installation
 
-The game loads the app from `assettocorsa/apps/lua/ACAdvancedIA/`. The folder name matters, because CSP stores the app's settings under that name.
+The game loads the app from `assettocorsa/apps/lua/AdvancedIA/`. The folder name matters, because CSP stores the app's settings under that name.
 
 ### With Content Manager (recommended)
 
 1. Close Assetto Corsa.
-2. Download the package [`dist/ACAdvancedIA-Beta-1.27.zip`](dist/ACAdvancedIA-Beta-1.27.zip) from this repository.
+2. Download the package [`dist/AdvancedIA-Beta-1.49.zip`](dist/AdvancedIA-Beta-1.49.zip) (or the latest release on the [Releases page](https://github.com/VincentChevalier44/AdvancedIA/releases)) from this repository.
 3. Drag the zip onto the Content Manager window and confirm the installation when Content Manager offers it.
 
-The package already contains the right structure (`apps/lua/ACAdvancedIA/…`). Without Content Manager, you can also extract it straight into the `assettocorsa` root folder. It holds only what the game loads (entry point, manifest, icon, `src/`, `sounds/`, `tracks/`) plus the user notes. When a `.sha256` file is published next to it, use it to check the download.
+The package already contains the right structure (`apps/lua/AdvancedIA/…`). Without Content Manager, you can also extract it straight into the `assettocorsa` root folder. It holds only what the game loads (entry point, manifest, icon, `src/`, `sounds/`, `tracks/`) plus the user notes. When a `.sha256` file is published next to it, use it to check the download.
 
 ### Manual installation
 
 1. Close Assetto Corsa.
 2. On this GitHub page, click **Code › Download ZIP**.
-3. Extract the archive. It contains a folder named `ACAdvancedIA-main`.
-4. Copy that folder into `assettocorsa/apps/lua/` and **rename it exactly `ACAdvancedIA`**.
-5. Check the final path: `assettocorsa/apps/lua/ACAdvancedIA/manifest.ini`. With Steam this is usually `C:\Program Files (x86)\Steam\steamapps\common\assettocorsa\apps\lua\ACAdvancedIA\manifest.ini`.
+3. Extract the archive. It contains a folder named `AdvancedIA-main`.
+4. Copy that folder into `assettocorsa/apps/lua/` and **rename it exactly `AdvancedIA`**.
+5. Check the final path: `assettocorsa/apps/lua/AdvancedIA/manifest.ini`. With Steam this is usually `C:\Program Files (x86)\Steam\steamapps\common\assettocorsa\apps\lua\AdvancedIA\manifest.ini`.
 
 The repository download also contains the test bench and the technical documents (`tests/`, `docs/`, French notes). The game never loads them, so they can stay.
 
 ### First launch
 
 1. **Start an offline session** from Content Manager: Practice, Track day, Race weekend, Race or Hotlap.
-2. **Open the pause menu (Esc) or the setup/pits screen.** The ACAdvancedIA settings window opens there by itself.
+2. **Open the pause menu (Esc) or the setup/pits screen.** The AdvancedIA settings window opens there by itself.
    - It closes as soon as you drive again. While you drive, only the **in-game overlay** is shown.
    - The app also has an icon among the setup screen's settings apps. Use it if the window does not appear.
    - The engine keeps running in the garage/setup screen, so a practice session goes on. Only the real pause freezes the commands.
@@ -124,6 +125,18 @@ The repository download also contains the test bench and the technical documents
 
 ## Updating
 
+### Moving from ACAdvancedIA (Beta 1.48 and older)
+
+Since Beta 1.49 the app is called **AdvancedIA**: its folder is `apps/lua/AdvancedIA`, its GitHub repository `VincentChevalier44/AdvancedIA`, its packages `AdvancedIA-Beta-X.zip`. The update button of ACAdvancedIA (Beta 1.48 and older) cannot move the app to the new folder, so **install Beta 1.49 once by hand**:
+
+1. Close Assetto Corsa.
+2. Back up, then **delete** the old folder `assettocorsa/apps/lua/ACAdvancedIA`. Both apps must never run together: while the old folder (its `manifest.ini`) is still there, AdvancedIA drives nothing and only shows this instruction, in its window and on screen.
+3. Extract `AdvancedIA-Beta-1.49.zip` into the `assettocorsa` root folder (or drag it onto Content Manager). Check `assettocorsa/apps/lua/AdvancedIA/manifest.ini`.
+4. **To keep your settings and custom presets**, before the first launch, rename `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini` to `AdvancedIA.ini` (same folder). CSP stores each app's settings under its folder name. If you launched AdvancedIA first, close the game and replace `AdvancedIA.ini` with a copy of `ACAdvancedIA.ini`; the app reminds you under **HOME › TO CHECK** on that first launch.
+5. Start the game and reopen the window from the app bar: as a new app, its window and overlay positions start from their defaults.
+
+What keeps its old name on purpose: the CSP state file `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-cspgui.ini` (it holds your original **Hide race flags** / **Hide system messages** values, given back when you switch the options off), and the keys of the companion-app bridge (`ACAdvancedIA.Bridge.*`, a frozen format shared with SpotterEnginer). SpotterEnginer needs a version that knows the new folder name. The previous update work folder `state/ACAdvancedIA-update` is no longer used and can be deleted. From Beta 1.49 on, the update button works again, from the new repository.
+
 **From the app (since Beta 1.33, reworked in Beta 1.35).** At launch, about ten seconds into the game, the app makes **one request** to GitHub (`api.github.com`) to read the latest published release; nothing about you or your installation is sent. When a newer version exists:
 - **UPDATE · 1.36** appears in the header, right of the tabs, and *Update available* under **HOME › TO CHECK**, with an **Update** button (both greyed while you drive);
 - **DIAGNOSTICS › UPDATES** shows the installed and available versions, the first lines of the release notes and **Read everything on GitHub**;
@@ -131,9 +144,9 @@ The repository download also contains the test bench and the technical documents
 
 One click on **Update**, stopped (paused, in a menu, or at your pit box at standstill):
 1. downloads the release's SHA-256 digest, then its package, from the repository's release downloads only (no other address is followed);
-2. checks the digest, the package contents (everything under `apps/lua/ACAdvancedIA/`, no path outside it, the updater itself included) and the version in its `manifest.ini`;
-3. unpacks it into CSP's state folder, `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-update/next`, never into the app folder, and checks the unpacked copy;
-4. then, on the first frame you are stopped (**READY · WHEN STOPPED** until then), copies the installed files that the update changes to `ACAdvancedIA-update/current` (since Beta 1.37, only the files whose content differs, so the stop is shorter), writes a marker, copies the changed files into the app folder in one go with CSP's live reload paused (`src/` first, `ACAdvancedIA.lua` next, `manifest.ini` last), keeps the version you had in `ACAdvancedIA-update/backup`, writes the session log, hands every AI back to AC and restarts the app.
+2. checks the digest, the package contents (everything under `apps/lua/AdvancedIA/`, no path outside it, the updater itself included) and the version in its `manifest.ini`;
+3. unpacks it into CSP's state folder, `Documents/Assetto Corsa/cfg/extension/state/AdvancedIA-update/next`, never into the app folder, and checks the unpacked copy;
+4. then, on the first frame you are stopped (**READY · WHEN STOPPED** until then), copies the installed files that the update changes to `AdvancedIA-update/current` (since Beta 1.37, only the files whose content differs, so the stop is shorter), writes a marker, copies the changed files into the app folder in one go with CSP's live reload paused (`src/` first, `AdvancedIA.lua` next, `manifest.ini` last), keeps the version you had in `AdvancedIA-update/backup`, writes the session log, hands every AI back to AC and restarts the app.
 
 Steps 1 to 3 can be cancelled and never touch the app folder. A failed copy in step 4 puts the installed version back at once (*Cannot write to the app folder: current version kept*; the log names the file). If that fails too, the block says *Recovery impossible*, names the marker file and does nothing more: restart the game, and reinstall manually if it persists. An install cut short by a crash or a power cut is finished at the next launch, before the app loads anything else: from the unpacked package when it is intact, otherwise by putting the starting version back; the app then restarts once. Two attempts at most, never a loop. **Roll back to Beta X** puts the previous version back the same way. **Check now** asks at most once a minute (greyed in between); GitHub's request limit is shown as such. Your settings, profiles and presets are kept: they live in CSP's storage, not in the app folder. Untick **Check for updates at launch** to never contact GitHub. With a CSP version that lacks the web, zip, copy or digest functions, the block says so: update manually as below. The download size is shown, but not its progress (CSP does not report it).
 
@@ -150,12 +163,12 @@ Each file is copied next to its destination under a temporary name, then renamed
 1. Close Assetto Corsa.
 2. Install the new version:
    - **Content Manager:** install the new package over the old one (drag the new zip onto Content Manager).
-   - **Manually:** delete `assettocorsa/apps/lua/ACAdvancedIA` and copy the new folder in its place, with the same name `ACAdvancedIA`.
+   - **Manually:** delete `assettocorsa/apps/lua/AdvancedIA` and copy the new folder in its place, with the same name `AdvancedIA`.
 3. Start the game. Your settings and custom presets are kept.
 
 If you created your own zone files in `tracks/` (see [Track zones and class patterns](#track-zones-and-class-patterns)), back them up before replacing the folder or installing over it, then copy them back.
 
-**Why nothing is lost:** the app keeps its settings in CSP's own storage (`ac.storage`), not in its folder. CSP writes them to `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini`.
+**Why nothing is lost:** the app keeps its settings in CSP's own storage (`ac.storage`), not in its folder. CSP writes them to `Documents/Assetto Corsa/cfg/extension/state/lua/app/AdvancedIA.ini`.
 
 **Settings migrate automatically** between versions:
 - Each version carries a data revision number. On the first start after an update, the app applies the one-off changes of every revision you skipped.
@@ -165,7 +178,7 @@ If you created your own zone files in `tracks/` (see [Track zones and class patt
   - Beta 1.26 hides Assetto Corsa's original messages by default.
 - What changed is written to the session log (`profils mis a jour …`) and shown under **HOME › TO CHECK** (*Updated to the current presets: …*).
 
-Rolling back from the app keeps your settings since Beta 1.35. Before going back by hand to a version older than 1.35, back up `ACAdvancedIA.ini` (game closed): those versions reset settings written by a newer one. Read [CHANGELOG.md](CHANGELOG.md) for what changed and what to check in game.
+Rolling back from the app keeps your settings since Beta 1.35. Before going back by hand to a version older than 1.35, back up `AdvancedIA.ini` (game closed): those versions reset settings written by a newer one. Read [CHANGELOG.md](CHANGELOG.md) for what changed and what to check in game.
 
 ## Uninstalling and resetting the settings
 
@@ -176,10 +189,10 @@ Rolling back from the app keeps your settings since Beta 1.35. Before going back
    - The simplest way: tick the **General** section, set **AI distribution at session start** to **Native (game)**, run a Track day session with AI, then restart the game. The app writes back the original values it saved before its first change.
    - Or edit the `[AI_FLOOD]` section of `Documents/Assetto Corsa/cfg/extension/new_behaviour.ini` by hand.
 2. **If you kept the two CSP display options on** (Overlay section), untick them (or switch the app off with the on/off switch in the header) while the game runs: the app writes your original `gui.ini` values back at once. Closing the game does not give them back (Beta 1.47): after uninstalling, they stay ticked; untick them in Content Manager › **Custom Shaders Patch › GUI** if you want AC's own flags and messages back. Otherwise `Documents/Assetto Corsa/cfg/extension/state/ACAdvancedIA-cspgui.ini` holds them (the original file follows the `original` line).
-3. Close Assetto Corsa and delete the folder `assettocorsa/apps/lua/ACAdvancedIA`. Keep a copy of your own `tracks/*.lua` zone files first if you want them later.
+3. Close Assetto Corsa and delete the folder `assettocorsa/apps/lua/AdvancedIA`. Keep a copy of your own `tracks/*.lua` zone files first if you want them later.
 4. Optionally, delete what the app left in your Documents folder:
-   - its settings and custom presets: `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini`;
-   - its session logs: `Documents/Assetto Corsa/logs/ACAdvancedIA.log` and `ACAdvancedIA.1.log` to `ACAdvancedIA.3.log`.
+   - its settings and custom presets: `Documents/Assetto Corsa/cfg/extension/state/lua/app/AdvancedIA.ini`;
+   - its session logs: `Documents/Assetto Corsa/logs/AdvancedIA.log` and `AdvancedIA.1.log` to `AdvancedIA.3.log`.
 
 No track, car or `surfaces.ini` file is ever changed, so there is nothing else to undo.
 
@@ -200,7 +213,7 @@ No track, car or `surfaces.ini` file is ever changed, so there is nothing else t
 | Overlay | **SETTINGS › ADVANCED › Overlay › RESET SECTION**; **PUT BACK ON SCREEN** recentres it at 1.00x | Everything else |
 | Global options | **SETTINGS › ADVANCED › Global options › RESET SECTION** | The measured lateral direction, personality seed, language and Safety Car |
 | AI personalities | **Regenerate personalities** (Global options) | Draws a new seed |
-| **Everything** (factory reset) | Close the game, delete `Documents/Assetto Corsa/cfg/extension/state/lua/app/ACAdvancedIA.ini`. If the app has switched CSP's AI flood off, restore it first (see [Uninstalling](#uninstalling)): the backup of your original AI flood values is kept in this file. Untick the two CSP display options first too (Overlay section): the app then gives back your `gui.ini` values | Nothing: the next start behaves like a first installation, and custom presets are deleted too |
+| **Everything** (factory reset) | Close the game, delete `Documents/Assetto Corsa/cfg/extension/state/lua/app/AdvancedIA.ini`. If the app has switched CSP's AI flood off, restore it first (see [Uninstalling](#uninstalling)): the backup of your original AI flood values is kept in this file. Untick the two CSP display options first too (Overlay section): the app then gives back your `gui.ini` values | Nothing: the next start behaves like a first installation, and custom presets are deleted too |
 
 ## Features
 
@@ -444,7 +457,7 @@ Section **Lines** (sidebar **DRIVING**).
 
 Section **Start** (sidebar **DRIVING**). Race only; ticked by **Realistic race**.
 
-- **Start delay (s)** (1 s): for this time after the start, the app commands no lateral move, yielding, overtaking or avoidance. The AI follow their native line.
+- **Start delay (s)** (2 s since Beta 1.49, 1 s before): for this time after the start, the app commands no lateral move, yielding, overtaking or avoidance. The AI follow their native line.
 - **Full throttle to the first corner** (Beta 1.25):
   - On the straight there is no start caution and no following caution, so the AI stay close to the car ahead.
   - **Caution at the start** (×1.3) and **Aggression at the start** (×0.8) apply only under braking and in corners, so at the first corner. They relax gradually over **Settling time after the start (s)** (25 s).
@@ -848,7 +861,7 @@ Section **Global options** (sidebar **ADVANCED**). These values are shared by al
 
 ### In-game overlay
 
-Since Beta 1.25, the app draws its own overlay, like SuperHUD's, instead of a CSP app window. It replaces the former "ACAdvancedIA Drapeaux" window. Set it in **SETTINGS › ADVANCED › Overlay**; its settings are shared by every session. The flag band is switched on per profile by **ACAdvancedIA flag panel while driving** (Accidents section, on by default). With it off, the band only shows the game's own flags and penalties. The session line and AC messages keep following their own Overlay settings.
+Since Beta 1.25, the app draws its own overlay, like SuperHUD's, instead of a CSP app window. It replaces the former "AdvancedIA Drapeaux" window. Set it in **SETTINGS › ADVANCED › Overlay**; its settings are shared by every session. The flag band is switched on per profile by **AdvancedIA flag panel while driving** (Accidents section, on by default). With it off, the band only shows the game's own flags and penalties. The session line and AC messages keep following their own Overlay settings.
 
 Position and size (**POSITION AND SIZE**):
 - **UNLOCK · MOVE · SIZE**: drag the overlay to move it, pull its bottom right corner to resize it, and right-click it to lock it again. **LOCK THE POSITION** locks it from the window.
@@ -956,11 +969,11 @@ Since Beta 1.37 the panels have their own section, **SETTINGS › RACE & SAFETY 
 
 ### Companion apps (SpotterEnginer bridge)
 
-ACAdvancedIA can share its live state with a companion app, today **SpotterEnginer** (voice spotter and race engineer).
+AdvancedIA can share its live state with a companion app, today **SpotterEnginer** (voice spotter and race engineer).
 
-- **Only when SpotterEnginer is installed**: at launch the app checks once for `apps/lua/SpotterEnginer/manifest.ini`. If it is absent, nothing is opened or computed and the journal says `pont des apps compagnes: SpotterEnginer absent, pont inactif`; ACAdvancedIA behaves exactly as without the bridge.
+- **Only when SpotterEnginer is installed**: at launch the app checks once for `apps/lua/SpotterEnginer/manifest.ini`. If it is absent, nothing is opened or computed and the journal says `pont des apps compagnes: SpotterEnginer absent, pont inactif`; AdvancedIA behaves exactly as without the bridge.
 - **When it is installed**: two shared structures are opened with `ac.connect` (`ACAdvancedIA.Bridge.Hello` and `ACAdvancedIA.Bridge.Data.v1`, layout in `src/bridge_layout.lua`, identical in both apps) and the engine state is copied into them every frame, read only: flags and neutralisations, the delta, the player's penalties, the pit window, the AI sanctions and stops. Journal: `pont des apps compagnes: ouvert (version 1)`.
-- **Isolation**: the bridge never writes into the engine, the commands or the settings; an error in it closes the bridge alone (`pont des apps compagnes coupe: …`), and it is closed when the app unloads, so the reader sees ACAdvancedIA as absent at once.
+- **Isolation**: the bridge never writes into the engine, the commands or the settings; an error in it closes the bridge alone (`pont des apps compagnes coupe: …`), and it is closed when the app unloads, so the reader sees AdvancedIA as absent at once.
 
 ### Beeps
 
@@ -1068,7 +1081,7 @@ The settings window uses the same visual style as SuperHUD: a dark background, w
 
 ### Header
 
-- **ACADVANCEDIA** with the version.
+- **ADVANCEDIA** with the version.
 - Status line: **ACTIVE** or **INACTIVE** with the profile in use, and below it the reason for a stop (see [Safety guards](#safety-guards-and-what-the-app-never-does)).
 - **APP ON** / **APP OFF**, **PANIC** / **RESUME**.
 - **FR** | **EN** language buttons.
@@ -1183,7 +1196,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 
 | Setting | Range | Track day | Practice / Qualifying | Race |
 |---|---|---|---|---|
-| **Start delay (s)** | 0 – 30 | 0 | 0 | 1 |
+| **Start delay (s)** | 0 – 30 | 0 | 0 | 2 |
 | **Caution at the start** | 1 – 3 | 1 | 1 | 1.3 |
 | **Aggression at the start** | 0.2 – 1 | 1 | 1 | 0.8 |
 | **Settling time after the start (s)** | 2 – 30 | 12 | 12 | 25 |
@@ -1299,7 +1312,7 @@ Each entry except **Overlay** has its own on/off pill for the profile shown.
 | **Double yellow: Slow Zone speed (km/h, 0 = delta time)** | 0 – 150 | 0 | 0 | 0 |
 | **Double yellow: fallback speed, unknown pace (km/h)** | 30 – 200 | 50 | 50 | 50 |
 | **AC native yellow flag on the HUD** | on / off | off | off | off |
-| **ACAdvancedIA flag panel while driving** | on / off | on | on | on |
+| **AdvancedIA flag panel while driving** | on / off | on | on | on |
 | **On-screen incident messages** | on / off | on | on | on |
 | **Delta: beeps** | on / off | on | on | on |
 | **Player penalties under flags** | on / off | n/a | on | on |
@@ -1481,11 +1494,11 @@ Ticked by default in every profile, Hotlap included. See [Track light panels](#t
 
 ## Session log
 
-**Where it is.** Every launch of the game writes `Documents/Assetto Corsa/logs/ACAdvancedIA.log`. **DIAGNOSTICS › SESSION LOG** shows its exact path and size.
+**Where it is.** Every launch of the game writes `Documents/Assetto Corsa/logs/AdvancedIA.log`. **DIAGNOSTICS › SESSION LOG** shows its exact path and size.
 
 **Rotation and size.**
 - Reloading the app within the same launch carries on in the same file.
-- At each new launch the previous files shift: the three previous launches are kept as `ACAdvancedIA.1.log` (the most recent) to `ACAdvancedIA.3.log`.
+- At each new launch the previous files shift: the three previous launches are kept as `AdvancedIA.1.log` (the most recent) to `AdvancedIA.3.log`.
 - The file is capped at 4 MB per launch.
 - **Write the session log to disk** (Diagnostics, on by default) switches it off. **Detailed log** (Global options) adds every AI state change.
 
@@ -1498,7 +1511,7 @@ Ticked by default in every profile, Hotlap included. See [Track light panels](#t
 
 | Line starts with | Meaning |
 |---|---|
-| `=== ACAdvancedIA Beta … : lancement` | Start of a game launch, with the app version |
+| `=== AdvancedIA Beta … : lancement` | Start of a game launch, with the app version |
 | `compilateur JIT:` | Whether the enlarged JIT cache is in use (all cars driven in one protected call) or not (one by one) |
 | `AI flood de CSP au lancement:` | CSP AI flood state as loaded by CSP at this launch (`actif` / `inactif`) and its minimum track length |
 | `session:` | Detected session: index, CSP type, race.ini type, `(Track Day)`, track, number of cars, spline length |
@@ -1540,7 +1553,7 @@ Ticked by default in every profile, Hotlap included. See [Track light panels](#t
 
 **Sharing it when reporting an issue:**
 1. Reproduce the problem, then note the approximate time (each log line carries the real clock time).
-2. Close the game, or at least end the session, so the last lines are written. If you have restarted the game since, the session you want is in `ACAdvancedIA.1.log` (or `.2`, `.3`).
+2. Close the game, or at least end the session, so the last lines are written. If you have restarted the game since, the session you want is in `AdvancedIA.1.log` (or `.2`, `.3`).
 3. Open an issue on this repository and attach the log file (zip it if it is large). Add:
    - the app version, your CSP version (shown in **DIAGNOSTICS**), the track, the cars;
    - the Content Manager mode and session type, the number of AI;
@@ -1588,7 +1601,7 @@ Summary counters: `tow` and `tow_end` (tows broken and ended), `dirtyAir` (dirty
 **Known limitations.**
 - **AI turn signals cannot be driven from an app** in CSP 0.3.0-preview675: `ac.setTurningLights` only drives the player's car, and the per-car control has no indicator field.
 - **Red flag and penalties.**
-  - AC has no native red flag; ACAdvancedIA shows its own on the overlay. AC cannot suspend a race, so its clock keeps running during a red flag.
+  - AC has no native red flag; AdvancedIA shows its own on the overlay. AC cannot suspend a race, so its clock keeps running during a red flag.
   - AC adds no time to the classification, so penalties are native throttle cuts (no drive-through or stop-and-go imposed by the app). They need race settings that allow that penalty.
 - **FCY and Slow Zone** are judged on the delta time (average over each mini-sector of about 250 m), as with the F1 delta. They are not an 80 km/h limiter.
 - **F1 2026**:
@@ -1612,7 +1625,7 @@ Summary counters: `tow` and `tow_end` (tows broken and ended), `dirtyAir` (dirty
 
 **The settings window does not appear.**
 - It only shows in the pause menu (Esc) or the setup/pits screen, and closes itself while you drive.
-- Check that the folder is exactly `assettocorsa/apps/lua/ACAdvancedIA` (with `manifest.ini` directly inside, not `ACAdvancedIA-main` or a nested folder), and that CSP is enabled.
+- Check that the folder is exactly `assettocorsa/apps/lua/AdvancedIA` (with `manifest.ini` directly inside, not `AdvancedIA-main` or a nested folder), and that CSP is enabled.
 - The app also has an icon among the setup screen's settings apps.
 
 **The status says "No section enabled: native AI".** The profile in use has no section ticked. This is normal on a Track day after a first installation. Load a built-in preset on **HOME** (for example **Nordschleife Touristenfahrten**) or tick sections in **SETTINGS**.
@@ -1667,7 +1680,7 @@ Summary counters: `tow` and `tow_end` (tows broken and ended), `dirtyAir` (dirty
 ### Project structure
 
 ```
-ACAdvancedIA.lua        entry point: per-frame update, settings window, IN_GAME overlay callback, restore on unload
+AdvancedIA.lua        entry point: per-frame update, settings window, IN_GAME overlay callback, restore on unload
 manifest.ini            CSP app manifest (name, version, settings window, overlay callback)
 icon.png                app icon (64×64; the 512×512 original is docs/icon-512.png)
 src/                    the HumanAI engine and its interface
@@ -1706,7 +1719,7 @@ docs/                   audits, CSP API notes, measurements, validation status, 
 HumanAI_PDR_v1.0.md     product design requirements; the test bench checks its 78 catalogued cases
 CHANGELOG.md            changes, newest first
 COMPATIBILITY.md, AUDIT.md   compatibility notes and the original adversarial review
-dist/                   release package (dist/ACAdvancedIA-Beta-1.27.zip)
+dist/                   release package (dist/AdvancedIA-Beta-1.27.zip)
 ```
 
 Only `src/snapshot.lua` and `src/applier.lua` touch `ac`/`physics` directly. Everything else is pure decision code, which is what makes the offline bench possible.
@@ -1727,14 +1740,14 @@ The scripts locate the app folder from their own path, so run them from the root
 |---|---|---|
 | `python tests/lint.py` | Static analysis of every Lua file with luaparser: forbidden globals, unused locals, duplicate definitions, and every field read from CSP structures checked against the installed SDK (`tests/sdk-fields.json`), since a missing field raises an error in game | `tests/lint-results.txt` |
 | `python tests/test_pdr.py` | Compiles every source file with LuaJIT, then runs the scenario suites (`tests/scenarios.lua`, `tests/extended.lua`). It checks that all 78 cases catalogued in `HumanAI_PDR_v1.0.md` exist. Prints `PASS`/`FAIL` per check and a total | `tests/results.json` |
-| `python tests/integration.py` | Runs the real entry point `ACAdvancedIA.lua` against a simulated host (`tests/integration_cases.lua`). It also checks the manifest (callbacks, flags, version equal to `src/config.lua`). Set `INT_FILTER` to run matching cases only | `tests/integration-results.json` |
+| `python tests/integration.py` | Runs the real entry point `AdvancedIA.lua` against a simulated host (`tests/integration_cases.lua`). It also checks the manifest (callbacks, flags, version equal to `src/config.lua`). Set `INT_FILTER` to run matching cases only | `tests/integration-results.json` |
 | `python tests/golden.py` | Reference fingerprints of three scenes: track day with 30 AI, ruled race with 30 and with 60 AI. Run it in two versions and compare the files: a pure clean-up must leave them identical | `tests/golden-results.txt` |
 | `python tests/audit.py` | Traceable inventory of every setting and function with its runtime consumers (it makes no claim about CSP physics) | `docs/PARAMETER_AUDIT.md`, `docs/PARAMETER_AUDIT.json` |
 | `python tests/performance.py [--frames N] [--profile]` | Reproducible cost of the engine core with 9, 30 and 60 AI (default 20,000 frames after warm-up; the release uses `--frames 30000`). `--profile` adds the top stacks | `tests/performance-current-results.json` |
 | `python tests/run_soak.py` | Endurance run: 1,728,000 frames (eight hours at 60 Hz with 40 AI), memory tracked, then a 30-AI benchmark. Fails if the memory or time criteria are not met | `tests/soak-results.json` |
 | `python tests/mutate.py [app folder]` | Mutation testing. Each important rule is altered in a throw-away copy, and the named test (`INT:` = integration case) must fail on the mutant. Prints `DÉTECTÉE` / `NON DÉTECTÉE` per mutation and `TOUTES DÉTECTÉES` at the end. Long: hundreds of mutations, each copying the app with `tests/_vendor` | console |
 | `python tests/report.py` | Factual release report; open criteria are never turned into successes. Reads the scenario, integration and soak results; the soak must come from the current version | `docs/MESURES.md`, `docs/RELEASE_STATUS.json` |
-| `python tests/package.py` | Reproducible distribution archive. It holds only what the game loads (entry point, manifest, icon, `src/`, `sounds/`, `tracks/`) plus the user notes, under `apps/lua/ACAdvancedIA/`. Older packages in `dist/` are removed | `dist/ACAdvancedIA-<version>.zip` and `.sha256` |
+| `python tests/package.py` | Reproducible distribution archive. It holds only what the game loads (entry point, manifest, icon, `src/`, `sounds/`, `tracks/`) plus the user notes, under `apps/lua/AdvancedIA/`. Older packages in `dist/` are removed | `dist/AdvancedIA-<version>.zip` and `.sha256` |
 
 `tests/devtools.py` holds the maintainer's tools (tree comparison, installation with the game closed and a backup). Its paths are specific to the author's machine.
 

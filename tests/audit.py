@@ -11,7 +11,7 @@ def main():
     lua = runtime()
     config = lua.eval("require('src/config')")
     english = lua.eval("require('src/lang_en')")
-    files = [APP/'ACAdvancedIA.lua', *sorted((APP/'src').glob('*.lua'))]
+    files = [APP/'AdvancedIA.lua', *sorted((APP/'src').glob('*.lua'))]
     sources = {p: p.read_text(encoding='utf-8') for p in files}
     functions = []
     for path, source in sources.items():

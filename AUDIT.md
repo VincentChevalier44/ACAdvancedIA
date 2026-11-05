@@ -1,4 +1,4 @@
-# Adversarial review — HumanAI / ACAdvancedIA
+# Adversarial review — HumanAI / AdvancedIA
 
 Date: 19 October 2026. Status: candidate implementation, **full validation not achieved**. Unchanged reference: `HumanAI_PDR_v1.0.md`, SHA256 `4b55783096e4c819ca2bafb07146bccab9941e3feb653934a9011b2413157f00` (the French original as of that date; the English translation published in this repository has a different hash).
 

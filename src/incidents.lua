@@ -37,6 +37,7 @@ local function clearOrder(t)
 end
 M.clearOrder=clearOrder
 function M.reset(t)
+ t.heldKind=nil
  for i=1,K.maxCars do clearCar(t.cars[i]) end
  t.zoneCount=0; t.activeCount=0; t.holdCount=0; t.neutral=false; t.neutralUntil=0; t.playerFlag=false; t.playerYellow=false; t.safetyPhase='none'; t.red=false; t.onTrack=0; t.playerZone=false; t.playerInside=false; t.slipperyUntil=-math.huge
  t.safetyStill=0; t.safetyFailed=false; t.safetyLeft=false; t.escalated=false; t.relaunch=false; t.ending=false; t.restart=false; t.playerRestart=false; t.pitsClosed=false
@@ -65,12 +66,36 @@ function M.rebase(t,amount)
  end
 end
 -- Un seul message affiché par image : le plus important l'emporte (rouge, neutralisation, vert, jaune, stands, météo).
-local priorities={penaltyDq=5,aiDq=4,aiBlackFlag=4,aiSanction=2,penaltyDelta=5,penaltyPass=5,penaltyRed=5,penaltyStop=5,red=5,redSession=5,sessionResume=3,redRestartSc=4,standing=4,penaltyJump=5,redRestartVsc=4,redRestartFcy=4,sc=4,fcy=4,vsc=4,vscEnd=4,scIn=3,green=3,restart=3,yellow=2,pitOpen=1,pitOpenCsp=1,wet=1,dry=1,drsLaps=1,drsOn=1,drsWet=1}
+local priorities={penaltyDq=5,aiDq=4,aiBlackFlag=4,aiSanction=2,penaltyDelta=5,penaltyPass=5,penaltyRed=5,penaltyStop=5,red=5,redSession=5,sessionResume=3,redRestartSc=4,standing=4,penaltyJump=5,redRestartVsc=4,redRestartFcy=4,sc=4,fcy=4,vsc=4,vscEnd=4,scIn=3,green=3,restart=3,yellow=2,pitOpen=1,pitOpenCsp=1,pitCompound=1,pitPlanSame=1,pitNotCounted=2,pitValidated=1,wet=1,dry=1,drsLaps=1,drsOn=1,drsWet=1}
+-- Beta 1.49 : annonces de l'arrêt F1 du joueur (lues par SpotterEnginer) : jamais perdues. Écartées par une annonce plus
+-- importante de la même image, ou remplacées par elle, elles attendent (une seule place, la dernière l'emporte) la
+-- première image suivante sans annonce (M.flushHeld, en fin d'image), au plus K.heldMessageMax s.
+local held={pitCompound=true,pitPlanSame=true,pitNotCounted=true,pitValidated=true}
+-- Ordre d'émission (seq) : la place d'attente garde la dernière émise.
+local function hold(t,kind,value,extra,text,seq)
+ if t.heldKind and (t.heldSeq or 0)>seq then return end
+ t.heldKind=kind; t.heldValue=value or 0; t.heldExtra=extra or 0; t.heldText=text or ''; t.heldFrame=t.frameId; t.heldAt=t.now or 0; t.heldSeq=seq
+end
 local function message(t,kind,value,extra,text)
  local priority=priorities[kind] or 0
- if t.messageFrame==t.frameId and priority<t.messagePriority then return end
+ t.messageSeq=(t.messageSeq or 0)+1
+ if t.messageFrame==t.frameId and priority<t.messagePriority then
+  if held[kind] then hold(t,kind,value,extra,text,t.messageSeq) end
+  return
+ end
+ if t.messageFrame==t.frameId and held[t.messageKind] then hold(t,t.messageKind,t.messageValue,t.messageExtra,t.messageText,t.messageSeqShown or 0) end
  t.messageId=t.messageId%K.counterMax+1; t.messageKind=kind; t.messageValue=value or 0; t.messageExtra=extra or 0; t.messageText=text or ''
- t.messageFrame=t.frameId; t.messagePriority=priority
+ t.messageFrame=t.frameId; t.messagePriority=priority; t.messageSeqShown=t.messageSeq
+end
+-- Annonce de l'arrêt F1 en attente : publiée à la première image suivante qui n'en a aucune ; oubliée après
+-- K.heldMessageMax s.
+function M.flushHeld(t,now)
+ if not t.heldKind then return end
+ if now-(t.heldAt or now)>K.heldMessageMax then t.heldKind=nil; return end
+ if t.heldFrame==t.frameId or t.messageFrame==t.frameId then return end
+ local kind,value,extra,text=t.heldKind,t.heldValue,t.heldExtra,t.heldText
+ t.heldKind=nil
+ message(t,kind,value,extra,text~='' and text or nil)
 end
 local function note(t,level,text,index) if t.note then t.note(level,text,index) end end
 -- Voiture de sécurité indisponible (immobilisée en piste, ou jamais sortie de la voie des stands) : ramenée à son stand,
@@ -328,7 +353,7 @@ end
 -- ready : session lancée, hors grille de départ. Une voiture arrêtée, en tête-à-queue ou à contresens est un incident ;
 -- hors piste depuis longtemps, elle est considérée comme dégagée par les commissaires.
 function M.update(t,frame,p,profile,now,dt,ready,seed)
- t.frameId=(t.frameId+1)%K.counterMax
+ t.frameId=(t.frameId+1)%K.counterMax; t.now=now
  t.zoneCount=0; t.activeCount=0; t.holdCount=0; t.onTrack=0; t.freshOnTrack=0
  t.redCount=0; t.redStopped=0; t.redQueued=0; t.redCars=t.redCars or {}
  local major=false

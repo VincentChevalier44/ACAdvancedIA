@@ -277,7 +277,8 @@ function M.read(s,dt,now,light)
  local budget=K.tyreCatalogBudget
  if not light then for i=1,s.count do
   local a=s.cars[i]
-  if a.valid and a.control and a.tyresID~=(a.identity or '') and budget>0 then tyres(a); budget=budget-1 end
+  -- Beta 1.49 : le joueur aussi (noms de ses composés : arrêt obligatoire F1, stratégie des stands).
+  if a.valid and (a.control or a.player) and a.tyresID~=(a.identity or '') and budget>0 then tyres(a); budget=budget-1 end
  end end
  return true
 end

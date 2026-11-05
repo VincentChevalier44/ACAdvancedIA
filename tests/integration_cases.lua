@@ -557,21 +557,21 @@ return function(source)
   assert(HOST.parked[3]==false,'handed back')
  end)
  check('journal de session sur disque : rotation, en-tête, session, incident, résumé, fin ; coupé si désactivé',function()
-  HUMANAI.release(); HOST=H.create(true); HOST.files['logs/ACAdvancedIA.log']='ancien lancement\n'
+  HUMANAI.release(); HOST=H.create(true); HOST.files['logs/AdvancedIA.log']='ancien lancement\n'
   assert(loadstring(source))()
   local e=HUMANAI.engine; C.preset('Nordschleife','J',e.profiles.J); E.changed(e)
   HOST.cars[3].speedKmh=0; HOST.cars[3].velocity={x=0,z=0}
   H.tick(HOST,8)
-  local text=HOST.files['logs/ACAdvancedIA.log']
-  assert(HOST.files['logs/ACAdvancedIA.1.log']=='ancien lancement\n','previous launch kept')
-  assert(text:find('=== ACAdvancedIA '..C.release..' : lancement ',1,true),'header with version')
+  local text=HOST.files['logs/AdvancedIA.log']
+  assert(HOST.files['logs/AdvancedIA.1.log']=='ancien lancement\n','previous launch kept')
+  assert(text:find('=== AdvancedIA '..C.release..' : lancement ',1,true),'header with version')
   assert(text:find('session: indice 0',1,true) and text:find('profil: J (automatique)',1,true),'session and profile')
   assert(text:find('incident: arret, en piste',1,true) and text:find('resume: profil J',1,true),'incident and summary')
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
-  assert(HOST.files['logs/ACAdvancedIA.log']:find('=== fin : ',1,true),'end line on unload')
+  assert(HOST.files['logs/AdvancedIA.log']:find('=== fin : ',1,true),'end line on unload')
   -- Rechargement de l'app dans le même lancement du jeu : même fichier poursuivi, pas de rotation.
-  local before=HOST.files['logs/ACAdvancedIA.log']; assert(loadstring(source))(); H.tick(HOST,1)
-  assert(HOST.files['logs/ACAdvancedIA.1.log']=='ancien lancement\n' and HOST.files['logs/ACAdvancedIA.log']:sub(1,#before)==before,'reload: same journal continued')
+  local before=HOST.files['logs/AdvancedIA.log']; assert(loadstring(source))(); H.tick(HOST,1)
+  assert(HOST.files['logs/AdvancedIA.1.log']=='ancien lancement\n' and HOST.files['logs/AdvancedIA.log']:sub(1,#before)==before,'reload: same journal continued')
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
   HOST=H.create(true); assert(loadstring(source))(); HUMANAI.engine.g.journal=false; HUMANAI.host.journalTried=nil
   -- Beta 1.40 : seules les options de CSP (gui.ini, fichier d'état) sont écrites ; rien dans le dossier des journaux.
@@ -651,7 +651,7 @@ return function(source)
   H.tick(HOST,C.K.redIncidentStill+1)
   ac.getTrackAISplineSides=sides
   assert(e.incidents.red and HOST.pitRequests[1]==true,'red flag: AI called to the pits')
-  HOST.transparent={}; script.HUMANAI__HUD(); assert(e.panel.kind=='red' and HOST.transparent.ACAdvancedIA_overlay,'overlay drawn on the red flag')
+  HOST.transparent={}; script.HUMANAI__HUD(); assert(e.panel.kind=='red' and HOST.transparent.AdvancedIA_overlay,'overlay drawn on the red flag')
   HOST.draws=0; HOST.panelTexts={}; HOST.textTop=nil; HOST.circles=0; script.HUMANAI__FLAGS()
   assert(HOST.draws>=2 and HOST.fontDepth==0 and HOST.styleDepth==0 and has(HOST.panelTexts,L.flagTitles.red),'red flag drawn')
   assert(has(HOST.panelTexts,L.deltaLabel) and has(HOST.panelTexts,L.pitPill) and e.delta.kind=='red','red flag: delta box to the pits and PIT pill')
@@ -767,7 +767,7 @@ return function(source)
   HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); E.changed(e); H.tick(HOST,0.5)
   local played=HOST.played
   for _=1,3 do e.deltaBeep.beepId=e.deltaBeep.beepId+1; HUMANAI.host.deltaServed=nil; require('src/applier').deltaBeep(HUMANAI.host,e.frame,e.deltaBeep) end
-  local count=0; for _,s in ipairs(HOST.sounds) do if s=='apps/lua/ACAdvancedIA/sounds/delta-beep.wav' then count=count+1 end end
+  local count=0; for _,s in ipairs(HOST.sounds) do if s=='apps/lua/AdvancedIA/sounds/delta-beep.wav' then count=count+1 end end
   assert(count==1 and HOST.played==played+3,'one sound event, started three times')
   HOST.releasing=true; HUMANAI.release(); HOST.releasing=false
  end)
@@ -796,9 +796,9 @@ return function(source)
   HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5)
   local title=string.format(L.titleVersion,C.release)
   local function shown() for _,t in ipairs(HOST.wrappedTexts) do if t==title then return true end end return false end
-  -- Refonte Racing 26 : marque en deux couleurs (ACADVANCED, IA) et puce de version « β1.33 » dans l'en-tête de tous les onglets.
+  -- Refonte Racing 26 : marque en deux couleurs (ADVANCED, IA) et puce de version « β1.33 » dans l'en-tête de tous les onglets.
   local chip='β'..(C.release:gsub('^Beta ',''))
-  pause(true); redraw(); assert(C.release:match('^Beta %d') and drawnText(chip) and drawnText('ACADVANCED') and drawnText('IA'),'settings window')
+  pause(true); redraw(); assert(C.release:match('^Beta %d') and drawnText(chip) and drawnText('ADVANCED') and drawnText('IA'),'settings window')
   go('diagnostic'); redraw(); assert(drawnText(chip) and drawnText(W.upper(L.capabilities)),'diagnostic tab')
   -- Trois onglets, sans Préréglages ; aucune fenêtre de diagnostic séparée.
   assert(drawn('tab_home') and drawn('tab_settings') and drawn('tab_diagnostic') and not drawn('tab_presets') and script.HUMANAI__DEBUG==nil)
@@ -859,9 +859,9 @@ return function(source)
   assert(loadstring(source))()
   local e=HUMANAI.engine; C.preset('Course','C',e.profiles.C); e.profiles.C.rulesDrsLaps=0; E.changed(e); H.tick(HOST,1)
   HOST.cars[0].drsPresent=true; HOST.cars[0].drsAvailable=true; H.tick(HOST,0.5)
-  assert(HOST.played==1 and HOST.sounds[1]=='apps/lua/ACAdvancedIA/sounds/drs-available-beep.wav','beep played from the app folder')
+  assert(HOST.played==1 and HOST.sounds[1]=='apps/lua/AdvancedIA/sounds/drs-available-beep.wav','beep played from the app folder')
   assert(HOST.beepInterior==1 and HOST.beepVolume==2 and HOST.beepChannel=='main','full level in the cockpit view (CSP default 25 %), main channel')
-  HOST.transparent={}; script.HUMANAI__HUD(); assert(e.panel.kind=='drs' and HOST.transparent.ACAdvancedIA_overlay,'DRS shown on the overlay')
+  HOST.transparent={}; script.HUMANAI__HUD(); assert(e.panel.kind=='drs' and HOST.transparent.AdvancedIA_overlay,'DRS shown on the overlay')
   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.flagTitles.drs),'DRS title drawn')
   -- Beta 1.38 (maquette) : aplat clair, « DRS » à l'encre, sans cadre.
   HOST.outlines=0; HOST.panelTexts={}; script.HUMANAI__FLAGS()
@@ -897,7 +897,7 @@ return function(source)
   -- Beta 1.25 : sans drapeau, seule la ligne de session (si elle est cochée) ; décochée, rien du tout.
   local g=HUMANAI.engine.g; g.overlaySession=false
   HOST.draws=0; HOST.transparent={}; script.HUMANAI__FLAGS(); script.HUMANAI__HUD()
-  assert(HOST.draws==0 and HUMANAI.engine.panel.kind=='none' and not HOST.transparent.ACAdvancedIA_overlay,'nothing drawn without a flag nor session line')
+  assert(HOST.draws==0 and HUMANAI.engine.panel.kind=='none' and not HOST.transparent.AdvancedIA_overlay,'nothing drawn without a flag nor session line')
   g.overlaySession=true
   assert(not HUMANAI.engine.panic)
  end)
@@ -1173,7 +1173,7 @@ return function(source)
  check('Beta 1.11 : drapeaux et pénalités d AC dans le panneau',function()
   HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); H.tick(HOST,1)
   HOST.sim.raceFlagType=C.K.flagFinished; H.tick(HOST,0.5); HOST.panelTexts={}; script.HUMANAI__FLAGS()
-  HOST.transparent={}; script.HUMANAI__HUD(); assert(has(HOST.panelTexts,L.flagTitles.checkered) and HOST.transparent.ACAdvancedIA_overlay,'checkered drawn on the overlay')
+  HOST.transparent={}; script.HUMANAI__HUD(); assert(has(HOST.panelTexts,L.flagTitles.checkered) and HOST.transparent.AdvancedIA_overlay,'checkered drawn on the overlay')
   HOST.sim.raceFlagType=C.K.flagNone; HOST.cars[0].currentPenaltyType=C.K.penaltyMandatoryPits; HOST.cars[0].currentPenaltyParameter=2; H.tick(HOST,0.5)
   HOST.panelTexts={}; script.HUMANAI__FLAGS(); assert(has(HOST.panelTexts,L.flagTitles.penalty),'penalty drawn')
   HOST.cars[0].currentPenaltyType=0; HOST.sim.raceFlagType=C.K.flagStop; H.tick(HOST,0.5)
@@ -1194,7 +1194,7 @@ return function(source)
   HUMANAI.release(); HOST=H.create(true); HOST.sim.raceSessionType=3; assert(loadstring(source))(); H.tick(HOST,1); pause(true)
   local g=HUMANAI.engine.g; section('overlay')
   press('panel_show'); assert(g.panelShow=='always','always shown'); pause(false); H.tick(HOST,0.5)
-  HOST.panelTexts={}; script.HUMANAI__FLAGS(); HOST.transparent={}; script.HUMANAI__HUD(); assert(has(HOST.panelTexts,L.flagTitles.clear) and HOST.transparent.ACAdvancedIA_overlay,'clear track state shown')
+  HOST.panelTexts={}; script.HUMANAI__FLAGS(); HOST.transparent={}; script.HUMANAI__HUD(); assert(has(HOST.panelTexts,L.flagTitles.clear) and HOST.transparent.AdvancedIA_overlay,'clear track state shown')
   pause(true); section('overlay'); drag('panel_opacity',0); assert(g.panelOpacity==0,'transparent'); drag('panel_info_time',1); assert(g.panelInfoTime==60)
   pause(false); H.tick(HOST,0.5); HOST.draws=0; script.HUMANAI__FLAGS(); assert(HOST.fontDepth==0)
   assert(HOST.storage['humanai:g:'].panelShow=='always' or true)
@@ -1216,7 +1216,7 @@ return function(source)
   HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))(); H.tick(HOST,0.5); pause(true); redraw()
   local e=HUMANAI.engine
   assert(e.g.language=='en' and Locale.current=='en' and L.tabs.home=='HOME' and C.schema[1].label=='Level (%)','fresh install in English')
-  -- Refonte Racing 26 : la marque reste ACADVANCED + IA dans les deux langues.
+  -- Refonte Racing 26 : la marque reste ADVANCED + IA dans les deux langues.
   assert(drawnText('HOME') and drawnText('PANIC') and drawnText('IA') and lit('lang_en') and not lit('lang_fr'),'English header, EN lit')
   -- En-tête (refonte Racing 26, maquette) : FR | EN, activation, puis panique, dans la fenêtre et sans chevauchement.
   local ids={'lang_fr','lang_en','enabled','panic'}
@@ -1509,26 +1509,26 @@ return function(source)
   local e=HUMANAI.engine; local g=e.g; C.preset('Course','C',e.profiles.C); E.changed(e); H.tick(HOST,1)
   g.panelShow='always'
   HOST.transparent={}; script.HUMANAI__HUD()
-  local w=HOST.transparent.ACAdvancedIA_overlay
+  local w=HOST.transparent.AdvancedIA_overlay
   assert(w and math.abs(w.x-(1920-600)/2)<1e-6 and math.abs(w.y-1080*C.K.hudTop)<1e-6 and w.w==600 and not w.inputs,'centred at the top, locked, click-through')
   assert(HOST.hudHidden.sessionTime==true,'AC session box replaced by the session line')
-  g.overlayLocked=false; script.HUMANAI__HUD(); w=HOST.transparent.ACAdvancedIA_overlay; assert(w.inputs,'unlocked: takes the mouse')
+  g.overlayLocked=false; script.HUMANAI__HUD(); w=HOST.transparent.AdvancedIA_overlay; assert(w.inputs,'unlocked: takes the mouse')
   HOST.mouseDelta={x=100,y=40}; HOST.drags['##aai_overlay_move']=0.5; script.HUMANAI__HUD()
   assert(math.abs(g.overlayX-(w.x+100))<1e-6 and math.abs(g.overlayY-(w.y+40))<1e-6,'dragged')
   HOST.mouseDelta={x=0,y=0}; script.HUMANAI__HUD()
   HOST.mouseDelta={x=60,y=0}; HOST.drags['##aai_overlay_size']=0.5; script.HUMANAI__HUD()
   assert(math.abs(g.overlayScale-1.1)<1e-6,'resized by its corner ('..g.overlayScale..')')
   HOST.mouseDelta={x=0,y=0}; script.HUMANAI__HUD()
-  w=HOST.transparent.ACAdvancedIA_overlay; assert(math.abs(w.w-660)<1e-6,'drawn at the new size')
+  w=HOST.transparent.AdvancedIA_overlay; assert(math.abs(w.w-660)<1e-6,'drawn at the new size')
   HOST.mouse={x=10,y=10}; HOST.rightClick='##aai_overlay_move'; script.HUMANAI__HUD(); HOST.mouse={x=-1e6,y=-1e6}
   assert(g.overlayLocked,'right-click locks')
   g.overlayClickThrough=false; HOST.windowHovered=true; HOST.rightClick=nil
   HOST.mouseClickedAny=true
   g.overlayClickThrough=true; HOST.windowHovered=false
   HOST.sim.isReplayActive=true; H.tick(HOST,0.2); HOST.transparent={}; script.HUMANAI__HUD()
-  assert(not HOST.transparent.ACAdvancedIA_overlay and HOST.hudHidden.sessionTime==false,'replay: hidden, AC box back')
+  assert(not HOST.transparent.AdvancedIA_overlay and HOST.hudHidden.sessionTime==false,'replay: hidden, AC box back')
   HOST.sim.isReplayActive=false; H.tick(HOST,0.2); HOST.transparent={}; script.HUMANAI__HUD()
-  assert(HOST.transparent.ACAdvancedIA_overlay and HOST.hudHidden.sessionTime==true,'back after the replay')
+  assert(HOST.transparent.AdvancedIA_overlay and HOST.hudHidden.sessionTime==true,'back after the replay')
   assert(#HOST.messageListeners==1,'AC messages listened to')
   HOST.messageListeners[1]('ABS','3',nil,5); H.tick(HOST,0.3)
   assert(e.hud.msgText=='ABS · 3' and e.time<e.hud.msgUntil,'AC message on the session line')
@@ -1698,7 +1698,7 @@ return function(source)
  local Fake=require('tests/updatefake')
  local function ver(d) local major,minor=C.release:match('(%d+)%.(%d+)'); return 'Beta '..major..'.'..(tonumber(minor)+d) end
  local Update=require('src/update')
- local API='get https://api.github.com/repos/VincentChevalier44/ACAdvancedIA/releases/latest'
+ local API='get https://api.github.com/repos/VincentChevalier44/AdvancedIA/releases/latest'
  local function logged(text) local e=HUMANAI.engine; for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; if row.message:find(text,1,true) then return true end end; return false end
  local function halt() pause(true); script.update(1/60) end
  local function updated(setup,body)
@@ -1708,7 +1708,7 @@ return function(source)
   HOST.releasing=true; pcall(HUMANAI.release); HOST.releasing=false
   F.restore(); assert(ok,err)
  end
- local WORK='state/ACAdvancedIA-update/'
+ local WORK='state/AdvancedIA-update/'
  check('Beta 1.33 : vérification au lancement, mise à jour d un clic depuis l en-tête, IA rendues avant le redémarrage',function()
   updated(function(F) F.release(ver(1)) end,function(F)
    local u=HUMANAI.updater; assert(HUMANAI.port.ready and u.phase=='idle' and u.installed==C.release)
@@ -1723,13 +1723,13 @@ return function(source)
    F.onRestart=function() order[#order+1]=next(HOST.releases)==nil and 'released' or 'running' end
    F.watch()
    -- Un clic : téléchargement, contrôles, extraction et copie de la version installée ; la copie finale à l'image suivante.
-   press('update_header'); assert(u.phase=='ready' and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0),'nothing copied into the app by the click')
+   press('update_header'); assert(u.phase=='ready' and HOST.files['local/AdvancedIA.lua']=='main '..ver(0),'nothing copied into the app by the click')
    HOST.releasing=true; script.update(1/60); HOST.releasing=false
    assert(F.restarts==1 and order[1]=='released','AI handed back to AC before the restart')
    local files=HOST.files
-   assert(files['local/ACAdvancedIA.lua']=='main '..ver(1) and Update.manifestVersion(files['local/manifest.ini'])==ver(1) and files['local/src/new.lua']=='new '..ver(1))
+   assert(files['local/AdvancedIA.lua']=='main '..ver(1) and Update.manifestVersion(files['local/manifest.ini'])==ver(1) and files['local/src/new.lua']=='new '..ver(1))
    assert(files[WORK..'updated.txt']=='update '..ver(0)..' -> '..ver(1) and files[WORK..'installing.txt']==nil and Update.manifestVersion(files[WORK..'backup/manifest.ini'])==ver(0))
-   local snap,mk,man,rep=F.find('copy state:ACAdvancedIA-update/current/manifest.ini'),F.find('save state:ACAdvancedIA-update/installing.txt'),F.find('move manifest.ini'),F.find('save state:ACAdvancedIA-update/updated.txt')
+   local snap,mk,man,rep=F.find('copy state:AdvancedIA-update/current/manifest.ini'),F.find('save state:AdvancedIA-update/installing.txt'),F.find('move manifest.ini'),F.find('save state:AdvancedIA-update/updated.txt')
    assert(snap and mk and man and rep and snap<mk and mk<man and man<rep and rep<F.find('restartApp'),'snapshot -> mark -> copy (manifest last) -> report -> restart')
    -- Beta 1.35 : chaque fichier remplacé d'un seul coup (copie à côté puis déplacement), démarrage surveillé armé.
    assert(F.find('copy manifest.ini.new') and F.find('copy manifest.ini.new')<man and files['local/manifest.ini.new']==nil,'atomic replacement')
@@ -1757,7 +1757,7 @@ return function(source)
  -- démarrage confirmé, noté une fois ; rien au lancement suivant.
  check('Beta 1.37 : premier lancement après une installation par la 1.36, restes effacés au démarrage confirmé',function()
   updated(function(F)
-   local back={'ACAdvancedIA.lua','manifest.ini','src/update.lua','src/remote.lua','src/ui.lua'}
+   local back={'AdvancedIA.lua','manifest.ini','src/update.lua','src/remote.lua','src/ui.lua'}
    for _,rel in ipairs(back) do F.files[WORK..'backup/'..rel]=rel=='manifest.ini' and '[ABOUT]\nVERSION='..ver(-1)..'\n' or 'old '..rel end
    F.files[WORK..'backup/.files']=table.concat(back,'\n')
    local nxt=WORK..'next/'..Fake.prefix
@@ -1810,7 +1810,7 @@ return function(source)
   updated(function(F) F.release(ver(1),{actual=string.rep('cd',32)}) end,function(F)
    H.tick(HOST,11); halt(); go('diagnostic'); redraw()
    press('update_install'); redraw()
-   assert(HUMANAI.updater.error=='integrity' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0) and HOST.files[WORK..'current/ACAdvancedIA.lua']==nil)
+   assert(HUMANAI.updater.error=='integrity' and F.restarts==0 and HOST.files['local/AdvancedIA.lua']=='main '..ver(0) and HOST.files[WORK..'current/AdvancedIA.lua']==nil)
    assert(begins(L.updateStates.errHash),'error shown')
    assert(drawn('update_check'),'check always reachable after an error')
   end)
@@ -1818,7 +1818,7 @@ return function(source)
   updated(function(F) F.release(ver(1)); F.locked['local/src/ui.lua']=true end,function(F)
    H.tick(HOST,11); halt(); go('diagnostic'); redraw(); press('update_install'); script.update(1/60); redraw()
    local u=HUMANAI.updater
-   assert(u.error=='write' and u.detail=='src/ui.lua' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0) and HOST.files[WORK..'installing.txt']==nil)
+   assert(u.error=='write' and u.detail=='src/ui.lua' and F.restarts==0 and HOST.files['local/AdvancedIA.lua']=='main '..ver(0) and HOST.files[WORK..'installing.txt']==nil)
    assert(logged('ecriture impossible : src/ui.lua, version actuelle conservee'),'logged with the file')
   end)
   -- Téléchargement annulé : la réponse arrivée ensuite est ignorée.
@@ -1826,7 +1826,7 @@ return function(source)
    H.tick(HOST,11); halt(); go('diagnostic'); redraw()
    F.hold=true; press('update_install'); assert(HUMANAI.updater.phase=='downloading')
    redraw(); assert(drawn('update_cancel')); press('update_cancel'); F.hold=false; F.flush()
-   assert(HUMANAI.updater.phase=='available' and F.restarts==0 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(0))
+   assert(HUMANAI.updater.phase=='available' and F.restarts==0 and HOST.files['local/AdvancedIA.lua']=='main '..ver(0))
   end)
   -- Vérification au lancement coupée : aucune requête ; le bouton de vérification la fait à la demande.
   updated(function(F) F.release(ver(1)) end,function(F)
@@ -1851,7 +1851,7 @@ return function(source)
  check('Beta 1.33 : retour à la version sauvegardée, compte rendu après le redémarrage',function()
   updated(function(F)
    local names={}
-   for k,val in pairs({['manifest.ini']='VERSION='..ver(-1),['ACAdvancedIA.lua']='main '..ver(-1),['src/update.lua']='update '..ver(-1),['src/remote.lua']='remote '..ver(-1),['src/ui.lua']='ui '..ver(-1)}) do
+   for k,val in pairs({['manifest.ini']='VERSION='..ver(-1),['AdvancedIA.lua']='main '..ver(-1),['src/update.lua']='update '..ver(-1),['src/remote.lua']='remote '..ver(-1),['src/ui.lua']='ui '..ver(-1)}) do
     F.files[WORK..'backup/'..k]=val; names[#names+1]=k
    end
    F.files[WORK..'backup/.files']=table.concat(names,'\n')
@@ -1865,7 +1865,7 @@ return function(source)
    H.tick(HOST,0); go('diagnostic'); redraw(); assert(drawn('update_rollback') and not drawn('update_install'))
    -- Beta 1.35 : retour arrière demandé au clic, copié à l'image suivante (hors du dessin de la fenêtre).
    F.watch(); HOST.releasing=true; press('update_rollback'); assert(u.phase=='rollbackReady' and F.restarts==0,'deferred to the next frame'); script.update(1/60); HOST.releasing=false
-   assert(F.restarts==1 and HOST.files['local/ACAdvancedIA.lua']=='main '..ver(-1) and Update.manifestVersion(HOST.files['local/manifest.ini'])==ver(-1) and F.reloads==0,
+   assert(F.restarts==1 and HOST.files['local/AdvancedIA.lua']=='main '..ver(-1) and Update.manifestVersion(HOST.files['local/manifest.ini'])==ver(-1) and F.reloads==0,
     'rollback: '..u.phase..' '..u.error..' '..u.detail..' restarts '..F.restarts..' reloads '..F.reloads..' stopped '..tostring(HUMANAI.host.updateStopped))
    assert(HOST.files[WORK..'updated.txt']=='rollback '..ver(0)..' -> '..ver(-1))
   end)
@@ -1875,12 +1875,12 @@ return function(source)
   updated(function(F)
    F.files['local/manifest.ini']='VERSION='..ver(-1)
    local names={}
-   for k,val in pairs({['manifest.ini']='VERSION='..ver(0),['ACAdvancedIA.lua']='main '..ver(0),['src/update.lua']='update '..ver(0),['src/remote.lua']='remote '..ver(0),['src/ui.lua']='ui '..ver(0)}) do
+   for k,val in pairs({['manifest.ini']='VERSION='..ver(0),['AdvancedIA.lua']='main '..ver(0),['src/update.lua']='update '..ver(0),['src/remote.lua']='remote '..ver(0),['src/ui.lua']='ui '..ver(0)}) do
     F.files[WORK..'next/'..Fake.prefix..k]=val; names[#names+1]=k
    end
    F.files[WORK..'next/'..Fake.prefix..'.files']=table.concat(names,'\n')
-   for k,val in pairs({['manifest.ini']='VERSION='..ver(-1),['ACAdvancedIA.lua']='main '..ver(-1),['src/ui.lua']='ui '..ver(-1)}) do F.files[WORK..'current/'..k]=val end
-   F.files[WORK..'current/.files']='manifest.ini\nACAdvancedIA.lua\nsrc/ui.lua'
+   for k,val in pairs({['manifest.ini']='VERSION='..ver(-1),['AdvancedIA.lua']='main '..ver(-1),['src/ui.lua']='ui '..ver(-1)}) do F.files[WORK..'current/'..k]=val end
+   F.files[WORK..'current/.files']='manifest.ini\nAdvancedIA.lua\nsrc/ui.lua'
    F.files[WORK..'installing.txt']='update '..ver(-1)..' -> '..ver(0)
    F.before=HUMANAI
   end,function(F)
@@ -2071,8 +2071,8 @@ return function(source)
   redraw(); if require('src/locale').current~='fr' then press('lang_fr') end
   local e=HUMANAI.engine; local g=e.g; local v=HUMANAI.panel
   -- Logo de l'en-tête dessiné, marque décalée de 44 px ; infobulle propre de la puce de version.
-  boxes(); local brand=boxOf('ACADVANCED'); assert((HOST.images or 0)>0 and brand,'logo drawn')
-  local image=ui.drawImage; ui.drawImage=nil; boxes(); local plain=boxOf('ACADVANCED'); ui.drawImage=image
+  boxes(); local brand=boxOf('ADVANCED'); assert((HOST.images or 0)>0 and brand,'logo drawn')
+  local image=ui.drawImage; ui.drawImage=nil; boxes(); local plain=boxOf('ADVANCED'); ui.drawImage=image
   assert(plain and math.abs(brand.x-plain.x-44)<1e-6,'brand moved by the logo: '..brand.x..' / '..tostring(plain and plain.x))
   boxes(); local chip=boxOf('β'..(C.release:gsub('^Beta ',''))); assert(chip,'version chip drawn')
   HOST.mouse={x=chip.x+1,y=chip.y+1}; redraw(); HOST.mouse={x=-1e6,y=-1e6}
@@ -2128,7 +2128,7 @@ return function(source)
   g.panelShow='always'; pause(false); H.tick(HOST,0.5)
   local pk=HUMANAI.engine.panel; pk.kind='sc'; pk.decided='sc'; pk.title=L.flagTitles.sc; pk.short=''; pk.explain=''; pk.changedAt=HUMANAI.engine.time
   HOST.repeatPushes=0; HOST.lastPushed=nil; HOST.fontDepthMax=0; HOST.fontPushes=0; HOST.transparent={}; script.HUMANAI__HUD()
-  assert(HOST.transparent.ACAdvancedIA_overlay and HOST.dwriteDepth==0 and HOST.repeatPushes==0 and HOST.fontDepthMax==1 and HOST.fontPushes<=6,'overlay fonts: '..HOST.fontPushes..' pushes ('..HOST.repeatPushes..' repeated)')
+  assert(HOST.transparent.AdvancedIA_overlay and HOST.dwriteDepth==0 and HOST.repeatPushes==0 and HOST.fontDepthMax==1 and HOST.fontPushes<=6,'overlay fonts: '..HOST.fontPushes..' pushes ('..HOST.repeatPushes..' repeated)')
   local clipped=ui.dwriteDrawTextClipped; ui.dwriteDrawTextClipped=function() error('draw failure (test)') end
   script.HUMANAI__FLAGS(); ui.dwriteDrawTextClipped=clipped
   assert(HOST.dwriteDepth==0 and HUMANAI.host.errors>0,'overlay fonts unwound after a drawing error')
@@ -2183,14 +2183,14 @@ return function(source)
   g.panelShow='always'; g.overlayLocked=true; pause(false); H.tick(HOST,0.5)
   for _,scale in ipairs({1,1.5}) do
    g.overlayScale=scale; g.overlayX=-1; g.overlayY=-1; HOST.transparent={}; HOST.rects={}; script.HUMANAI__HUD()
-   local o=HOST.transparent.ACAdvancedIA_overlay; local parts=UI.overlayParts(v,false)
+   local o=HOST.transparent.AdvancedIA_overlay; local parts=UI.overlayParts(v,false)
    assert(o and math.abs(o.w-K.hudWidth*scale)<1e-6 and math.abs(o.h-UI.overlayHeight(parts)*scale)<1e-6,'overlay window sized from its content at '..scale)
    assert(math.abs(v.drawnHeight-o.h)<1e-6,'content height equals the window at '..scale)
    assert(o.x>=0 and o.y>=0 and o.x+o.w<=1920+1e-6 and o.y+o.h<=1080+1e-6,'overlay on screen at '..scale)
    local stripe=false; for _,q in ipairs(HOST.rects) do if q[1]==0 and math.abs(q[2])<1e-6 and math.abs(q[4]-q[2]-3*scale)<1e-6 then stripe=true end end
    assert(stripe,'accent stripe at the very top at '..scale)
   end
-  g.overlayX=5000; g.overlayY=5000; HOST.transparent={}; script.HUMANAI__HUD(); local o=HOST.transparent.ACAdvancedIA_overlay
+  g.overlayX=5000; g.overlayY=5000; HOST.transparent={}; script.HUMANAI__HUD(); local o=HOST.transparent.AdvancedIA_overlay
   assert(math.abs(o.x+o.w-1920)<1e-6 and math.abs(o.y+o.h-1080)<1e-6,'kept inside the screen')
   HOST.rects=nil; g.overlayX=-1; g.overlayY=-1; g.overlayScale=1
  end)
@@ -2222,7 +2222,7 @@ return function(source)
   local ok,err=pcall(function()
    assert(loadstring(source))(); H.tick(HOST,0.5); pause(true)
    for _,tab in ipairs({'home','settings','rules','diagnostic'}) do go(tab); redraw() end
-   HOST.transparent={}; script.HUMANAI__HUD(); assert(HOST.transparent.ACAdvancedIA_overlay,'overlay drawn')
+   HOST.transparent={}; script.HUMANAI__HUD(); assert(HOST.transparent.AdvancedIA_overlay,'overlay drawn')
    local e=HUMANAI.engine; local found=false
    for n=0,e.log.count-1 do local row=e.log[(e.log.head-n-1)%e.log.limit+1]; assert(not row.message:find('ui:',1,true),row.message); if row.message:find('mise a jour: module illisible',1,true) then found=true end end
    assert(found,'unreadable updater logged')
@@ -2639,6 +2639,121 @@ return function(source)
   local b0=beats; H.tick(HOST,1); assert(beats==b0,'nothing more after the cut')
   B.beat,B.publish=beat0,pub0; ac.connect=nil; ac.StructItem=nil
   HUMANAI.release()
+ end)
+ -- Beta 1.49 (session du 5 novembre, 11:33 : « arrivee en 0 », « 0 -> 1 ») : composés du joueur lus comme ceux des IA.
+ check('Beta 1.49 : composes du joueur lus (noms de l arret obligatoire)',function()
+  if HUMANAI then HUMANAI.release() end
+  HOST=H.create(true); HOST.sim.raceSessionType=3
+  local names={[0]='SS',[1]='S',[2]='M'}
+  local get=ac.getTyresName
+  ac.getTyresName=function(index,compound) return names[compound] end
+  assert(loadstring(source))(); H.tick(HOST,2)
+  local a=HUMANAI.engine.frame and HUMANAI.engine.frame.cars[HUMANAI.engine.frame.player] or nil
+  ac.getTyresName=get
+  assert(a and a.player and a.tyresKnown and a.tyreNames[0]=='SS' and a.tyreNames[2]=='M','player compounds read')
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))()
+ end)
+ -- Beta 1.49 : avis de l'arrêt F1 publiés pour SpotterEnginer (annonce de l'app : genre, valeurs, titre, texte) sans
+ -- message d'AC en haut de l'écran ni ligne de session en double.
+ check('Beta 1.49 : avis de l arret F1 annonces au pont, jamais en message d AC',function()
+  if HUMANAI then HUMANAI.release() end
+  HOST=H.create(true); HOST.sim.raceSessionType=3
+  local connected={}
+  local SI={}
+  for _,k in ipairs({'boolean','int32','uint32','float','double'}) do SI[k]=function() return {kind=k} end end
+  SI.string=function(n) return {kind='string',cap=n} end
+  SI.key=function(s) return {kind='key',value=s} end
+  SI.struct=function(fl) return {kind='struct',fields=fl} end
+  SI.array=function(el,n) return {kind='array',elem=el,size=n} end
+  local function make(d)
+   if d.kind=='struct' then local o={}; for name,fl in pairs(d.fields) do if fl.kind~='key' then o[name]=make(fl) end end; return o
+   elseif d.kind=='array' then local a={}; for i=0,d.size-1 do a[i]=make(d.elem) end; return a
+   elseif d.kind=='string' then return '' elseif d.kind=='boolean' then return false end
+   return 0
+  end
+  ac.StructItem=SI
+  ac.connect=function(layout) local o=make({kind='struct',fields=layout}); connected[#connected+1]=o; return o end
+  ac.FolderID.ACAppsLua=1029; local getFolder=ac.getFolder
+  ac.getFolder=function(id) if id==1029 then return 'appslua' end return getFolder(id) end
+  local sep=string.char(92); HOST.files['appslua'..sep..'SpotterEnginer'..sep..'manifest.ini']='[ABOUT]'
+  assert(loadstring(source))(); H.tick(HOST,1)
+  local e=HUMANAI.engine; local data=connected[2]
+  assert(data,'bridge open')
+  local L=require('src/lang')
+  e.pits.playerNoticeFrom='SS'; e.pits.playerNoticeTo='S'
+  local before=#HOST.messages
+  e.announce('pitValidated',0,1); H.tick(HOST,0.5)
+  assert(data.messageKind=='pitValidated' and data.messageValue==0 and data.messageExtra==1,'bridge: kind and values')
+  assert(data.messageTitle==L.messages.pitValidated[1] and data.messageText==string.format(L.pitHint.counted,'SS','S'),'bridge: title and text ready')
+  assert(#HOST.messages==before,'no AC message at the top of the screen')
+  local id=data.messageId; H.tick(HOST,0.5); assert(data.messageId==id,'published once')
+  e.pits.playerNoticeTo='SS'; e.announce('pitNotCounted',0,0); H.tick(HOST,0.5)
+  assert(data.messageKind=='pitNotCounted' and data.messageId~=id and data.messageText==string.format(L.pitHint.sameDetail,'SS','SS') and #HOST.messages==before,'not counted: bridge only')
+  -- Collision dans une image (pénalité, priorité 5, et avis de l'arrêt) : la pénalité publiée dans cette image, l'avis à
+  -- l'image suivante, titre et texte écrits pour lui avant la publication du pont de la même image ; une seule fois.
+  local S=require('src/sanctions'); local update0=S.update; local collide=false
+  S.update=function(...) local r=update0(...); if collide then collide=false; e.announce('penaltyDelta',5,0); e.announce('pitValidated',0,1) end; return r end
+  e.pits.playerNoticeFrom='SS'; e.pits.playerNoticeTo='S'
+  collide=true; H.tick(HOST,1/60)
+  local idPenalty=data.messageId
+  assert(data.messageKind=='penaltyDelta' and data.messageTitle==L.messages.penaltyDelta[1] and data.messageText==string.format(L.messages.penaltyDelta[2],5),'collision frame: the penalty, title and text of the same message')
+  H.tick(HOST,1/60)
+  assert(data.messageId==idPenalty%C.K.counterMax+1 and data.messageKind=='pitValidated' and data.messageValue==0 and data.messageExtra==1,'next frame: the pit notice')
+  assert(data.messageTitle==L.messages.pitValidated[1] and data.messageText==string.format(L.pitHint.counted,'SS','S'),'re-emission frame: title and text of the pit notice')
+  local idPit=data.messageId; H.tick(HOST,1/60); assert(data.messageId==idPit,'published once')
+  S.update=update0
+  -- Autres annonces : comme avant (message d'AC).
+  local before2=#HOST.messages; e.announce('pitOpen',20,95); H.tick(HOST,0.5); assert(#HOST.messages==before2+1 and data.messageKind=='pitOpen','other kinds unchanged')
+  ac.connect=nil; ac.StructItem=nil
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))()
+ end)
+ -- Beta 1.49 : l'app s'appelle AdvancedIA ; l'ancienne version encore installée (apps/lua/ACAdvancedIA/manifest.ini)
+ -- pilote les IA : AdvancedIA ne commande ni n'écrit rien et affiche seulement la consigne (fenêtre, écran, journal).
+ -- Dossier vide (sans manifeste) : sans effet. Réglages de l'ancienne app non repris : signalés une fois.
+ check('Beta 1.49 : ancienne version ACAdvancedIA installée : app inerte et consigne ; dossier vide sans effet',function()
+  local Old=require('src/oldinstall')
+  local function boot(files)
+   if HUMANAI then HUMANAI.release() end
+   HOST=H.create(true); HOST.sim.raceSessionType=3
+   ac.FolderID.ACAppsLua=1029; local getFolder=ac.getFolder
+   ac.getFolder=function(id) if id==1029 then return 'appslua' end return getFolder(id) end
+   for k,val in pairs(files or {}) do HOST.files[k]=val end
+   Old.active=nil; local before=HUMANAI
+   assert(loadstring(source))()
+   return before
+  end
+  local sep=string.char(92)
+  -- Ancienne version présente : rien n'est commandé ni écrit, consigne dans la fenêtre et sur l'écran, une ligne au journal.
+  local before=boot({['appslua'..sep..'ACAdvancedIA'..sep..'manifest.ini']='[ABOUT]\nNAME=ACAdvancedIA\n'})
+  assert(Old.active==true and HUMANAI==before,'inert: the engine is never created')
+  for _=1,120 do script.update(1/60); script.HUMANAI__UPDATE(1/60) end
+  HOST.wrappedTexts={}; script.HUMANAI__MAIN()
+  local inWindow=table.concat(HOST.wrappedTexts,'|')
+  assert(inWindow:find(Old.textFr,1,true) and inWindow:find(Old.textEn,1,true),'window alone: instruction in French and English')
+  script.HUMANAI__MENU(); script.HUMANAI__FLAGS()
+  HOST.transparent={}; script.HUMANAI__HUD()
+  assert(HOST.calls==0 and HOST.offsetCalls==0,'inert: no AI command')
+  assert(not HOST.guiWrites and not HOST.stateWrites and not HOST.cfgWrites and not HOST.bakDeleted,'inert: no CSP option, state or AI flood write')
+  local shown=table.concat(HOST.wrappedTexts,'|')
+  assert(shown:find(Old.textFr,1,true) and shown:find(Old.textEn,1,true),'window: instruction in French and English')
+  assert(HOST.transparent.AdvancedIA_overlay,'overlay: instruction on screen')
+  local text=HOST.files['logs/AdvancedIA.log'] or ''
+  assert(text:find('=== AdvancedIA ',1,true) and text:find('ancienne version ACAdvancedIA encore installee',1,true),'one journal line')
+  -- Dossier laissé vide (sans manifeste) : l'app démarre normalement.
+  boot({['appslua'..sep..'ACAdvancedIA'..sep..'notes.txt']='x'})
+  assert(Old.active==nil and HUMANAI and HUMANAI.engine,'empty folder: normal start')
+  H.tick(HOST,2); assert(HOST.calls>0,'empty folder: the app drives')
+  assert(HUMANAI.host.oldSettings==false,'no old settings: no hint')
+  -- Réglages de l'ancienne app présents, ceux d'AdvancedIA pas encore : un point « À vérifier » et une ligne au journal.
+  local state=ac.getFolder(ac.FolderID.ExtCfgState)
+  boot({[state..sep..'lua'..sep..'app'..sep..'ACAdvancedIA.ini']='[BOOLEAN]\n'})
+  assert(HUMANAI.host.oldSettings==true,'old settings: hint')
+  local found=false; local q=HUMANAI.engine.log
+  for k=1,q.limit do local r=q[k]; if r and type(r.message)=='string' and r.message:find('reglages d ACAdvancedIA non repris',1,true) then found=true end end
+  assert(found,'old settings: journal line')
+  boot({[state..sep..'lua'..sep..'app'..sep..'ACAdvancedIA.ini']='[BOOLEAN]\n',[state..sep..'lua'..sep..'app'..sep..'AdvancedIA.ini']='[BOOLEAN]\n'})
+  assert(HUMANAI.host.oldSettings==false,'settings already carried over: no hint')
+  HUMANAI.release(); HOST=H.create(true); assert(loadstring(source))()
  end)
  -- Beta 1.47 (Monza, 4 novembre, 17:26) : drapeau rouge de l'app (5) sur les panneaux, relance de la session ; CSP garde
  -- le 5 après la restitution (simulé : HOST.stickyFlag) : l'app ne le prend pas pour un drapeau noir natif, renvoie la

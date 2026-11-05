@@ -62,6 +62,45 @@ local shownKinds={scCall='sc',penaltyDrive='penalty',penaltyTeleport='penalty',p
  rollingIn='rolling',rollingGreen='rolling',standingLap='standing',standingPit='standing'}
 -- Drapeau retenu : genre affiché, horodatage du changement, textes refaits seulement quand le genre ou la valeur change.
 -- profile : essais et qualifications parlent de séance, pas de course (drapeau rouge, reprise).
+-- Beta 1.49 : textes de l'arrêt obligatoire en F1 (composés nommés), refaits seulement quand ils changent.
+local function joinOr(list,word)
+ local n=#list
+ if n==0 then return '' elseif n==1 then return list[1] end
+ return table.concat(list,', ',1,n-1)..word..list[n]
+end
+local function pitTexts(panel,t,extra,value)
+ local others=t.playerTyreOthers or {}
+ local tyre=t.playerTyre or ''
+ local sig=extra..'|'..value..'|'..tyre..'|'..#others..'|'..(t.playerPitFrom or '')..'|'..(t.playerPitTo or '')..'|'..(t.playerPlan or '')..'|'..(t.playerPlanned or '')
+ if sig==panel.pitSig then return end
+ panel.pitSig=sig
+ local H=L.pitHint; local short,detail
+ local fitted=tyre~='' and tyre or '?'
+ local planSame=string.format(H.planSame,fitted)
+ local planSameDetail=#others>0 and string.format(H.planSameDetail,fitted,joinOr(others,H.orWord)) or string.format(H.planSameDetailAny,fitted)
+ if extra==1 then short=L.flagShort.pitCompound; detail=string.format(L.flagDetails.pitCompound,value)
+ elseif extra==2 then
+  if t.playerPlan=='same' then short=planSame; detail=planSameDetail
+  elseif t.playerPlan=='ok' and (t.playerPlanned or '')~='' then short=string.format(H.planOk,t.playerPlanned); detail=short
+  elseif tyre~='' and #others>0 then short=string.format(H.change,tyre,joinOr(others,H.orWord)); detail=short
+  else short=H.generic; detail=short end
+ elseif extra==3 then short=string.format(H.same,t.playerPitFrom or '?',t.playerPitTo or '?'); detail=string.format(H.sameDetail,t.playerPitFrom or '?',t.playerPitTo or '?')
+ elseif extra==4 then short=string.format(H.counted,t.playerPitFrom or '?',t.playerPitTo or '?'); detail=short
+ else short=planSame; detail=planSameDetail end
+ panel.pitShort=short; panel.pitDetail=detail; panel.pitExplain=extra==4 and '' or L.flagExplain.pitCompound
+end
+-- Texte d'une annonce de l'arrêt F1 (pont des apps compagnes), celui de la consigne du panneau ; nil pour une autre.
+local announceExtra={pitCompound=2,pitPlanSame=5,pitNotCounted=3,pitValidated=4}
+function M.pitAnnounce(t,kind)
+ local extra=announceExtra[kind]
+ if not extra then return nil end
+ local scratch={}
+ local saved=t.playerPlan
+ if kind=='pitCompound' then t.playerPlan='' end
+ pitTexts(scratch,t,extra,t.playerPitDue or 0)
+ t.playerPlan=saved
+ return scratch.pitDetail or ''
+end
 local function show(panel,kind,value,double,gap,now,profile,extra)
  extra=extra or 0
  local shown=shownKinds[kind] or kind
@@ -76,6 +115,7 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
  -- Beta 1.39 : drapeau noir de l'app (infractions au-delà du nombre toléré) : nombre d'infractions dans la consigne.
  local ours=kind=='black' and panel.infractionMax>=0 and panel.infractions>panel.infractionMax
  local key=kind..'|'..value..'|'..extra..'|'..(double and 1 or 0)..(session and '|s' or '')..(ours and '|'..panel.infractions or '')
+ if kind=='pit' and extra>0 then key=key..'|'..(panel.pitSig or '') end
  if key~=panel.key then
   panel.key=key
   -- Départ arrêté (Beta 1.35) : place et distance lues par la case de l'overlay.
@@ -104,6 +144,7 @@ local function show(panel,kind,value,double,gap,now,profile,extra)
    -- Explication de ce qui se passe (Beta 1.25), sous la consigne : jaune, double jaune, neutralisations, rouge...
    local explain=kind=='yellow' and double and 'yellow2' or kind=='red' and (session and 'redSession' or 'red') or kind
    panel.explain=L.flagExplain[explain] or ''
+   if kind=='pit' and extra>0 and panel.pitShort then panel.raw=panel.pitDetail; panel.detail=U.wrapText(panel.pitDetail,K.panelWrap); panel.short=panel.pitShort; panel.explain=panel.pitExplain end
   else panel.explain='' end
  end
 end
@@ -244,10 +285,16 @@ function M.update(panel,t,frame,p,profile,now,lights)
   elseif now<t.greenUntil then kind='green'
   elseif nk=='start' then kind='start'
   -- Rappel d'arrêt obligatoire : jamais à la place d'un drapeau, du bleu ou du DRS.
-  elseif t.playerPitRemind then kind='pit'; value=t.playerPitDue or 0
+  -- Beta 1.49 : avis après l'arrêt (validé, ou même composé), stratégie des stands au même composé, rappel avant
+  -- l'entrée des stands, dans la voie et à l'emplacement (F1) ; consigne « changez de composé » du rappel en F1.
+  elseif t.playerPitNotice~=nil and t.playerPitNotice~='' then kind='pit'; value=t.playerPitDue or 0; extra=t.playerPitNotice=='same' and 3 or 4
+  elseif t.playerPlanNotice then kind='pit'; value=t.playerPitDue or 0; extra=5
+  elseif t.playerPitHint then kind='pit'; value=t.playerPitDue or 0; extra=2
+  elseif t.playerPitRemind then kind='pit'; value=t.playerPitDue or 0; extra=t.playerPitCompound and 1 or 0
   -- Mise à jour disponible (Beta 1.33) : la plus basse des informations, aux stands seulement.
   elseif now<panel.updateUntil then kind='update'; value=panel.updateVersion end
  end
+ if kind=='pit' and extra>0 then pitTexts(panel,t,extra,value) end
  show(panel,kind,value,double,gap,now,profile,extra)
  restartInfo(panel,t,frame,kind)
  -- Départ arrêté (Beta 1.35) : joueur à sa place (à l'arrêt) ou au-delà, lus par la case de l'overlay.

@@ -4,7 +4,7 @@ sauvegarde et installation jeu fermé.
   python devtools.py tree <dossier A> <dossier B>
   python devtools.py install <dossier préparé> <copie de référence de l'app installée> <version installée> <nouvelle version>
 
-L'installation refuse si Assetto Corsa tourne, sauvegarde l'app et les réglages dans _ACAdvancedIA_archives, copie
+L'installation refuse si Assetto Corsa tourne, sauvegarde l'app et les réglages dans _AdvancedIA_archives, copie
 les fichiers changés, puis vérifie la copie."""
 import hashlib
 import os
@@ -15,8 +15,8 @@ import zipfile
 from pathlib import Path
 
 GAME = Path('D:/SteamLibrary/steamapps/common/assettocorsa')
-LIVE = GAME / 'apps/lua/ACAdvancedIA'
-ARCHIVES = GAME / '_ACAdvancedIA_archives'
+LIVE = GAME / 'apps/lua/AdvancedIA'
+ARCHIVES = GAME / '_AdvancedIA_archives'
 SETTINGS = Path.home() / 'Documents/Assetto Corsa/cfg/extension/state/lua/app'
 SKIP = {'__pycache__'}
 # Mise à jour depuis l'app (Beta 1.33) : sauvegarde, dépôt et repères propres à chaque installation, jamais copiés ni
@@ -70,14 +70,14 @@ def install(stage, baseline, current, new):
         tree(baseline, LIVE)
         raise SystemExit('ARRET : l app installée a changé depuis la copie de référence')
     ARCHIVES.mkdir(exist_ok=True)
-    app_zip = ARCHIVES / f'ACAdvancedIA-{current}-sauvegarde-avant-{new}.zip'
-    set_zip = ARCHIVES / f'ACAdvancedIA-reglages-{current}-avant-{new}.zip'
-    for target, root, names in ((app_zip, LIVE, None), (set_zip, SETTINGS, ('ACAdvancedIA.ini', 'ACAdvancedIA.ini.bak'))):
+    app_zip = ARCHIVES / f'AdvancedIA-{current}-sauvegarde-avant-{new}.zip'
+    set_zip = ARCHIVES / f'AdvancedIA-reglages-{current}-avant-{new}.zip'
+    for target, root, names in ((app_zip, LIVE, None), (set_zip, SETTINGS, ('AdvancedIA.ini', 'AdvancedIA.ini.bak'))):
         with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as z:
             paths = [root / n for n in names] if names else [p for p in root.rglob('*') if p.is_file()]
             for p in paths:
                 if p.exists():
-                    z.write(p, Path('ACAdvancedIA') / p.relative_to(root) if not names else p.name)
+                    z.write(p, Path('AdvancedIA') / p.relative_to(root) if not names else p.name)
         with zipfile.ZipFile(target) as z:
             if z.testzip() is not None:
                 raise SystemExit(f'ARRET : archive illisible {target}')

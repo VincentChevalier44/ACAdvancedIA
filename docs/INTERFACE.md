@@ -1,6 +1,6 @@
 # Settings window and overlay (Racing 26)
 
-Beta 1.35 redraws the window and the overlay from the final mockup *ACAdvancedIA — Refonte UI* (artifact version 1793649588-c9be). This page records how the mockup maps to the code. Beta 1.38 brings the details to the final mockup (version 1793693617-17ad) after a fidelity review of Beta 1.37, and Beta 1.39 closes the gaps a review of Beta 1.38 still found.
+Beta 1.35 redraws the window and the overlay from the final mockup *AdvancedIA — Refonte UI* (artifact version 1793649588-c9be). This page records how the mockup maps to the code. Beta 1.38 brings the details to the final mockup (version 1793693617-17ad) after a fidelity review of Beta 1.37, and Beta 1.39 closes the gaps a review of Beta 1.38 still found.
 
 ## Files
 

@@ -1,5 +1,58 @@
 # Changelog
 
+## Beta 1.49 — 5 November 2026
+
+The app is renamed **AdvancedIA** (it was ACAdvancedIA). Driving and rules are unchanged.
+
+### New name everywhere
+- Folder `apps/lua/AdvancedIA`, entry script `AdvancedIA.lua`, name in AC's app list and in the window header
+  (**ADVANCED**·**IA**), the overlay, the update notices, the tooltips and every text; session log
+  `Documents/Assetto Corsa/logs/AdvancedIA.log`.
+- GitHub repository `VincentChevalier44/AdvancedIA`, packages `AdvancedIA-Beta-X.zip` / `.sha256`. The update button
+  reads the new repository and accepts only packages under `apps/lua/AdvancedIA/`; its work folder is now
+  `state/AdvancedIA-update` (the old `ACAdvancedIA-update` is never read, so a rollback can never put an old version
+  in the new folder).
+- New banner (JPEG).
+- Kept on purpose: the companion bridge keys `ACAdvancedIA.Bridge.*` (frozen format shared with SpotterEnginer,
+  `src/bridge_layout.lua` unchanged), the settings prefixes `humanai:*`, and the CSP state file
+  `ACAdvancedIA-cspgui.ini`, which holds your original CSP display options.
+
+### F1 mandatory stop: compound change (Monza log, 5 November 09:55)
+- The player's stop counted only if the compound read at the box exit differed; it is now followed from the box
+  arrival until the pit-lane exit plus 3 s (AC may update the fitted compound a little later), and counted as soon as
+  it changes. The log names the compounds (`compte: compose change (SS -> S, …)`, `non compte: compose inchange
+  (SS -> SS)`). The player's compound names are now read too (they were read for the AI only, hence `0 -> 1`).
+- Overlay, F1 rules, while the stop is due: *Mandatory stop · change compound*; about 20 s before the pit entry
+  (learnt from the other cars, otherwise the last third of the lap), in the pit lane and in the box: *Change compound:
+  you are on SS → fit S or M*. After the stop: *Mandatory stop validated (SS → S)*, or for 8 s *Stop not counted: same
+  compound (SS → SS). In F1, change compound.* Never above a flag, a penalty, the blue flag or DRS.
+- Pit strategy check: the compound of the selected Quick Pitstop preset (`ac.getPitstopSpinners`, CSP 0.2.7+) is read
+  at the start, every 2 s while the stop is due and on entering the pit lane (never per frame, never changed by the
+  app). Same compound planned: *Pit strategy: same compound planned (SS). In F1, choose another compound (S or M) in
+  the pit menu.* for 8 s, and in the pre-entry reminder; otherwise *Pit strategy: S planned, stop valid*. The value to
+  compound mapping is only used when unambiguous (one value per compound, or one more for « no change »), and the
+  whole menu is written once to the log (`strategie des stands (Quick Pitstop): …`). Older CSP: one log line
+  (`strategie des stands illisible`), no warning.
+
+### Race start wait: 2 s by default
+- *Start delay (s)* (Start section, Race profile) now defaults to 2 s instead of 1 s (driver's request). A Race profile
+  still on the old 1 s default moves to 2 s on the first launch (`profils mis a jour …: C:attente au depart 2 s`); a
+  value you set yourself stays as it is.
+
+### Moving from ACAdvancedIA (one manual install)
+- The update button of Beta 1.48 and older cannot move the app to the new folder: install this version by hand
+  once (README › *Moving from ACAdvancedIA*): close the game, back up and delete `apps/lua/ACAdvancedIA`, extract the
+  package at the AC root, and rename `state/lua/app/ACAdvancedIA.ini` to `AdvancedIA.ini` before the first launch to
+  keep your settings.
+- While the old version (`apps/lua/ACAdvancedIA/manifest.ini`) is still installed, AdvancedIA drives nothing (no AI
+  command, flag, CSP option, AI flood or bridge write) and shows the instruction in its window and on screen, in
+  French and English; one log line (`ancienne version ACAdvancedIA encore installee`). An empty leftover folder is
+  harmless.
+- First launch without the old settings file renamed: *ACAdvancedIA settings not carried over* under **HOME › TO
+  CHECK**, with the file to copy; one log line.
+
+**Verification**: 629 checks; 132 integration cases; 1,611 mutations, all detected; clean lint, parameter audit; the reference scenes are identical to Beta 1.48 (they set their own start wait; also identical with the old 1 s default); the end-to-end race scene too; 8-hour soak with 0 errors (memory between 10.8 and 12.1 MB, peak frame 0.79 ms); engine bench, median of five alternating runs, 9 / 30 / 60 AI: 0.064 / 0.303 / 0.757 ms (Beta 1.48: 0.058 / 0.275 / 0.738 ms); long track (60.6 km, 46 AI): 0.324 ms, P99 0.763 ms (Beta 1.48: 0.317 ms, P99 0.726 ms); companion bridge with SpotterEnginer installed: 0.010 / 0.015 / 0.023 ms per frame (9 / 30 / 60 AI), none without it.
+
 ## Beta 1.48 — 4 November 2026
 
 Red-flag restart and Safety Car, from the 4 November Monza log (18:11): the Safety Car never left its pit box, the

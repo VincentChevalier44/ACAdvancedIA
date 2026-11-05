@@ -3,23 +3,25 @@ local U=require('src/util')
 local K=require('src/config').K
 local M={}
 local function clear(c)
- c.stops=0; c.windowStops=0; c.boxed=false; c.boxSince=0; c.visit=0; c.wanted=false; c.redVisit=false; c.pendingCompound=nil
+ c.stops=0; c.windowStops=0; c.boxed=false; c.boxSince=0; c.visit=0; c.wanted=false; c.redVisit=false; c.pendingCompound=nil; c.pendingUntil=nil; c.wasPit=nil
  c.fuelLap=-1; c.fuelAt=-1; c.lapAt=0; c.pitLap=false; c.perLap=0; c.lapTime=0; c.repairVisit=-1; c.repairTime=0; c.towedAt=nil
  -- Relecture 1.42 (après correctifs) : passage de pénalité en cours à l'emplacement, arrêt des règles retenu par la limite
  -- d'appels (lu par sanctions.lua : la pénalité attend cet arrêt).
  c.passBox=false; c.deferred=false
 end
 function M.new()
- local t={cars={},opened=false,openedAt=-math.huge,justClosed=false,progress=-1,position=-1,open=-1,close=-1,csp=false,state='off',done=0,total=0,restored={},models={},restoredSession=-1,dirty=false,wetRace=false,waived=false}
+ local t={cars={},entrySpline=-1,playerNotice='',playerNoticeUntil=-math.huge,playerNoticeFrom='',playerNoticeTo='',hintFor=-2,hintTyre='',hintOthers={},opened=false,openedAt=-math.huge,justClosed=false,progress=-1,position=-1,open=-1,close=-1,csp=false,state='off',done=0,total=0,restored={},models={},restoredSession=-1,dirty=false,wetRace=false,waived=false}
  for i=1,K.maxCars do local c={identity='',lastStop=0}; clear(c); t.cars[i]=c end
  return t
 end
 function M.reset(t,now)
  for i=1,K.maxCars do local c=t.cars[i]; clear(c); c.identity=''; c.lastStop=now end
  t.opened=false; t.openedAt=-math.huge; t.justClosed=false; t.state='off'; t.dirty=true; t.wetRace=false; t.waived=false
+ t.entrySpline=-1; t.playerNotice=''; t.playerNoticeUntil=-math.huge; t.hintFor=-2
 end
 function M.rebase(t,amount)
- for i=1,K.maxCars do local c=t.cars[i]; c.boxSince=c.boxSince-amount; c.lastStop=c.lastStop-amount; c.lapAt=c.lapAt-amount end
+ for i=1,K.maxCars do local c=t.cars[i]; c.boxSince=c.boxSince-amount; c.lastStop=c.lastStop-amount; c.lapAt=c.lapAt-amount; if c.pendingUntil then c.pendingUntil=c.pendingUntil-amount end end
+ if t.playerNoticeUntil>-math.huge then t.playerNoticeUntil=t.playerNoticeUntil-amount end
  if t.openedAt>-math.huge then t.openedAt=t.openedAt-amount end
 end
 -- Avancement de la course de 0 à 1 : tours du leader, sinon temps d'une course chronométrée ; -1 inconnu.
@@ -47,6 +49,9 @@ function M.repairTime(a)
  if body<K.repairBodyMin and suspension<K.repairSuspensionMin and engine>=K.repairEngineMin then return 0 end
  return math.min(K.repairMax,K.repairBase+body*K.repairBodyRate+suspension*K.repairSuspensionRate+(K.engineLifeNew-engine)/K.engineLifeNew*K.repairEngineTime)
 end
+-- Beta 1.49 : nom court d'un composé (journal, avis du joueur) ; son numéro sans nom connu.
+local function tyreShort(a,index) return index~=nil and (a.tyreNames and a.tyreNames[index] or tostring(index)) or '?' end
+local function notice(t,kind,from,to,untilAt,fromIndex,toIndex) t.playerNotice=kind; t.playerNoticeFrom=from; t.playerNoticeTo=to; t.playerNoticeUntil=untilAt; t.playerNoticeFromIndex=fromIndex or -1; t.playerNoticeToIndex=toIndex or -1 end
 -- closed : entrée des stands fermée (neutralisation, règles GT et Endurance) : aucune IA appelée, un arrêt n'y compte pas.
 function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
  local active=profile=='C' and (p.mandatoryStops>0 or p.maxStintMin>0 or p.minPitTime>0)
@@ -97,6 +102,10 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
   -- une voiture arrivée à son emplacement après la reprise reste sous la règle du drapeau rouge.
   if a.pit and red then c.redVisit=true elseif not a.pit then c.redVisit=false end
   local underRed=red or c.redVisit==true
+  -- Beta 1.49 : entrée de la voie des stands relevée au premier passage d'une voiture venue de la piste (rappel du
+  -- joueur avant l'entrée) ; une voiture déjà aux stands à la première image ne compte pas.
+  if a.pit and c.wasPit==false and t.entrySpline<0 and a.splineValid and not a.safetyCar and (a.kmh or 0)>=K.pitEntryMinKmh then t.entrySpline=a.spline end
+  c.wasPit=a.pit==true
   if a.inPitBox and not c.boxed and pass then
    c.boxed=true; c.boxSince=now; c.passBox=true
    if t.note and not a.player then t.note('INFO',string.format('passage de penalite a l emplacement: %s, non compte comme arret',a.name),i) end
@@ -110,20 +119,37 @@ function M.update(t,frame,commands,p,profile,now,seed,announce,red,dq,closed)
     -- l'ouverture de la fenêtre (Beta 1.48 : la F1 n'en a pas) ; jamais sinon. Joueur et changement de composé
     -- obligatoire : compté à la sortie de l'emplacement, seulement si le composé a changé.
     local counts=mandatory and (underRed and p.redFlagWork or not underRed and position>=opening) and not closed and not (dq and dq[i])
-    c.pendingCompound=nil
+    c.pendingCompound=nil; c.pendingUntil=nil
     if counts and a.player and p.pitCompoundChange and a.compoundIndex~=nil then c.pendingCompound=a.compoundIndex
     elseif counts then c.windowStops=c.windowStops+1; t.dirty=true end
-    if t.note and active then t.note('INFO',string.format('arret aux stands%s: %d (dont %d dans la fenetre)%s, %s',a.player and ' du joueur' or '',c.stops,c.windowStops,c.pendingCompound and ', compte au changement de compose' or '',a.name),i) end
+    if t.note and active then t.note('INFO',string.format('arret aux stands%s: %d (dont %d dans la fenetre)%s, %s',a.player and ' du joueur' or '',c.stops,c.windowStops,c.pendingCompound and ', compte au changement de compose (arrivee en '..tyreShort(a,c.pendingCompound)..')' or '',a.name),i) end
    end
   end
   -- Relecture 1.42 (après correctifs) : un passage de pénalité ne remet pas le relais à zéro (relais maximal).
  if not a.inPitBox and c.boxed then
   c.boxed=false; if not c.passBox then c.lastStop=now end; c.passBox=false
-  if c.pendingCompound~=nil then
-   local changed=a.compoundIndex~=nil and a.compoundIndex~=c.pendingCompound
-   if changed then c.windowStops=c.windowStops+1; t.dirty=true end
-   if t.note and active then t.note('INFO',changed and string.format('arret aux stands du joueur compte: compose change (%d dans la fenetre)',c.windowStops) or 'arret aux stands du joueur non compte: compose inchange',i) end
-   c.pendingCompound=nil
+ end
+ -- Beta 1.49 (Monza, 5 novembre, 09:55) : composé du joueur suivi de l'arrivée à l'emplacement jusqu'à la sortie de la
+ -- voie des stands plus K.pitCompoundGrace s (AC peut mettre le composé à jour après la sortie de l'emplacement) ;
+ -- compté dès qu'il diffère du composé d'arrivée, refusé seulement à la fin de ce délai ; composés nommés au journal,
+ -- avis du joueur sur l'overlay (arrêt validé, ou même composé).
+ if c.pendingCompound~=nil then
+  local changed=a.compoundIndex~=nil and a.compoundIndex~=c.pendingCompound
+  if changed then
+   c.windowStops=c.windowStops+1; t.dirty=true
+   local from,to=tyreShort(a,c.pendingCompound),tyreShort(a,a.compoundIndex)
+   if t.note and active then t.note('INFO',string.format('arret aux stands du joueur compte: compose change (%s -> %s, %d dans la fenetre)',from,to,c.windowStops),i) end
+   notice(t,'counted',from,to,now+K.pitNoticeCounted,c.pendingCompound,a.compoundIndex)
+   if announce then announce('pitValidated',c.pendingCompound,a.compoundIndex) end
+   c.pendingCompound=nil; c.pendingUntil=nil
+  elseif a.pit or a.inPitBox or c.boxed then c.pendingUntil=nil
+  elseif not c.pendingUntil then c.pendingUntil=now+K.pitCompoundGrace
+  elseif now>=c.pendingUntil then
+   local from=tyreShort(a,c.pendingCompound)
+   if t.note and active then t.note('INFO',string.format('arret aux stands du joueur non compte: compose inchange (%s -> %s)',from,from),i) end
+   notice(t,'same',from,from,now+K.pitNoticeSame,c.pendingCompound,c.pendingCompound)
+   if announce then announce('pitNotCounted',c.pendingCompound,c.pendingCompound) end
+   c.pendingCompound=nil; c.pendingUntil=nil
   end
  end
   cmd.rulePit=false; cmd.pitHold=false; cmd.pitCompound=-1; cmd.pitVisit=c.visit; cmd.pitRepair=false

@@ -1,4 +1,4 @@
-# Final review — ACAdvancedIA 1.0.0
+# Final review — AdvancedIA 1.0.0
 
 This release brings together the complete review of the active code, the optimisation of the core, the fix for the slowdown on track days and the requested weather handling. The exact results are in [MESURES.md](MESURES.md), with a separate status for the strict criteria not met. The release number does not constitute a physical certification or a universal FPS guarantee.
 

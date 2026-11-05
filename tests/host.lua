@@ -37,7 +37,7 @@ function M.create(native110,options)
  ac.CSPModuleID={GUI='gui'}
  -- Fenêtres d'apps : taille de la fenêtre de réglages, redimensionnements comptés.
  h.mainWindow={x=1000,y=780}; h.resizes=0
- ac.accessAppWindow=function(name) if name~='IMGUI_LUA_ACAdvancedIA_main' then return nil end
+ ac.accessAppWindow=function(name) if name~='IMGUI_LUA_AdvancedIA_main' then return nil end
   return {size=function() return {x=h.mainWindow.x,y=h.mainWindow.y} end,resize=function(_,v) h.resizes=h.resizes+1; h.mainWindow={x=v.x,y=v.y} end} end
  -- Options de gui.ini telles que CSP les applique (Beta 1.40 : aussi HIDE_SYSTEM_MESSAGES) ; h.guiWatchers : relecture.
  ac.INIConfig={cspModule=function(id) assert(id=='gui'); return {get=function(_,section,key,fallback)
@@ -144,7 +144,7 @@ function M.create(native110,options)
   if kind==ac.PenaltyType.BlackFlag then assert(seconds==-1)
   elseif kind==ac.PenaltyType.ReleaseBlackFlag then h.blackFlagReleases=(h.blackFlagReleases or 0)+1 else assert(kind==ac.PenaltyType.SlowDown and seconds>=1); h.penalties[#h.penalties+1]=seconds end
  end
- ac.dirname=function() return 'apps/lua/ACAdvancedIA' end
+ ac.dirname=function() return 'apps/lua/AdvancedIA' end
  ac.AudioEvent={fromFile=function(params,reverb)
   assert(params.use3D==false and params.loop==false and reverb==false); h.sounds[#h.sounds+1]=params.filename
   return {volume=1,cameraInteriorMultiplier=0.25,setVolumeChannel=function(self,channel) h.beepChannel=channel; return self end,

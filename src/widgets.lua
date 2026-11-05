@@ -1,4 +1,4 @@
--- Kit de dessin « Racing 26 » des fenêtres de réglage (Beta 1.35, refonte de Vincent, canevas « ACAdvancedIA — Refonte
+-- Kit de dessin « Racing 26 » des fenêtres de réglage (Beta 1.35, refonte de Vincent, canevas « AdvancedIA — Refonte
 -- UI », même système que SetupLab). Fond quasi noir, panneaux anthracite à coin coupé, cyan d'action ; boutons en
 -- parallélogramme, onglets inclinés, interrupteurs, puces, curseurs avec repère du défaut. Aplats seulement : aucun
 -- dégradé, filtre, espacement de lettres ni animation, chaque état a sa couleur fixe. Polices livrées avec l'app

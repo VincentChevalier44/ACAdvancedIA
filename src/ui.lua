@@ -237,7 +237,7 @@ local function carDatabase(v)
  end
  return noCars,loader
 end
--- Fenêtre de réglages « Racing 26 » (Beta 1.35, refonte de Vincent, canevas « ACAdvancedIA — Refonte UI ») : en-tête
+-- Fenêtre de réglages « Racing 26 » (Beta 1.35, refonte de Vincent, canevas « AdvancedIA — Refonte UI ») : en-tête
 -- fixe de 84 px (marque, version, mise à jour, session, état, langue, activation, panique ; onglets inclinés et choix
 -- du profil affiché), puis Accueil, Réglages, Règles de course et Diagnostic. Commandes dessinées par src/widgets ;
 -- seules les saisies de texte et la liste des voitures restent natives. Identifiants des commandes inchangés.
@@ -1222,8 +1222,8 @@ local function headerBar(v,e)
  if v.bannerHide and v.bannerHide~=e.guard then v.bannerHide=nil end
  local x=14
  if v.logo and callable(ui.drawImage) then pcall(ui.drawImage,v.logo,W.point(10,2),W.point(54,46)); x=58 end
- W.text('ACADVANCED',x,10,23,c.text,'display')
- local bw=W.width('ACADVANCED',23,'display')
+ W.text('ADVANCED',x,10,23,c.text,'display')
+ local bw=W.width('ADVANCED',23,'display')
  W.text('IA',x+bw,10,23,c.cyan,'display')
  x=x+bw+W.width('IA',23,'display')+9
  if not v.versionChip then v.versionChip='β'..(C.release:gsub('^Beta ','')) end
@@ -1538,6 +1538,7 @@ local function homeTab(v,e,host)
  if C.any(p) and not C.on(p,'weather') then addWarning(v,L.weatherOff,'weather') end
  if host.raceFlagsHidden==false then addWarning(v,flagsNext(host) and L.nativeFlagsNext or L.nativeFlagsShown) end
  if p.configured and not C.on(p,'accidents') and not C.on(p,'rules') then addWarning(v,L.newTabsOff,'tabs') end
+ if host.oldSettings then addWarning(v,L.oldSettings) end
  if host.upgraded and #host.upgraded>0 then
   if v.upgradedFor~=host.upgraded or v.upgradedCount~=#host.upgraded then v.upgradedFor=host.upgraded; v.upgradedCount=#host.upgraded; v.upgradedList=table.concat(host.upgraded,', ') end
   addWarning(v,fmt(v,'upgraded','%s%s',L.upgraded,v.upgradedList))
@@ -2807,6 +2808,6 @@ function M.hud(v)
  if not v.hudDraw then v.hudDraw=function() local ok,err=pcall(hudContent,v); fontRelease(); if not ok then error(err,0) end end end
  -- Position et taille gardées d'une image à l'autre (Beta 1.36 : aucun point créé à chaque image).
  if v.hudPos then v.hudPos.x=x; v.hudPos.y=y; v.hudSize.x=w; v.hudSize.y=h else v.hudPos=vec2(x,y); v.hudSize=vec2(w,h) end
- ui.transparentWindow('ACAdvancedIA_overlay',v.hudPos,v.hudSize,true,unlocked or not g.overlayClickThrough,v.hudDraw)
+ ui.transparentWindow('AdvancedIA_overlay',v.hudPos,v.hudSize,true,unlocked or not g.overlayClickThrough,v.hudDraw)
 end
 return M

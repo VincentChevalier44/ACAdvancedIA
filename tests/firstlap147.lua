@@ -171,7 +171,8 @@ end
 -- Départ : l'arrêt sur la grille (feux) ne fait pas d'une voiture encore lente au lancement un obstacle à contourner.
 tests.START_LAUNCH_NO_AVOID_147=function()
  for _,care in ipairs({true,false}) do
-  local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); e.profiles.C.firstLapCare=care; E.changed(e)
+  -- Beta 1.49 : attente au départ de 1 s (défaut de la 1.47, celui de cette scène) ; 2 s couvriraient toute la scène.
+  local e,f=F.scene('C',3); C.preset('Course','C',e.profiles.C); e.profiles.C.firstLapCare=care; e.profiles.C.startDelay=1; E.changed(e)
   F.place(f,1,-3000,0); F.place(f,2,0,0); F.place(f,3,20,0)
   F.tick(e,f,1/60); f.started=false; F.tick(e,f,12)
   f.started=true; F.tick(e,f,1/60)

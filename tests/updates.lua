@@ -9,10 +9,10 @@ local SHA=string.rep('ab',32)
 local SIZE=1000000
 local ZIPDATA=string.rep('z',SIZE)
 local function release(over)
- local r={tag_name='v1.34',name='Beta 1.34',draft=false,prerelease=false,html_url='https://github.com/VincentChevalier44/ACAdvancedIA/releases/tag/v1.34',
+ local r={tag_name='v1.34',name='Beta 1.34',draft=false,prerelease=false,html_url='https://github.com/VincentChevalier44/AdvancedIA/releases/tag/v1.34',
   published_at='2026-11-05T10:00:00Z',body='## Beta 1.34\r\n\r\n- **Panneaux** lumineux\n- `DRS`\n',
-  assets={{name='ACAdvancedIA-Beta-1.34.zip',size=SIZE,browser_download_url=Up.download..'v1.34/ACAdvancedIA-Beta-1.34.zip'},
-   {name='ACAdvancedIA-Beta-1.34.sha256',size=100,browser_download_url=Up.download..'v1.34/ACAdvancedIA-Beta-1.34.sha256'}}}
+  assets={{name='AdvancedIA-Beta-1.34.zip',size=SIZE,browser_download_url=Up.download..'v1.34/AdvancedIA-Beta-1.34.zip'},
+   {name='AdvancedIA-Beta-1.34.sha256',size=100,browser_download_url=Up.download..'v1.34/AdvancedIA-Beta-1.34.sha256'}}}
  for k,v in pairs(over or {}) do r[k]=v end
  return r
 end
@@ -27,7 +27,7 @@ local function port(o)
   log('get '..url)
   local function answer()
    if url==Up.api then cb(o.apiErr,o.apiStatus or 200,'api')
-   elseif url:find('%.sha256$') then cb(o.shaErr,o.shaStatus or 200,o.shaText or (SHA..'  ACAdvancedIA-Beta-1.34.zip\n'))
+   elseif url:find('%.sha256$') then cb(o.shaErr,o.shaStatus or 200,o.shaText or (SHA..'  AdvancedIA-Beta-1.34.zip\n'))
    else cb(o.zipErr,o.zipStatus or 200,o.zipData or ZIPDATA) end
   end
   if p.hold then p.pending=p.pending or {}; p.pending[#p.pending+1]=answer else answer() end
@@ -76,7 +76,7 @@ local function ordered(calls,list) local last=0; for _,x in ipairs(list) do loca
 
 tests.UPDATE_VERSIONS=function()
  assert(table.concat(Up.version('Beta 1.33'),'.')=='1.33' and table.concat(Up.version('v1.33.2'),'.')=='1.33.2')
- assert(table.concat(Up.version('ACAdvancedIA-Beta-1.34.zip'),'.')=='1.34' and Up.version('Beta')==nil and Up.version(nil)==nil)
+ assert(table.concat(Up.version('AdvancedIA-Beta-1.34.zip'),'.')=='1.34' and Up.version('Beta')==nil and Up.version(nil)==nil)
  assert(Up.newer('Beta 1.34','Beta 1.33') and Up.newer('v1.33.1','Beta 1.33') and Up.newer('Beta 1.40','Beta 1.39'))
  assert(not Up.newer('Beta 1.33','Beta 1.33') and not Up.newer('Beta 1.32','Beta 1.33') and not Up.newer('Beta 1.33','Beta 1.33.0'))
  assert(Up.newer('Beta 2.0','Beta 1.99') and not Up.newer('x','Beta 1.0') and not Up.newer('Beta 1.0','x'))
@@ -90,9 +90,15 @@ tests.UPDATE_RELEASE_PARSE=function()
  assert(not Up.release(release({draft=true})) and not Up.release(release({prerelease=true})) and not Up.release(release({tag_name='latest'})))
  local a=release(); table.remove(a.assets,2); assert(not Up.release(a))
  a=release(); table.remove(a.assets,1); assert(not Up.release(a))
- a=release(); a.assets[1].name='ACAdvancedIA-Beta-1.35.zip'; assert(not Up.release(a))
- a=release(); a.assets[1].browser_download_url='https://example.com/ACAdvancedIA-Beta-1.34.zip'; assert(not Up.release(a))
- a=release(); a.assets[2].browser_download_url='https://example.com/ACAdvancedIA-Beta-1.34.sha256'; assert(not Up.release(a))
+ a=release(); a.assets[1].name='AdvancedIA-Beta-1.35.zip'; assert(not Up.release(a))
+ -- Beta 1.49 : les noms d'avant le changement de nom (ACAdvancedIA-Beta-…) ne sont jamais retenus, ni l'ancien dépôt.
+ a=release(); a.assets[1].name='ACAdvancedIA-Beta-1.34.zip'; assert(not Up.release(a))
+ a=release(); a.assets[2].name='ACAdvancedIA-Beta-1.34.sha256'; assert(not Up.release(a))
+ a=release(); a.assets[2].name='ACAdvancedIA-Beta-1.34.zip.sha256'; assert(not Up.release(a))
+ a=release(); a.assets[1].browser_download_url='https://github.com/VincentChevalier44/ACAdvancedIA/releases/download/v1.34/AdvancedIA-Beta-1.34.zip'; assert(not Up.release(a))
+ assert(Up.prefix=='apps/lua/AdvancedIA/' and Up.required[2]=='AdvancedIA.lua' and Up.repo=='VincentChevalier44/AdvancedIA')
+ a=release(); a.assets[1].browser_download_url='https://example.com/AdvancedIA-Beta-1.34.zip'; assert(not Up.release(a))
+ a=release(); a.assets[2].browser_download_url='https://example.com/AdvancedIA-Beta-1.34.sha256'; assert(not Up.release(a))
  a=release(); a.assets[1].size=0; assert(not Up.release(a))
  a=release(); a.assets[1].size=Up.sizeMax+1; assert(not Up.release(a))
  a=release(); a.html_url='https://evil.example/'; assert(Up.release(a).page==Up.page)
@@ -105,14 +111,14 @@ tests.UPDATE_RELEASE_PARSE=function()
  assert(Up.cut('aé',2)=='a' and Up.cut('aé',3)=='aé' and Up.cut('abc',5)=='abc')
 end
 tests.UPDATE_DIGEST_AND_CONTENT=function()
- assert(Up.digest(SHA..'  ACAdvancedIA-Beta-1.34.zip','ACAdvancedIA-Beta-1.34.zip')==SHA)
- assert(Up.digest(SHA:upper()..' *ACAdvancedIA-Beta-1.34.zip\r\n','ACAdvancedIA-Beta-1.34.zip')==SHA)
- assert(not Up.digest(SHA..'  autre.zip','ACAdvancedIA-Beta-1.34.zip') and not Up.digest('abc  ACAdvancedIA-Beta-1.34.zip','ACAdvancedIA-Beta-1.34.zip'))
+ assert(Up.digest(SHA..'  AdvancedIA-Beta-1.34.zip','AdvancedIA-Beta-1.34.zip')==SHA)
+ assert(Up.digest(SHA:upper()..' *AdvancedIA-Beta-1.34.zip\r\n','AdvancedIA-Beta-1.34.zip')==SHA)
+ assert(not Up.digest(SHA..'  autre.zip','AdvancedIA-Beta-1.34.zip') and not Up.digest('abc  AdvancedIA-Beta-1.34.zip','AdvancedIA-Beta-1.34.zip'))
  assert(not Up.digest(nil,'x'))
  assert(Up.content(entries()))
  local function with(x) local t=entries(); t[#t+1]=x; return t end
  assert(not Up.content(with('apps/lua/Autre/x.lua')) and not Up.content(with(Up.prefix..'../../evil.lua')) and not Up.content(with(Up.prefix..'src/../../x')))
- assert(not Up.content(with(Up.prefix..'src\\a.lua')) and not Up.content(with('C:/evil')) and not Up.content(with('/apps/lua/ACAdvancedIA/x')))
+ assert(not Up.content(with(Up.prefix..'src\\a.lua')) and not Up.content(with('C:/evil')) and not Up.content(with('/apps/lua/AdvancedIA/x')))
  assert(not Up.content(with(Up.prefix..'src//a.lua')) and not Up.content(with(Up.prefix..'./a.lua')))
  -- Entrées de dossier et noms qui contiennent seulement des points : acceptés.
  assert(Up.content(with(Up.prefix..'fonts/')) and Up.content(with(Up.prefix..'docs/notes..md')))
@@ -423,33 +429,33 @@ tests.UPDATE_REMOTE_END_TO_END=function()
  onFake(nil,function(f)
   f.async=true
   -- Version précédente plus ancienne déjà gardée : remplacée d'un bloc, rien n'en reste.
-  f.files[f.work..'/backup/ACAdvancedIA.lua']='main Beta 1.32'; f.files[f.work..'/backup/manifest.ini']='VERSION=Beta 1.32'
-  f.files[f.work..'/backup/.files']='ACAdvancedIA.lua\nmanifest.ini'
+  f.files[f.work..'/backup/AdvancedIA.lua']='main Beta 1.32'; f.files[f.work..'/backup/manifest.ini']='VERSION=Beta 1.32'
+  f.files[f.work..'/backup/.files']='AdvancedIA.lua\nmanifest.ini'
  end,function(f,p,u)
   assert(p.ready and p.app==f.root and p.installedVersion()=='Beta 1.33' and p.work==f.work and u.previous=='Beta 1.32')
   Up.check(u,p,0); f.flush(); assert(u.phase=='available' and u.release.notes[3]=='- Nouveau point')
   f.watch(); assert(Up.install(u,p,true)); f.flush()
   assert(u.phase=='ready','install: '..tostring(u.phase)..' '..tostring(u.error)..' '..tostring(u.detail))
-  assert(f.find('redirect https://release-assets.githubusercontent.com/ACAdvancedIA-Beta-1.34.zip'),'download redirected')
+  assert(f.find('redirect https://release-assets.githubusercontent.com/AdvancedIA-Beta-1.34.zip'),'download redirected')
   local files=f.files
   -- Rien n'a encore changé dans le dossier de l'app ; paquet extrait, comparé et listé dans le travail.
-  assert(files[f.root..'/ACAdvancedIA.lua']=='main Beta 1.33' and f.reloads==0)
-  assert(files[f.work..'/next/'..Fake.prefix..'ACAdvancedIA.lua']=='main Beta 1.34' and files[f.work..'/next/'..Fake.prefix..'.files']:find('src/new.lua',1,true))
-  assert(files[f.work..'/current/ACAdvancedIA.lua']==nil,'nothing saved before the final copy')
+  assert(files[f.root..'/AdvancedIA.lua']=='main Beta 1.33' and f.reloads==0)
+  assert(files[f.work..'/next/'..Fake.prefix..'AdvancedIA.lua']=='main Beta 1.34' and files[f.work..'/next/'..Fake.prefix..'.files']:find('src/new.lua',1,true))
+  assert(files[f.work..'/current/AdvancedIA.lua']==nil,'nothing saved before the final copy')
   Up.tick(u,p,true,10)
   assert(u.phase=='restarting','tick: '..tostring(u.phase)..' '..tostring(u.detail))
   -- Sauvegarde : seulement les fichiers que la copie remplace (jamais le reste du dossier de l'app).
-  assert(files[f.work..'/backup/ACAdvancedIA.lua']=='main Beta 1.33' and files[f.work..'/backup/tracks/spa.lua']==nil and files[f.work..'/backup/backup/old.txt']==nil)
+  assert(files[f.work..'/backup/AdvancedIA.lua']=='main Beta 1.33' and files[f.work..'/backup/tracks/spa.lua']==nil and files[f.work..'/backup/backup/old.txt']==nil)
   -- Copie finale : fichiers changés, nouveau fichier, identiques jamais réécrits, manifeste en dernier, aucun rechargement,
   -- chaque fichier copié à côté puis mis en place, surveillance rétablie à la fin.
-  assert(files[f.root..'/ACAdvancedIA.lua']=='main Beta 1.34' and files[f.root..'/src/ui.lua']=='ui Beta 1.34' and files[f.root..'/src/new.lua']=='new Beta 1.34')
+  assert(files[f.root..'/AdvancedIA.lua']=='main Beta 1.34' and files[f.root..'/src/ui.lua']=='ui Beta 1.34' and files[f.root..'/src/new.lua']=='new Beta 1.34')
   assert(files[f.root..'/sounds/beep.wav']=='wav' and not f.find('copy sounds/beep.wav.new') and files[f.root..'/tracks/spa.lua']=='zones')
-  assert(f.last('move ')==f.find('move manifest.ini') and f.find('move src/ui.lua')<f.find('move ACAdvancedIA.lua') and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.34')
+  assert(f.last('move ')==f.find('move manifest.ini') and f.find('move src/ui.lua')<f.find('move AdvancedIA.lua') and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.34')
   assert(files[f.root..'/src/ui.lua.new']==nil and files[f.root..'/manifest.ini.new']==nil,'no temporary file left')
   assert(f.reloads==0,'live reloads: '..f.reloads)
   assert(f.last('pause ')==f.last('pause false') and f.last('pause false')>f.find('move manifest.ini'),'file watching resumed after the copy')
   -- Version précédente promue d'un bloc, repère levé, compte rendu écrit, démarrage surveillé ; IA rendues puis redémarrage.
-  assert(f.find('movedir state:ACAdvancedIA-update/backup'),'promoted by renaming the folder')
+  assert(f.find('movedir state:AdvancedIA-update/backup'),'promoted by renaming the folder')
   for path in pairs(files) do assert(not path:find('/backup.old/',1,true),'older backup cleared: '..path) end
   assert(files[f.work..'/installing.txt']==nil and files[f.work..'/updated.txt']=='update Beta 1.33 -> Beta 1.34' and files[f.work..'/boot.txt']=='Beta 1.34\n0\nBeta 1.33')
   assert(f.order[1]=='release' and f.order[2]=='restartApp' and #f.order==2 and f.restarts==1)
@@ -458,7 +464,7 @@ tests.UPDATE_REMOTE_END_TO_END=function()
   local u2=Up.new('Beta 1.34'); Up.start(u2,p2,Up.recover(p2)); assert(u2.updated.kind=='update' and u2.previous=='Beta 1.33' and files[f.work..'/updated.txt']==nil)
   assert(files[f.work..'/boot.txt']=='Beta 1.34\n1\nBeta 1.33','boot counted'); p2.bootOk(); assert(files[f.work..'/boot.txt']==nil,'boot confirmed')
   f.watch(); assert(Up.rollback(u2,p2,true) and u2.phase=='rollbackReady'); Up.tick(u2,p2,true,0); assert(u2.phase=='restarting')
-  assert(files[f.root..'/ACAdvancedIA.lua']=='main Beta 1.33' and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.33' and f.reloads==0)
+  assert(files[f.root..'/AdvancedIA.lua']=='main Beta 1.33' and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.33' and f.reloads==0)
   assert(files[f.work..'/updated.txt']=='rollback Beta 1.34 -> Beta 1.33' and files[f.work..'/installing.txt']==nil and f.restarts==2)
   -- Page de la version : seulement une adresse https.
   p.open(u.release.page); p.open('file:///c:/x'); assert(#f.opened==1 and f.opened[1]==u.release.page)
@@ -473,19 +479,19 @@ tests.UPDATE_REMOTE_BOOT_WATCH=function()
   for launch=1,2 do local q=Remote.new(function() end); assert(Up.recover(q)==nil,'launch '..launch) end
   assert(files[f.work..'/boot.txt']=='Beta 1.34\n2\nBeta 1.33')
   local q=Remote.new(function() end); local r=Up.recover(q)
-  assert(r and r.outcome=='autorollback' and r.restart and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.33' and files[f.root..'/ACAdvancedIA.lua']=='main Beta 1.33')
+  assert(r and r.outcome=='autorollback' and r.restart and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.33' and files[f.root..'/AdvancedIA.lua']=='main Beta 1.33')
   assert(files[f.work..'/boot.txt']==nil and files[f.work..'/installing.txt']==nil and files[f.work..'/updated.txt']=='rollback Beta 1.34 -> Beta 1.33 auto')
  end)
 end
 -- Échecs du vrai port : la version installée reste intacte (ou remise en place aussitôt), sans repère qui traîne.
 tests.UPDATE_REMOTE_FAILURES=function()
- local function intact(f) local files=f.files; return files[f.root..'/ACAdvancedIA.lua']=='main Beta 1.33' and files[f.root..'/src/ui.lua']=='ui Beta 1.33' and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.33' and files[f.work..'/installing.txt']==nil end
+ local function intact(f) local files=f.files; return files[f.root..'/AdvancedIA.lua']=='main Beta 1.33' and files[f.root..'/src/ui.lua']=='ui Beta 1.33' and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.33' and files[f.work..'/installing.txt']==nil end
  local function run(options,setup,check)
   onFake(options,setup,function(f,p,u) Up.check(u,p,0); f.flush(); Up.install(u,p,true); f.flush(); Up.tick(u,p,true,10); check(f,u) end)
  end
- run({actual=string.rep('cd',32)},nil,function(f,u) assert(u.error=='integrity' and intact(f) and f.files[f.work..'/current/ACAdvancedIA.lua']==nil) end)
+ run({actual=string.rep('cd',32)},nil,function(f,u) assert(u.error=='integrity' and intact(f) and f.files[f.work..'/current/AdvancedIA.lua']==nil) end)
  run({size=999},nil,function(f,u) assert(u.error=='integrity' and u.detail:find('taille',1,true) and intact(f)) end)
- run({entries={['apps/lua/ACAdvancedIA/../../evil.lua']='x'}},nil,function(f,u) assert(u.error=='content' and intact(f)) end)
+ run({entries={['apps/lua/AdvancedIA/../../evil.lua']='x'}},nil,function(f,u) assert(u.error=='content' and intact(f)) end)
  run({entries={[Fake.prefix..'src/remote.lua']=false}},nil,function(f,u) assert(u.error=='content' and intact(f)) end)
  run({entries={[Fake.prefix..'src/ui.lua']="local G=require('src/groups')"}},nil,function(f,u) assert(u.error=='content' and u.detail=='module absent : src/groups' and intact(f)) end)
  run(nil,function(f) f.corruptExtract=Fake.prefix..'src/ui.lua' end,function(f,u) assert(u.error=='write' and u.detail:find('different du paquet : src/ui.lua',1,true) and intact(f)) end)
@@ -494,10 +500,10 @@ tests.UPDATE_REMOTE_FAILURES=function()
  -- Fichier de l'app ouvert (verrouillé) pendant la copie finale : remise en place aussitôt, version conservée, aucun
  -- fichier temporaire laissé.
  run(nil,function(f) f.locked[f.root..'/src/ui.lua']=true end,function(f,u)
-  assert(u.error=='write' and u.detail=='src/ui.lua' and f.files[f.root..'/ACAdvancedIA.lua']=='main Beta 1.33' and Up.manifestVersion(f.files[f.root..'/manifest.ini'])=='Beta 1.33',
-   'locked: '..u.phase..' '..u.error..' '..u.detail..' '..tostring(f.files[f.root..'/ACAdvancedIA.lua']))
+  assert(u.error=='write' and u.detail=='src/ui.lua' and f.files[f.root..'/AdvancedIA.lua']=='main Beta 1.33' and Up.manifestVersion(f.files[f.root..'/manifest.ini'])=='Beta 1.33',
+   'locked: '..u.phase..' '..u.error..' '..u.detail..' '..tostring(f.files[f.root..'/AdvancedIA.lua']))
   assert(f.files[f.work..'/installing.txt']==nil,'marker'); assert(f.restarts==0,'restarts')
-  assert(f.files[f.work..'/backup/ACAdvancedIA.lua']==nil,'backup'); assert(f.files[f.root..'/src/ui.lua.new']==nil,'tmp')
+  assert(f.files[f.work..'/backup/AdvancedIA.lua']==nil,'backup'); assert(f.files[f.root..'/src/ui.lua.new']==nil,'tmp')
  end)
  -- Fichier de l'app illisible (copie de sauvegarde refusée) : rien n'est copié dans l'app.
  run(nil,function(f) f.unreadable[f.root..'/src/ui.lua']=true end,function(f,u) assert(u.error=='write' and u.detail=='sauvegarde : src/ui.lua' and intact(f)) end)
@@ -508,7 +514,7 @@ tests.UPDATE_REMOTE_FAILURES=function()
  -- Surveillance de CSP qui reprend seule pendant une longue copie : réaffirmée, aucun rechargement.
  run(nil,function(f) f.watch(); f.autoResume=6 end,function(f,u) assert(u.phase=='restarting' and f.reloads==0,'reloads '..f.reloads..' '..tostring(u.detail)) end)
  -- Renommage de dossier refusé : version précédente gardée par copie vérifiée.
- run(nil,function(f) f.failDirMove=true end,function(f,u) assert(u.phase=='restarting' and f.files[f.work..'/backup/ACAdvancedIA.lua']=='main Beta 1.33' and f.files[f.work..'/current/ACAdvancedIA.lua']==nil) end)
+ run(nil,function(f) f.failDirMove=true end,function(f,u) assert(u.phase=='restarting' and f.files[f.work..'/backup/AdvancedIA.lua']=='main Beta 1.33' and f.files[f.work..'/current/AdvancedIA.lua']==nil) end)
 end
 -- Reprise au chargement par le vrai port : copie interrompue (fichiers mêlés, manifeste encore ancien) terminée depuis
 -- le paquet extrait ; sans lui, version de départ remise en place ; rien à reprendre ensuite. Promotion rejouée sans
@@ -517,29 +523,29 @@ tests.UPDATE_REMOTE_RECOVERY=function()
  local function source(f,root,map) local names={}; for k,val in pairs(map) do f.files[root..'/'..k]=val; names[#names+1]=k end; f.files[root..'/.files']=table.concat(names,'\n') end
  onFake(nil,nil,function(f,p)
   local files=f.files
-  source(f,f.work..'/next/'..Fake.prefix:gsub('/$',''),{['manifest.ini']='VERSION=Beta 1.34',['ACAdvancedIA.lua']='main Beta 1.34',['src/update.lua']='update Beta 1.34',['src/remote.lua']='remote Beta 1.34',['src/ui.lua']='ui Beta 1.34'})
-  source(f,f.work..'/current',{['manifest.ini']='VERSION=Beta 1.33',['ACAdvancedIA.lua']='main Beta 1.33',['src/ui.lua']='ui Beta 1.33'})
+  source(f,f.work..'/next/'..Fake.prefix:gsub('/$',''),{['manifest.ini']='VERSION=Beta 1.34',['AdvancedIA.lua']='main Beta 1.34',['src/update.lua']='update Beta 1.34',['src/remote.lua']='remote Beta 1.34',['src/ui.lua']='ui Beta 1.34'})
+  source(f,f.work..'/current',{['manifest.ini']='VERSION=Beta 1.33',['AdvancedIA.lua']='main Beta 1.33',['src/ui.lua']='ui Beta 1.33'})
   files[f.root..'/src/ui.lua']='ui Beta 1.34'; files[f.work..'/installing.txt']='update Beta 1.33 -> Beta 1.34'
   -- Coupure au milieu d'un remplacement : fichier temporaire à moitié écrit, jamais pris pour le vrai.
   files[f.root..'/src/remote.lua.new']='remo'
   local r=Up.recover(p)
-  assert(r.outcome=='completed' and files[f.root..'/ACAdvancedIA.lua']=='main Beta 1.34' and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.34')
+  assert(r.outcome=='completed' and files[f.root..'/AdvancedIA.lua']=='main Beta 1.34' and Up.manifestVersion(files[f.root..'/manifest.ini'])=='Beta 1.34')
   assert(files[f.root..'/src/remote.lua']=='remote Beta 1.34' and files[f.root..'/src/remote.lua.new']==nil)
-  assert(files[f.work..'/installing.txt']==nil and files[f.work..'/updated.txt']=='update Beta 1.33 -> Beta 1.34' and files[f.work..'/backup/ACAdvancedIA.lua']=='main Beta 1.33')
+  assert(files[f.work..'/installing.txt']==nil and files[f.work..'/updated.txt']=='update Beta 1.33 -> Beta 1.34' and files[f.work..'/backup/AdvancedIA.lua']=='main Beta 1.33')
   assert(Up.recover(p)==nil,'nothing left to recover')
   -- Promotion rejouée (plantage juste après elle) : version précédente intacte.
-  assert(p.promote('update') and files[f.work..'/backup/ACAdvancedIA.lua']=='main Beta 1.33' and p.sourceComplete('backup'))
+  assert(p.promote('update') and files[f.work..'/backup/AdvancedIA.lua']=='main Beta 1.33' and p.sourceComplete('backup'))
  end)
  onFake(nil,nil,function(f,p)
   local files=f.files
-  source(f,f.work..'/current',{['manifest.ini']='VERSION=Beta 1.33',['ACAdvancedIA.lua']='main Beta 1.33',['src/ui.lua']='ui Beta 1.33'})
+  source(f,f.work..'/current',{['manifest.ini']='VERSION=Beta 1.33',['AdvancedIA.lua']='main Beta 1.33',['src/ui.lua']='ui Beta 1.33'})
   files[f.root..'/src/ui.lua']='ui Beta 1.34'; files[f.work..'/installing.txt']='update Beta 1.33 -> Beta 1.34'
   local r=Up.recover(p)
   assert(r.outcome=='restored' and files[f.root..'/src/ui.lua']=='ui Beta 1.33' and files[f.work..'/updated.txt']=='recovered Beta 1.33 -> Beta 1.34')
  end)
  -- Version précédente incomplète (un fichier manquant) : jamais proposée ni utilisée.
  onFake(nil,function(f)
-  local names={}; for k,val in pairs({['manifest.ini']='VERSION=Beta 1.32',['ACAdvancedIA.lua']='main Beta 1.32'}) do f.files[f.work..'/backup/'..k]=val; names[#names+1]=k end
+  local names={}; for k,val in pairs({['manifest.ini']='VERSION=Beta 1.32',['AdvancedIA.lua']='main Beta 1.32'}) do f.files[f.work..'/backup/'..k]=val; names[#names+1]=k end
   names[#names+1]='src/ui.lua'; f.files[f.work..'/backup/.files']=table.concat(names,'\n')
  end,function(_,p,u) assert(u.previous==nil and not p.sourceComplete('backup') and not Up.rollback(u,p,true)) end)
  -- Restes de l'ancien module (Beta 1.33/1.34, dossier backup/ de l'app) : compte rendu lu, repère levé si terminé.
@@ -567,8 +573,8 @@ tests.UPDATE_REMOTE_REPEATED_136=function()
    local renamed,copied=false,false
    for k=before+1,#f.calls do
     local c=f.calls[k]
-    if c=='movedir state:ACAdvancedIA-update/backup' then renamed=true end
-    if c:find('^copy state:ACAdvancedIA%-update/backup/') then copied=true end
+    if c=='movedir state:AdvancedIA-update/backup' then renamed=true end
+    if c:find('^copy state:AdvancedIA%-update/backup/') then copied=true end
    end
    assert(renamed and not copied,'round '..round..': previous version renamed in one go, never copied')
    assert(Up.manifestVersion(f.files[f.root..'/manifest.ini'])==v,'round '..round..': installed '..v)
@@ -593,12 +599,12 @@ tests.UPDATE_TIDY_USER_STATE_137=function()
  local ok,err=pcall(function()
   f.app('Beta 1.36')
   local W=f.work
-  local back={'ACAdvancedIA.lua','manifest.ini','src/update.lua'}
+  local back={'AdvancedIA.lua','manifest.ini','src/update.lua'}
   for _,rel in ipairs(back) do f.files[W..'/backup/'..rel]=rel=='manifest.ini' and 'VERSION=Beta 1.35' or 'old '..rel end
   f.files[W..'/backup/.files']=table.concat(back,'\n')
   local nxt=W..'/next/'..Fake.prefix
-  for _,rel in ipairs({'ACAdvancedIA.lua','manifest.ini','src/update.lua','src/remote.lua','src/ui.lua'}) do f.files[nxt..rel]='new '..rel end
-  f.files[nxt..'.files']='ACAdvancedIA.lua\nmanifest.ini\nsrc/update.lua\nsrc/remote.lua\nsrc/ui.lua'
+  for _,rel in ipairs({'AdvancedIA.lua','manifest.ini','src/update.lua','src/remote.lua','src/ui.lua'}) do f.files[nxt..rel]='new '..rel end
+  f.files[nxt..'.files']='AdvancedIA.lua\nmanifest.ini\nsrc/update.lua\nsrc/remote.lua\nsrc/ui.lua'
   f.files[W..'/boot.txt.bak']='Beta 1.36\n0\nBeta 1.35'
   local p=Remote.new(function() end)
   local u=Up.new('Beta 1.36'); Up.start(u,p,Up.recover(p))
@@ -659,10 +665,10 @@ tests.UPDATE_SNAPSHOT_CHANGED_137=function()
   Up.check(u,p,0); f.flush(); f.watch(); assert(Up.install(u,p,true)); f.flush()
   local before=#f.calls; Up.tick(u,p,true,10); assert(u.phase=='restarting',tostring(u.phase))
   local saved={}
-  for k=before+1,#f.calls do local rel=f.calls[k]:match('^copy state:ACAdvancedIA%-update/current/(.*)$'); if rel then saved[#saved+1]=rel end end
+  for k=before+1,#f.calls do local rel=f.calls[k]:match('^copy state:AdvancedIA%-update/current/(.*)$'); if rel then saved[#saved+1]=rel end end
   table.sort(saved)
-  assert(table.concat(saved,',')=='ACAdvancedIA.lua,manifest.ini,src/remote.lua,src/ui.lua,src/update.lua',table.concat(saved,','))
-  assert(f.files[f.work..'/backup/sounds/beep.wav']==nil and f.files[f.work..'/backup/ACAdvancedIA.lua']=='main Beta 1.36','unchanged file not kept')
+  assert(table.concat(saved,',')=='AdvancedIA.lua,manifest.ini,src/remote.lua,src/ui.lua,src/update.lua',table.concat(saved,','))
+  assert(f.files[f.work..'/backup/sounds/beep.wav']==nil and f.files[f.work..'/backup/AdvancedIA.lua']=='main Beta 1.36','unchanged file not kept')
   assert(events(u):find('5 fichiers gardes',1,true),events(u))
  end)
  f.restore(); assert(ok,err)

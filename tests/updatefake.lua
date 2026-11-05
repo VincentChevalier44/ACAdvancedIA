@@ -20,7 +20,7 @@
 -- l'écriture d'un fichier, effacés seulement par io.deleteDir (vides) ; un dossier déplacé d'un bloc refuse une
 -- destination qui existe déjà, même vide.
 local M={}
-M.prefix='apps/lua/ACAdvancedIA/'
+M.prefix='apps/lua/AdvancedIA/'
 function M.install(o)
  o=o or {}
  local f={files=o.files or {},zips={},count=0,calls={},responses={},json={},sha={},restarts=0,opened={},root=o.root or 'D:/app',
@@ -184,8 +184,8 @@ function M.install(o)
  end
  -- Fichiers de l'app installée (version, contenu des fichiers) et paquet publié (zip, empreinte, réponses).
  function f.app(version,extra)
-  f.files[appRoot..'manifest.ini']='[ABOUT]\nNAME=ACAdvancedIA\nREQUIRED_VERSION=0.1\nVERSION='..version..'\n'
-  f.files[appRoot..'ACAdvancedIA.lua']='main '..version; f.files[appRoot..'src/update.lua']='update '..version
+  f.files[appRoot..'manifest.ini']='[ABOUT]\nNAME=AdvancedIA\nREQUIRED_VERSION=0.1\nVERSION='..version..'\n'
+  f.files[appRoot..'AdvancedIA.lua']='main '..version; f.files[appRoot..'src/update.lua']='update '..version
   f.files[appRoot..'src/remote.lua']='remote '..version; f.files[appRoot..'src/ui.lua']='ui '..version; f.files[appRoot..'sounds/beep.wav']='wav'
   for k,v in pairs(extra or {}) do f.files[appRoot..k]=v end
  end
@@ -193,18 +193,18 @@ function M.install(o)
   options=options or {}
   -- Paquet binaire : l'identifiant du zip porte un octet nul, comme un vrai corps de réponse.
   local number=version:match('[%d%.]+$')
-  local entries={[M.prefix..'manifest.ini']='[ABOUT]\nVERSION='..version..'\n',[M.prefix..'ACAdvancedIA.lua']='main '..version,
+  local entries={[M.prefix..'manifest.ini']='[ABOUT]\nVERSION='..version..'\n',[M.prefix..'AdvancedIA.lua']='main '..version,
    [M.prefix..'src/update.lua']='update '..version,[M.prefix..'src/remote.lua']='remote '..version,[M.prefix..'src/ui.lua']='ui '..version,
    [M.prefix..'src/new.lua']='new '..version,[M.prefix..'sounds/beep.wav']='wav'}
   for k,v in pairs(options.entries or {}) do entries[k]=v or nil end
   f.count=f.count+1; local id='ZIP\0#'..f.count; f.zips[id]=entries; local hash=options.hash or string.rep('ab',32)
   f.sha[id]=options.actual or hash
-  local base='https://github.com/VincentChevalier44/ACAdvancedIA/releases/download/v'..number..'/'
-  local name='ACAdvancedIA-Beta-'..number
+  local base='https://github.com/VincentChevalier44/AdvancedIA/releases/download/v'..number..'/'
+  local name='AdvancedIA-Beta-'..number
   f.json['release '..version]={tag_name='v'..number,draft=false,prerelease=false,published_at='2026-11-05T10:00:00Z',
-   html_url='https://github.com/VincentChevalier44/ACAdvancedIA/releases/tag/v'..number,body='## Beta '..number..'\n\n- **Nouveau** point\n- Second point\n',
+   html_url='https://github.com/VincentChevalier44/AdvancedIA/releases/tag/v'..number,body='## Beta '..number..'\n\n- **Nouveau** point\n- Second point\n',
    assets={{name=name..'.zip',size=options.size or #id,browser_download_url=base..name..'.zip'},{name=name..'.sha256',size=90,browser_download_url=base..name..'.sha256'}}}
-  f.responses['https://api.github.com/repos/VincentChevalier44/ACAdvancedIA/releases/latest']={status=options.apiStatus or 200,body='release '..version,err=options.apiErr}
+  f.responses['https://api.github.com/repos/VincentChevalier44/AdvancedIA/releases/latest']={status=options.apiStatus or 200,body='release '..version,err=options.apiErr}
   f.responses[base..name..'.sha256']={status=200,body=hash..'  '..name..'.zip\n'}
   -- Téléchargement servi par une redirection (release-assets.githubusercontent.com), suivie comme le fait WinHTTP.
   local asset='https://release-assets.githubusercontent.com/'..name..'.zip'
@@ -212,8 +212,8 @@ function M.install(o)
   f.responses[asset]={status=options.zipStatus or 200,body=options.body or id,err=options.zipErr}
   return id
  end
- -- Chemins du dossier de travail (src/remote.lua : <state>/ACAdvancedIA-update).
- f.work=stateRoot..'ACAdvancedIA-update'
+ -- Chemins du dossier de travail (src/remote.lua : <state>/AdvancedIA-update).
+ f.work=stateRoot..'AdvancedIA-update'
  function f.find(x) for i,c in ipairs(f.calls) do if c==x then return i end end end
  function f.last(prefix) local at; for i,c in ipairs(f.calls) do if c:sub(1,#prefix)==prefix then at=i end end; return at end
  return f

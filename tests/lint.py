@@ -20,9 +20,11 @@ class Checker:
         # Journal de session sur disque : écriture et horodatage, seulement dans l'applicateur.
         if path.name=='applier.lua': self.allowed|={'io','os','vec3','vec4'}
         if path.name in {'ui.lua','widgets.lua'}: self.allowed|={'ui','rgbm','vec2'}
+        # Beta 1.49 : consigne de l'app inerte (ancienne version installée), dessinée et dite au journal de CSP.
+        if path.name=='oldinstall.lua': self.allowed|={'ui','rgbm','vec2','ac'}
         # Mise à jour depuis GitHub (Beta 1.33) : réseau, empreinte, zips et redémarrage, seulement dans le port.
         if path.name=='remote.lua': self.allowed|={'_G','ac','io','os'}
-        if path.name=='ACAdvancedIA.lua': self.allowed|={'_G','HUMANAI','script'}
+        if path.name=='AdvancedIA.lua': self.allowed|={'_G','HUMANAI','script'}
     def report(self,node,message):
         token=getattr(node,'_first_token',None)
         self.errors.append(f'{self.path.name}:{getattr(token,"line",0)}: {message}')
@@ -129,7 +131,7 @@ def duplicates(path):
             else: seen[name]=line
     return errors
 def main():
-    files=[APP/'ACAdvancedIA.lua',*sorted((APP/'src').glob('*.lua'))]
+    files=[APP/'AdvancedIA.lua',*sorted((APP/'src').glob('*.lua'))]
     errors=[error for file in files for error in Checker(file).run()]+[error for file in files for error in duplicates(file)]+sdk_fields()
     for error in errors: print(error)
     print(f'{len(files)} Lua files, {len(errors)} lint errors')

@@ -1,4 +1,4 @@
-# J0 — Local API, HumanAI engine in ACAdvancedIA
+# J0 — Local API, HumanAI engine in AdvancedIA
 
 Installation inspected: CSP 0.3.0-preview675, build 4210, 19 October 2026.
 Local source: `extension/internal/lua-sdk/ac_apps/lib.lua` and `README.md`, generated and shipped with CSP. No separate `ac_physics_ai.lua` is provided in this installation: its definitions are built into `lib.lua`.
@@ -35,7 +35,7 @@ Local source: `extension/internal/lua-sdk/ac_apps/lib.lua` and `README.md`, gene
 
 ## Manifest checked
 
-The local apps and the SDK use `[CORE] LAZY`, `[WINDOW_...] FUNCTION_MAIN` and allow `[SIM_CALLBACKS] UPDATE`. The names refer to **methods of the CSP `script` table**, not free Lua globals. Since rc.3, the automatic `script.update` callback is the only update entry point; the manifest declares no SIM_CALLBACKS; since Beta 1.25, only `[UI_CALLBACKS] IN_GAME=HUMANAI__HUD` draws the in-game overlay (a `ui.transparentWindow` window, like SuperHUD), without updating the engine. AC's session box: `ac.disableExtraHUDElements('sessionTime')`, given back on unload; AC's messages: `ac.onMessage`, optional hiding with `ac.blockSystemMessages('.')`; CSP Disposables are functions to be called. The windows keep their `script.HUMANAI__...` methods; only the authorised global table `HUMANAI` is added. The ACAdvancedIA name and folder are kept in line with Vincent's explicit choice; the engine and the modules follow the HumanAI PDR.
+The local apps and the SDK use `[CORE] LAZY`, `[WINDOW_...] FUNCTION_MAIN` and allow `[SIM_CALLBACKS] UPDATE`. The names refer to **methods of the CSP `script` table**, not free Lua globals. Since rc.3, the automatic `script.update` callback is the only update entry point; the manifest declares no SIM_CALLBACKS; since Beta 1.25, only `[UI_CALLBACKS] IN_GAME=HUMANAI__HUD` draws the in-game overlay (a `ui.transparentWindow` window, like SuperHUD), without updating the engine. AC's session box: `ac.disableExtraHUDElements('sessionTime')`, given back on unload; AC's messages: `ac.onMessage`, optional hiding with `ac.blockSystemMessages('.')`; CSP Disposables are functions to be called. The windows keep their `script.HUMANAI__...` methods; only the authorised global table `HUMANAI` is added. The AdvancedIA name and folder are kept in line with Vincent's explicit choice; the engine and the modules follow the HumanAI PDR.
 
 ## Runtime results and no invented signatures
 
@@ -154,13 +154,13 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 
 ## Beta 1.35: update staged outside the app folder
 
-- CSP reloads an app when a file of its folder changes, so nothing is written there before the final copy. Work folder: `ac.getFolder(ac.FolderID.ExtCfgState)` (25, `Documents/Assetto Corsa/cfg/extension/state`, no live reload), subfolder `ACAdvancedIA-update` (`next`, `current`, `backup`, `installing.txt`, `updated.txt`).
-- `io.extractFromZipAsync(data, folder, {crucial = 'apps/lua/ACAdvancedIA/manifest.ini'}, callback)` unpacks into `next`; `io.scanDir(folder, '*', callback(name, attributes))` lists files (`attributes.isDirectory`).
+- CSP reloads an app when a file of its folder changes, so nothing is written there before the final copy. Work folder: `ac.getFolder(ac.FolderID.ExtCfgState)` (25, `Documents/Assetto Corsa/cfg/extension/state`, no live reload), subfolder `AdvancedIA-update` (`next`, `current`, `backup`, `installing.txt`, `updated.txt`).
+- `io.extractFromZipAsync(data, folder, {crucial = 'apps/lua/AdvancedIA/manifest.ini'}, callback)` unpacks into `next`; `io.scanDir(folder, '*', callback(name, attributes))` lists files (`attributes.isDirectory`).
 - `io.copyFile(existing, new, false)` copies (overwrite allowed). `io.move` is MoveFileEx without copy: it fails between drives (Steam on D:, Documents on C:), hence copies for everything that crosses into the app folder.
 - `ac.pauseFilesWatching(true)` suspends CSP's file watching for a few seconds; the final copy runs synchronously in one frame, re-asserts the pause before each changed file and resumes watching at the end.
 - `io.deleteDir` removes an empty folder only; the updater empties a folder, then removes its sub-folders deepest first, then the folder itself, so that `io.move` of a whole folder (the kept version) never meets an existing, empty destination (Beta 1.36).
 - A module whose loading failed cannot be required again (LuaJIT: *loop or previous error loading module*); the main script stores its stand-in for `src/update` in `package.loaded`, so the interface's own `require` gets it (Beta 1.36).
-- The recovery runs at the very top of `ACAdvancedIA.lua`, under `pcall`, before any other module is required; when it copied files it asks one `ac.restartApp()` on the first frame, before the engine drives anything.
+- The recovery runs at the very top of `AdvancedIA.lua`, under `pcall`, before any other module is required; when it copied files it asks one `ac.restartApp()` on the first frame, before the engine drives anything.
 - GitHub answers 403 or 429 when the unauthenticated request limit (60 per hour) is reached.
 - Atomic replacement: each file is copied to `<destination>.new` in the destination folder, then `io.move(tmp, destination, true)` renames it (same volume, so a rename). Kept versions are swapped by renaming folders.
 - Boot sentinel `boot.txt` (version, tries) in the work folder: written by a fresh install, counted at each start before the other modules load, removed after the first successful `script.update`; two failed starts roll back to `backup`.
@@ -202,7 +202,7 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 - `ac.blockSystemMessages('.')` does not hide AC's own top banner (*CUT DETECTED: LAP WILL NOT COUNT*): it was still drawn in Beta 1.39 while `ac.onMessage` received it. CSP's `[HIDE] HIDE_SYSTEM_MESSAGES` (*Hide system messages (like ABS)*, `extension/config/gui.ini`) is the switch for that display; `HIDE_RACE_FLAGS` hides AC's flags.
 - User file: `ac.getFolder(ac.FolderID.ExtCfgUser)` + `gui.ini` (written by Content Manager; absent until something is changed). Applied values: `ac.INIConfig.cspModule(ac.CSPModuleID.GUI):get('HIDE', key, false)`. `ac.onCSPConfigChanged(ac.CSPModuleID.GUI, fn)` reports a re-read. Whether CSP applies a changed `[HIDE]` key live is **not confirmed** on CSP 0.3.2-preview2: the app handles both cases.
 - Between the app's write and a re-read by CSP, the applied value is the one read at the first app start of the game process (kept in `ac.store('humanai:cspgui')`, which survives app reloads but not a game restart), never the file's.
-- State file outside the update work folder: `ac.FolderID.ExtCfgState` + `ACAdvancedIA-cspgui.ini`. It holds `v1`, one line per held key (`KEY=original` or `KEY` when absent), then `original <bytes>` and `written <bytes>` blocks (`-` when the file did not exist). The updater's clean-up only touches `ACAdvancedIA-update/`.
+- State file outside the update work folder: `ac.FolderID.ExtCfgState` + `ACAdvancedIA-cspgui.ini`. It holds `v1`, one line per held key (`KEY=original` or `KEY` when absent), then `original <bytes>` and `written <bytes>` blocks (`-` when the file did not exist). The updater's clean-up only touches `AdvancedIA-update/`.
 - Writes use `io.save(path, data, true)`; the `.bak` CSP's safe replacement leaves is deleted after each write, as for `new_behaviour.ini`.
 
 ## Beta 1.41: AC's cut and penalty banners
@@ -241,7 +241,7 @@ All these functions are in the local SDK (CSP 0.3.0-preview675); none has been o
 
 ## Beta 1.46: companion-app bridge (`ac.connect`)
 
-- `ac.connect(layout)` (`common/ac_extras_connect.lua`) creates a shared structure between Lua scripts of the session; both sides must pass exactly the same layout. The layout lives in `src/bridge_layout.lua`, byte-identical in ACAdvancedIA and SpotterEnginer; a field named `key` holds `ac.StructItem.key(...)` to avoid collisions; types used: `boolean`, `int32`, `uint32`, `float`, `double`, `string(capacity)`, and an `array(struct(...), 61)` for the cars.
+- `ac.connect(layout)` (`common/ac_extras_connect.lua`) creates a shared structure between Lua scripts of the session; both sides must pass exactly the same layout. The layout lives in `src/bridge_layout.lua`, byte-identical in AdvancedIA and SpotterEnginer; a field named `key` holds `ac.StructItem.key(...)` to avoid collisions; types used: `boolean`, `int32`, `uint32`, `float`, `double`, `string(capacity)`, and an `array(struct(...), 61)` for the cars.
 - Opened by `Applier.bridgeOpen` only when `Applier.companionInstalled('SpotterEnginer')` finds `apps/lua/SpotterEnginer/manifest.ini` (`ac.getFolder(ac.FolderID.ACAppsLua)` and `io.fileExists`, once at launch, inside `pcall`). Without it, `ac.connect` is never called.
 - Publishing (`src/bridge.lua`) is pure Lua, read only, run once per frame after `update()` inside `pcall`; strings are written only when they change, cut at their capacity on a UTF-8 boundary.
 

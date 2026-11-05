@@ -13,7 +13,7 @@ def main():
     integration=read('integration-results.json')
     soak=read('soak-results.json')
     assert soak.get('version')==VERSION, 'The soak of the current version must be finished before the report.'
-    source=[APP/'ACAdvancedIA.lua',APP/'manifest.ini',*sorted((APP/'src').glob('*.lua'))]
+    source=[APP/'AdvancedIA.lua',APP/'manifest.ini',*sorted((APP/'src').glob('*.lua'))]
     hashes={p.relative_to(APP).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in source}
     assert soak['sources']==hashes, 'Sources changed since the soak started.'
     previous=read('performance-previous-results.json')

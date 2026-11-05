@@ -7,30 +7,31 @@ import zipfile
 from test_pdr import APP, VERSION
 
 def main():
-    names=['ACAdvancedIA.lua','manifest.ini','icon.png','README.md','COMPATIBILITY.md','CHANGELOG.md','LICENSE']
+    names=['AdvancedIA.lua','manifest.ini','icon.png','README.md','COMPATIBILITY.md','CHANGELOG.md','LICENSE']
     files=[APP/name for name in names]
     # Beta 1.35 : polices de l'interface Racing 26 et leurs licences (OFL), dans fonts/<famille>/.
     for folder,patterns in [('src',['*.lua']),('tracks',['*.md','*.lua']),('sounds',['*.wav']),('fonts',['*/*.ttf','*/OFL.txt'])]:
         for pattern in patterns: files.extend((APP/folder).glob(pattern))
     files=sorted({p for p in files if p.is_file()})
     dist=APP/'dist'; dist.mkdir(exist_ok=True)
-    output=dist/f'ACAdvancedIA-{VERSION.replace(" ","-")}.zip'
-    for old in [*dist.glob('ACAdvancedIA-*.zip'),*dist.glob('ACAdvancedIA-*.sha256')]:
+    output=dist/f'AdvancedIA-{VERSION.replace(" ","-")}.zip'
+    # Beta 1.49 : aussi les paquets d'avant le changement de nom (ACAdvancedIA-*).
+    for old in [*dist.glob('AdvancedIA-*.zip'),*dist.glob('AdvancedIA-*.sha256'),*dist.glob('ACAdvancedIA-*.zip'),*dist.glob('ACAdvancedIA-*.sha256')]:
         if old.stem!=output.stem: old.unlink()
     with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as archive:
         for path in files:
-            archive.write(path,Path('apps/lua/ACAdvancedIA')/path.relative_to(APP))
+            archive.write(path,Path('apps/lua/AdvancedIA')/path.relative_to(APP))
     with zipfile.ZipFile(output) as archive:
         assert archive.testzip() is None
         assert not any('_vendor' in name or '/tests/' in name or '/docs/' in name for name in archive.namelist())
         # Beta 1.33 : jamais la sauvegarde locale de la mise à jour ; toujours le module de mise à jour (une version
         # sans lui ne pourrait plus se mettre à jour, l'app la refuse).
-        assert not any(name.startswith('apps/lua/ACAdvancedIA/backup/') for name in archive.namelist())
-        for name in ('manifest.ini','ACAdvancedIA.lua','src/update.lua','src/remote.lua'): assert 'apps/lua/ACAdvancedIA/'+name in archive.namelist(), name
+        assert not any(name.startswith('apps/lua/AdvancedIA/backup/') for name in archive.namelist())
+        for name in ('manifest.ini','AdvancedIA.lua','src/update.lua','src/remote.lua'): assert 'apps/lua/AdvancedIA/'+name in archive.namelist(), name
         for name in ('barlow/Barlow-Regular.ttf','barlow/Barlow-SemiBold.ttf','barlow/OFL.txt','barlowcondensed/BarlowCondensed-SemiBold.ttf',
                      'barlowcondensed/BarlowCondensed-Bold.ttf','barlowcondensed/BarlowCondensed-ExtraBoldItalic.ttf','barlowcondensed/OFL.txt',
                      'jetbrainsmono/JetBrainsMono-Medium.ttf','jetbrainsmono/OFL.txt'):
-            assert 'apps/lua/ACAdvancedIA/fonts/'+name in archive.namelist(), name
+            assert 'apps/lua/AdvancedIA/fonts/'+name in archive.namelist(), name
     digest=hashlib.sha256(output.read_bytes()).hexdigest()
     output.with_suffix('.sha256').write_text(digest+'  '+output.name+'\n',encoding='ascii')
     print(f'{output.name}: {len(files)} files, {output.stat().st_size} bytes, SHA256 {digest}')

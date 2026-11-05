@@ -4036,7 +4036,7 @@ tests.LANG_PARITY=function()
  for i=2,5 do assert(en.logLevels[i]==L.logLevels[i],'log level kept: '..i) end
  assert(L.decimalMark==',' and en.decimalMark=='.','decimal separator')
  local root=package.path:match('^([^;]+)/%?%.lua')
- for _,name in ipairs({'ACAdvancedIA.lua','src/ui.lua','src/panel.lua'}) do
+ for _,name in ipairs({'AdvancedIA.lua','src/ui.lua','src/panel.lua'}) do
   local file=assert(openFile(root..'/'..name,'rb')); local text=file:read('*a'); file:close()
   for key in text:gmatch('%f[%w_]L%.([%a_][%w_]*)') do assert(L[key]~=nil and en[key]~=nil,'text key used but missing: '..name..': '..key) end
   for key in text:gmatch('%f[%w_]Lang%.([%a_][%w_]*)') do assert(L[key]~=nil and en[key]~=nil,'text key used but missing: '..name..': '..key) end
@@ -5035,15 +5035,15 @@ end
 -- Beta 1.27 : départ de course repris du profil personnalisé du pilote (attente 1 s, détente 25 s, sans maintien de
 -- ligne) ; un profil Course resté aux anciens défauts les suit, des valeurs réglées restent telles quelles.
 tests.START_DEFAULTS_127=function()
- local d=C.defaults('C'); assert(d.startDelay==1 and d.startRelax==25 and d.startLaneHold==false and d.startCautionMult==1.3 and d.startAggrMult==0.8,'race start defaults')
- local course=C.preset('Course','C',{}); assert(course.startDelay==1 and course.startRelax==25 and course.startLaneHold==false,'built-in Race preset')
+ local d=C.defaults('C'); assert(d.startDelay==2 and d.startRelax==25 and d.startLaneHold==false and d.startCautionMult==1.3 and d.startAggrMult==0.8,'race start defaults')
+ local course=C.preset('Course','C',{}); assert(course.startDelay==2 and course.startRelax==25 and course.startLaneHold==false,'built-in Race preset')
  local g={}; for k,v in pairs(C.globalDefaults) do g[k]=v end
  local profiles={}; for _,x in ipairs(C.profiles) do profiles[x]=C.validate(x,C.defaults(x),{}) end
  g.dataRevision=15; g.presetsUsed=true; g.offsetSign=-1; g.sideSign=-1
  profiles.C.startDelay=12; profiles.C.startRelax=12; profiles.C.startLaneHold=true
  profiles.P.startDelay=12
  local upgraded=C.migrate(g,profiles)
- assert(profiles.C.startDelay==1 and profiles.C.startRelax==25 and profiles.C.startLaneHold==false,'old race defaults follow')
+ assert(profiles.C.startDelay==2 and profiles.C.startRelax==25 and profiles.C.startLaneHold==false,'old race defaults follow')
  assert(profiles.P.startDelay==12,'other profiles untouched')
  local listed=false; for _,u in ipairs(upgraded) do if u=='C:depart' then listed=true end end; assert(listed,'logged')
  local tuned={}; for k,v in pairs(C.globalDefaults) do tuned[k]=v end; tuned.dataRevision=15; tuned.presetsUsed=true; tuned.offsetSign=-1; tuned.sideSign=-1
@@ -5051,6 +5051,16 @@ tests.START_DEFAULTS_127=function()
  mine.C.startDelay=5; mine.C.startLaneHold=true; mine.C.startRelax=12
  C.migrate(tuned,mine)
  assert(mine.C.startDelay==5 and mine.C.startLaneHold==false and mine.C.startRelax==25,'each value follows on its own: a tuned delay stays')
+ -- Beta 1.49 (révision 21) : 1 s (défaut de la 1.27 à la 1.48) devient 2 s ; une valeur réglée reste ; autres profils intacts.
+ local g2={}; for k,v in pairs(C.globalDefaults) do g2[k]=v end; g2.dataRevision=20; g2.presetsUsed=true; g2.offsetSign=-1; g2.sideSign=-1
+ local p2={}; for _,x in ipairs(C.profiles) do p2[x]=C.validate(x,C.defaults(x),{}) end
+ p2.C.startDelay=1; p2.P.startDelay=1
+ local up2=C.migrate(g2,p2)
+ assert(p2.C.startDelay==2 and p2.P.startDelay==1,'1.49: race start wait 1 s -> 2 s, other profiles untouched')
+ local seen=false; for _,u in ipairs(up2 or {}) do if u=='C:attente au depart 2 s' then seen=true end end; assert(seen,'1.49: logged')
+ local g3={}; for k,v in pairs(C.globalDefaults) do g3[k]=v end; g3.dataRevision=20; g3.presetsUsed=true; g3.offsetSign=-1; g3.sideSign=-1
+ local p3={}; for _,x in ipairs(C.profiles) do p3[x]=C.validate(x,C.defaults(x),{}) end
+ p3.C.startDelay=3; C.migrate(g3,p3); assert(p3.C.startDelay==3,'1.49: a tuned wait stays')
 end
 -- Beta 1.28 : IA anormalement lente qui retient le trafic (diagnostic) : une ligne au journal après K.slowLogTime s
 -- (modèle, vitesse, allure de sa classe, voitures derrière, état, limite de l'app, dégâts), une à la fin ; rien sans
@@ -6096,6 +6106,7 @@ for name,test in pairs(require('tests/notices143')) do assert(tests[name]==nil,n
 for name,test in pairs(require('tests/player144')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.44 (IA derrière le joueur qui ralentit)
 for name,test in pairs(require('tests/fix147')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.47 (départs, défense, boucles, usure)
 for name,test in pairs(require('tests/firstlap147')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.47 (premier tour attentif)
+for name,test in pairs(require('tests/pits149')) do assert(tests[name]==nil,name); tests[name]=test end -- Beta 1.49 (arrêt F1 : composé, rappels, stratégie des stands)
 -- Beta 1.48 : reprendre sa place de l'ordre figé au drapeau rouge n'est pas un dépassement sous drapeau ; doubler une
 -- voiture mieux classée l'est ; la voiture de sécurité jamais ; plus rien après la ligne.
 tests.RED_FLAG_ORDER_EXEMPTION=function()

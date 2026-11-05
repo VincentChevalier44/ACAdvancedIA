@@ -12,20 +12,20 @@
 -- Interrompue (plantage, coupure), la copie est reprise au lancement suivant, avant tout autre module (M.recover) :
 -- décidée par le manifeste installé, deux essais au plus, jamais en boucle (redémarrage seulement repère levé). Une
 -- version installée qui ne démarre pas deux fois de suite est défaite automatiquement (démarrage surveillé).
--- Contrat figé du haut d'ACAdvancedIA.lua (lu avant tout autre module, par toutes les versions à venir) : M.recover(port)
+-- Contrat figé du haut d'AdvancedIA.lua (lu avant tout autre module, par toutes les versions à venir) : M.recover(port)
 -- et son résultat {outcome, kind, from, to, file, failed, restart}, Remote.new(onRelease), port.ready, port.work,
 -- port.restart, port.log, port.bootOk. Ne jamais changer ces noms ni leur sens.
 -- Événements du journal (u.events) : textes prêts, versés au journal de session par le script principal.
 -- Beta 1.37 : dossier de travail nettoyé (M.tidy) au lancement sans repère ni démarrage surveillé, et dès qu'une version
 -- tout juste installée a démarré (port.bootOk, puis M.tidy) : aucun reste après une mise à jour réussie.
 local M={}
-M.repo='VincentChevalier44/ACAdvancedIA'
+M.repo='VincentChevalier44/AdvancedIA'
 M.api='https://api.github.com/repos/'..M.repo..'/releases/latest'
 M.page='https://github.com/'..M.repo..'/releases'
 M.download='https://github.com/'..M.repo..'/releases/download/'
-M.prefix='apps/lua/ACAdvancedIA/'
-M.required={'manifest.ini','ACAdvancedIA.lua','src/update.lua','src/remote.lua'}
-M.headers={['User-Agent']='ACAdvancedIA',['Accept']='application/vnd.github+json'}
+M.prefix='apps/lua/AdvancedIA/'
+M.required={'manifest.ini','AdvancedIA.lua','src/update.lua','src/remote.lua'}
+M.headers={['User-Agent']='AdvancedIA',['Accept']='application/vnd.github+json'}
 M.notesMax=40
 M.lineMax=200
 M.sizeMax=16*1024*1024
@@ -36,7 +36,7 @@ M.recoverTries=2
 M.bootTries=2
 M.checkTimeout=45
 M.downloadTimeout=180
--- Numéro de version : 'Beta 1.33', 'v1.33', 'ACAdvancedIA-Beta-1.33.zip' -> {1,33} ; nil sans numéro.
+-- Numéro de version : 'Beta 1.33', 'v1.33', 'AdvancedIA-Beta-1.33.zip' -> {1,33} ; nil sans numéro.
 function M.version(text)
  if type(text)~='string' then return nil end
  local s=text:match('(%d+%.%d+[%.%d]*)') or text:match('(%d+)')
@@ -81,7 +81,7 @@ function M.release(data)
  local tag=str(data.tag_name); local version=M.label(tag)
  if not version then return nil,'format' end
  local number=table.concat(M.version(tag),'.')
- local zipName='ACAdvancedIA-Beta-'..number..'.zip'
+ local zipName='AdvancedIA-Beta-'..number..'.zip'
  local r={version=version,tag=tag,notes=M.notes(data.body),published=str(data.published_at) and data.published_at:sub(1,10) or '',
   page=starts(data.html_url,M.page) and data.html_url or M.page}
  if type(data.assets)=='table' then
@@ -89,7 +89,7 @@ function M.release(data)
    local name=type(asset)=='table' and str(asset.name); local url=type(asset)=='table' and str(asset.browser_download_url)
    if name and url and starts(url,M.download) then
     if name==zipName then r.zip={name=name,url=url,size=tonumber(asset.size) or 0}
-    elseif name==zipName..'.sha256' or name=='ACAdvancedIA-Beta-'..number..'.sha256' then r.sha={name=name,url=url} end
+    elseif name==zipName..'.sha256' or name=='AdvancedIA-Beta-'..number..'.sha256' then r.sha={name=name,url=url} end
    end
   end
  end
@@ -104,7 +104,7 @@ function M.digest(text,zipName)
  if not hash or #hash~=64 or name~=zipName then return nil end
  return hash:lower()
 end
--- Chemin d'une entrée du paquet, sous apps/lua/ACAdvancedIA/ : segments non vides, ni « . » ni « .. », sans « \ » ni « : »
+-- Chemin d'une entrée du paquet, sous apps/lua/AdvancedIA/ : segments non vides, ni « . » ni « .. », sans « \ » ni « : »
 -- (une entrée de dossier finit par « / »).
 local function safe(name)
  if type(name)~='string' or not starts(name,M.prefix) or name:find('\\',1,true) or name:find(':',1,true) then return false end

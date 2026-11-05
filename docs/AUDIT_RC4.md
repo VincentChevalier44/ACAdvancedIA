@@ -1,4 +1,4 @@
-# Detailed adversarial review — ACAdvancedIA rc.4
+# Detailed adversarial review — AdvancedIA rc.4
 
 19 October 2026. Scope: the 18 active Lua files, the manifest, the presets and the test benches. The archived sources are not loaded. Review carried out by reading the code, comparing it with the CSP SDK and regression tests. No branch coverage rate and no 100% physical certification is claimed.
 
@@ -55,7 +55,7 @@ Custom presets also have a Delete button. Deletion is persistent and keeps the c
 
 | Module | Functions and paths reviewed | Consistency and checks |
 |---|---|---|
-| `ACAdvancedIA.lua` | Initialisation, dirty, interrupted probe, synchronisation after restoration, stop/release/session, update/protect, window callbacks. | A single `script.update`, active without a window. Idempotent reload and unsubscription. No setter online/in replay/in pause. Restoration deferred if the context forbids it. Protected error triggering panic and an attempted restoration. |
+| `AdvancedIA.lua` | Initialisation, dirty, interrupted probe, synchronisation after restoration, stop/release/session, update/protect, window callbacks. | A single `script.update`, active without a window. Idempotent reload and unsubscription. No setter online/in replay/in pause. Restoration deferred if the context forbids it. Protected error triggering panic and an attempted restoration. |
 | `config.lua` | Declaration of the 95 fields, defaults, patterns, validations, presets, effective sections, global options, calibration need, automatic profile. | Types, bounds, future versions, non-finite extremes, min/max pairs. False preserved. Neutral start, separate profiles. Prepared values distinct from applied values. |
 | `ui.lua` | Building of the controls, eight patterns, help, line wrapping, sliders, checkboxes, buttons, lists, loading/identification of presets, main panel and diagnostics. | Distinct identifiers, lists with correct indices, checkboxes actually wired, saving during pause, normal-height tabs. Walk-through of the parameters in J/Q/C and of the global options. |
 | `snapshot.lua` | Snapshot, vectors, car, simulation, app identification, metadata, zone reading, menu context. | Validation of coordinates, heading, speed, spline, laps and dimensions; conversion of milliseconds. Non-zero player protected, remote cars and cars without physics excluded. Invalid data inert. |

@@ -49,9 +49,21 @@ if recovered and recovered.restart then
  function script.HUMANAI__HUD() end
  return
 end
+-- Beta 1.49 : ancienne version ACAdvancedIA encore installée (son manifeste) : elle pilote les IA ; cette app reste
+-- inerte et affiche seulement la consigne (src/oldinstall.lua), avant toute lecture ou écriture (AI flood, journal).
+do
+ local okOld,Old=pcall(require,'src/oldinstall')
+ local okApplier,Applier0=pcall(require,'src/applier')
+ local okConfig,Config0=pcall(require,'src/config')
+ if okOld and okApplier and Applier0.companionInstalled(Old.folder) then
+  Old.run(script,Applier0,okConfig and Config0.release or '')
+  return
+ end
+end
 local Snapshot=require('src/snapshot')
 local Applier=require('src/applier')
 local Engine=require('src/engine')
+local Panel=require('src/panel')
 local Director=require('src/director')
 local Caps=require('src/caps')
 local Calibration=require('src/calibration')
@@ -101,6 +113,10 @@ local function announce()
  if t.messageId==shownMessage then return end
  shownMessage=t.messageId
  local m=Lang.messages[t.messageKind]
+ -- Beta 1.49 : avis de l'arrêt F1 (rappel, stratégie, arrêt validé ou non compté) : seulement pour le pont des apps
+ -- compagnes (texte du panneau), jamais en message en haut de l'écran ni en double sur l'overlay.
+ local quiet=m and Panel.pitAnnounce(t,t.messageKind)
+ if quiet then engine.ownTitle=m[1]; engine.ownText=quiet; engine.ownAi=false; return end
  if m then
   local text=t.messageText~='' and string.format(m[2],t.messageText) or string.format(m[2],t.messageValue,t.messageExtra)
   -- Beta 1.41 : annonce de l'app, revenue par ac.onMessage : jamais prise pour un bandeau de pénalité d'AC.
@@ -151,7 +167,11 @@ local function cspStep(dt)
 end
 -- AI flood de CSP (Beta 1.26) : état chargé par CSP au lancement ; le moteur écrit ensuite le réglage voulu.
 do local user,system,writable=Applier.floodRead(); Engine.floodInit(engine,user,system,writable); engine.floodWrite=Applier.floodWrite end
+-- Beta 1.49 : stratégie des stands du joueur (menu Quick Pitstop), lecture seule (src/pitplan.lua).
+engine.pitSpinners=Applier.pitSpinners
 if Applier.floodLeftover() then U.log(engine.log,0,'INFO','nettoyage: new_behaviour.ini.bak efface (reste d une version d avant la Beta 1.38)',-1) end
+host.oldSettings=Applier.oldSettings()
+if host.oldSettings then U.log(engine.log,0,'WARN','reglages d ACAdvancedIA non repris (state/lua/app/ACAdvancedIA.ini present, AdvancedIA.ini absent) : voir A verifier',-1) end
 if host.storageErrors>0 then U.log(engine.log,0,'WARN','invalid_storage:'..host.storageErrors,-1) end
 U.log(engine.log,0,'INFO',jitTuned and 'compilateur JIT: cache agrandi (8000 traces, 16 Mo), voitures pilotees en un seul appel protege' or 'compilateur JIT: options indisponibles, voitures pilotees une par une',-1)
 if host.upgraded and #host.upgraded>0 then U.log(engine.log,0,'INFO','profils mis a jour vers les prereglages '..Config.release..': '..table.concat(host.upgraded,', '),-1) end
@@ -164,7 +184,7 @@ local function writeJournal(force)
  if not globals.journal then return end
  if not host.journalTried then
   host.journalTried=true
-  if Applier.journalOpen(host) then Applier.journalWrite(host,'=== ACAdvancedIA '..Config.release..' : lancement '..Applier.clockText()..' ===\n') end
+  if Applier.journalOpen(host) then Applier.journalWrite(host,'=== AdvancedIA '..Config.release..' : lancement '..Applier.clockText()..' ===\n') end
  end
  if not host.journalPath or not force and engine.time<journal.flushAt then return end
  journal.flushAt=engine.time+K.journalPeriod

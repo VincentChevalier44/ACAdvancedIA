@@ -1,6 +1,6 @@
 -- Port de la mise à jour (Beta 1.33, renforcé en Beta 1.35) : réseau, empreinte, zips et fichiers de CSP, seulement ici.
 -- Dossier de travail hors de l'app, dans cfg/extension/state de CSP (jamais rechargé en direct) :
---   next/apps/lua/ACAdvancedIA/  paquet téléchargé, extrait et comparé au paquet ;
+--   next/apps/lua/AdvancedIA/  paquet téléchargé, extrait et comparé au paquet ;
 --   current/                     fichiers de l'app que la copie va remplacer, copiés juste avant elle ;
 --   backup/                      version précédente (current promu après une installation réussie) ;
 --   installing.txt               repère d'une copie en cours (écrit et relu juste avant, levé juste après) ;
@@ -14,7 +14,7 @@
 -- Chaque source garde la liste de ses fichiers (.files) : une source n'est utilisée que si tous ses fichiers sont là.
 -- Le dossier de l'app (sur un autre disque que Documents, le plus souvent) ne reçoit que la copie finale : chaque fichier
 -- copié à côté (.new) puis mis en place d'un seul coup (même disque), surveillance des fichiers de CSP suspendue puis
--- rétablie, src/ d'abord, ACAdvancedIA.lua puis le manifeste en dernier. Restes de la Beta 1.33/1.34 (dossier backup/ de
+-- rétablie, src/ d'abord, AdvancedIA.lua puis le manifeste en dernier. Restes de la Beta 1.33/1.34 (dossier backup/ de
 -- l'app) : compte rendu et repère lus, rien n'y est écrit.
 -- Sans les fonctions de CSP (tests, banc de mesure), le port est inerte : rien n'est lu, écrit ni demandé.
 local Update=require('src/update')
@@ -50,9 +50,9 @@ local function folders(dir,rel,out)
  end)
  return out
 end
--- Ordre de la copie finale : src/ d'abord, les autres fichiers, puis ACAdvancedIA.lua, le manifeste en dernier.
+-- Ordre de la copie finale : src/ d'abord, les autres fichiers, puis AdvancedIA.lua, le manifeste en dernier.
 local function rank(path)
- if path=='manifest.ini' then return 4 elseif path=='ACAdvancedIA.lua' then return 3 elseif path:sub(1,4)=='src/' then return 1 end
+ if path=='manifest.ini' then return 4 elseif path=='AdvancedIA.lua' then return 3 elseif path:sub(1,4)=='src/' then return 1 end
  return 2
 end
 local function ordered(list)
@@ -74,7 +74,7 @@ end
 -- Bibliothèques de CSP lues sans erreur quand elles manquent (tests, ancien CSP).
 local function lib(name) local t=rawget(_G,name); return type(t)=='table' and t or nil end
 local needed={'load','save','fileExists','deleteFile','copyFile','move','createDir','createFileDir','scanDir','scanZip','loadFromZip','extractFromZipAsync'}
-M.work='ACAdvancedIA-update'
+M.work='AdvancedIA-update'
 M.list='.files'
 -- onRelease : journal versé et commandes des IA rendues à AC (fourni par le script principal), avant ac.restartApp.
 function M.new(onRelease)
@@ -192,7 +192,7 @@ function M.new(onRelease)
  function p.failed() return load(failedFile) end
  function p.clearFailed() return delete(failedFile) end
  -- Journal de CSP (custom_shaders_patch.log) : la reprise au chargement y est dite même si l'app ne charge pas ensuite.
- function p.log(text) if ac and callable(ac.log) then pcall(ac.log,'ACAdvancedIA: '..tostring(text)) end end
+ function p.log(text) if ac and callable(ac.log) then pcall(ac.log,'AdvancedIA: '..tostring(text)) end end
  function p.open(url) if os and callable(os.openURL) and type(url)=='string' and url:sub(1,8)=='https://' then pcall(os.openURL,url) end end
  -- Paquet extrait dans next/ (vidé d'abord ; manifeste extrait en dernier par CSP), puis comparé fichier par fichier au
  -- paquet ; liste des fichiers écrite en dernier (source complète seulement si tout est conforme).

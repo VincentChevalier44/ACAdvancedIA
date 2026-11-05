@@ -28,7 +28,7 @@ def runtime():
 
 def main():
     lua = runtime()
-    for file in [APP/'ACAdvancedIA.lua', *sorted((APP/'src').glob('*.lua'))]:
+    for file in [APP/'AdvancedIA.lua', *sorted((APP/'src').glob('*.lua'))]:
         lua.execute('assert(loadstring(...))', file.read_text(encoding='utf-8'))
     tests = lua.execute((APP/'tests/scenarios.lua').read_text(encoding='utf-8'))
     extended = lua.execute((APP/'tests/extended.lua').read_text(encoding='utf-8'))
